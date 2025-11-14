@@ -54,95 +54,118 @@ const generateDoseSchedule = (startDate: Date): Dose[] => {
   return doses;
 };
 
-// Exporting the array so it can be mutated and read across the application instance.
-export let mockPatients: Patient[] = [
-  {
-    id: "1",
-    fullName: "Ana Silva",
-    age: 34,
-    initialWeight: 85,
-    height: 165,
-    desiredWeight: 65,
-    firstDoseDate: new Date("2024-05-10"),
-    address: {
-      zip: "01001-000",
-      street: "Praça da Sé",
-      number: "100",
-      city: "São Paulo",
-      state: "SP",
-    },
-    phone: "5511987654321",
-    healthContraindications: "Nenhuma observação.",
-    avatarUrl: placeholderImages.find(p => p.id === "woman-smiling-1")?.imageUrl ?? "/placeholder.jpg",
-    doses: [
-        ...generateDoseSchedule(new Date("2024-05-10")).slice(0, 4).map((dose, index) => ({
-            ...dose,
-            status: 'administered' as 'administered',
-            weight: 85 - (index * 1.2),
-            bmi: calculateBmi(85 - (index * 1.2), 1.65),
-            administeredDose: 2.5,
-            payment: { method: 'pix' as 'pix' }
-        })),
-        ...generateDoseSchedule(new Date("2024-05-10")).slice(4)
-    ]
-  },
-  {
-    id: "2",
-    fullName: "Bruno Costa",
-    age: 42,
-    initialWeight: 102,
-    height: 180,
-    desiredWeight: 88,
-    firstDoseDate: new Date("2024-06-01"),
-    address: {
-      zip: "20031-050",
-      street: "Rua México",
-      number: "123",
-      city: "Rio de Janeiro",
-      state: "RJ",
-    },
-    phone: "5521912345678",
-    healthContraindications: "Hipertensão controlada.",
-    avatarUrl: placeholderImages.find(p => p.id === "man-posing-1")?.imageUrl ?? "/placeholder.jpg",
-    doses: generateDoseSchedule(new Date("2024-06-01")),
-  },
-  {
-    id: "3",
-    fullName: "Carla Dias",
-    age: 28,
-    initialWeight: 72,
-    height: 172,
-    desiredWeight: 60,
-    firstDoseDate: new Date(new Date().setDate(new Date().getDate() - 21)),
-    address: {
-      zip: "30110-044",
-      street: "Avenida do Contorno",
-      number: "456",
-      city: "Belo Horizonte",
-      state: "MG",
-    },
-    phone: "5531999998888",
-    healthContraindications: "Alergia a amendoim.",
-    avatarUrl: placeholderImages.find(p => p.id === "woman-outdoors-1")?.imageUrl ?? "/placeholder.jpg",
-    doses: [
-      { id: 1, doseNumber: 1, date: new Date(new Date().setDate(new Date().getDate() - 21)), status: 'administered', weight: 72, bmi: calculateBmi(72, 1.72), administeredDose: 2.5, payment: { method: 'credit', installments: 2 } },
-      { id: 2, doseNumber: 2, date: new Date(new Date().setDate(new Date().getDate() - 14)), status: 'administered', weight: 70.5, bmi: calculateBmi(70.5, 1.72), administeredDose: 2.5, payment: { method: 'credit', installments: 2 } },
-      ...generateDoseSchedule(new Date(new Date().setDate(new Date().getDate() - 21))).slice(2)
-    ],
-  },
-];
+// We use a global variable to simulate a database in a development environment.
+// This is not suitable for production.
+const globalWithMockPatients = global as typeof global & {
+  mockPatients?: Patient[];
+};
+
+
+const initializePatients = (): Patient[] => {
+    if (globalWithMockPatients.mockPatients) {
+        return globalWithMockPatients.mockPatients;
+    }
+    
+    globalWithMockPatients.mockPatients = [
+      {
+        id: "1",
+        fullName: "Ana Silva",
+        age: 34,
+        initialWeight: 85,
+        height: 165,
+        desiredWeight: 65,
+        firstDoseDate: new Date("2024-05-10"),
+        address: {
+          zip: "01001-000",
+          street: "Praça da Sé",
+          number: "100",
+          city: "São Paulo",
+          state: "SP",
+        },
+        phone: "5511987654321",
+        healthContraindications: "Nenhuma observação.",
+        avatarUrl: placeholderImages.find(p => p.id === "woman-smiling-1")?.imageUrl ?? "/placeholder.jpg",
+        doses: [
+            ...generateDoseSchedule(new Date("2024-05-10")).slice(0, 4).map((dose, index) => ({
+                ...dose,
+                status: 'administered' as 'administered',
+                weight: 85 - (index * 1.2),
+                bmi: calculateBmi(85 - (index * 1.2), 1.65),
+                administeredDose: 2.5,
+                payment: { method: 'pix' as 'pix' }
+            })),
+            ...generateDoseSchedule(new Date("2024-05-10")).slice(4)
+        ]
+      },
+      {
+        id: "2",
+        fullName: "Bruno Costa",
+        age: 42,
+        initialWeight: 102,
+        height: 180,
+        desiredWeight: 88,
+        firstDoseDate: new Date("2024-06-01"),
+        address: {
+          zip: "20031-050",
+          street: "Rua México",
+          number: "123",
+          city: "Rio de Janeiro",
+          state: "RJ",
+        },
+        phone: "5521912345678",
+        healthContraindications: "Hipertensão controlada.",
+        avatarUrl: placeholderImages.find(p => p.id === "man-posing-1")?.imageUrl ?? "/placeholder.jpg",
+        doses: generateDoseSchedule(new Date("2024-06-01")),
+      },
+      {
+        id: "3",
+        fullName: "Carla Dias",
+        age: 28,
+        initialWeight: 72,
+        height: 172,
+        desiredWeight: 60,
+        firstDoseDate: new Date(new Date().setDate(new Date().getDate() - 21)),
+        address: {
+          zip: "30110-044",
+          street: "Avenida do Contorno",
+          number: "456",
+          city: "Belo Horizonte",
+          state: "MG",
+        },
+        phone: "5531999998888",
+        healthContraindications: "Alergia a amendoim.",
+        avatarUrl: placeholderImages.find(p => p.id === "woman-outdoors-1")?.imageUrl ?? "/placeholder.jpg",
+        doses: [
+          { id: 1, doseNumber: 1, date: new Date(new Date().setDate(new Date().getDate() - 21)), status: 'administered', weight: 72, bmi: calculateBmi(72, 1.72), administeredDose: 2.5, payment: { method: 'credit', installments: 2 } },
+          { id: 2, doseNumber: 2, date: new Date(new Date().setDate(new Date().getDate() - 14)), status: 'administered', weight: 70.5, bmi: calculateBmi(70.5, 1.72), administeredDose: 2.5, payment: { method: 'credit', installments: 2 } },
+          ...generateDoseSchedule(new Date(new Date().setDate(new Date().getDate() - 21))).slice(2)
+        ],
+      },
+    ];
+    return globalWithMockPatients.mockPatients;
+};
+
+// Initialize the patient list
+let mockPatients = initializePatients();
+
 
 export const getPatients = async (): Promise<Patient[]> => {
-    return new Promise(resolve => setTimeout(() => resolve([...mockPatients].sort((a,b) => a.fullName.localeCompare(b.fullName))), 500));
+    // Re-read from global to ensure we have the latest list
+    const currentPatients = globalWithMockPatients.mockPatients ?? initializePatients();
+    return new Promise(resolve => setTimeout(() => resolve([...currentPatients].sort((a,b) => a.fullName.localeCompare(b.fullName))), 500));
 }
 
 export const getPatientById = async (id: string): Promise<Patient | null> => {
+    const currentPatients = globalWithMockPatients.mockPatients ?? initializePatients();
     await new Promise(resolve => setTimeout(resolve, 500));
-    return mockPatients.find(p => p.id === id) ?? null;
+    return currentPatients.find(p => p.id === id) ?? null;
 }
 
 export const addPatient = async (patientData: NewPatientData): Promise<Patient> => {
-    const newId = (mockPatients.length > 0 ? Math.max(...mockPatients.map(p => parseInt(p.id, 10))) : 0) + 1;
+    // Re-read from global to ensure we add to the correct list
+    const currentPatients = globalWithMockPatients.mockPatients ?? initializePatients();
+    
+    const newId = (currentPatients.length > 0 ? Math.max(...currentPatients.map(p => parseInt(p.id, 10))) : 0) + 1;
     
     const initialBmi = calculateBmi(patientData.initialWeight, patientData.height / 100);
     const doses = generateDoseSchedule(patientData.firstDoseDate).map(dose => {
@@ -185,7 +208,8 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         doses: doses,
     };
 
-    mockPatients = [...mockPatients, newPatient];
+    // Update the global list
+    globalWithMockPatients.mockPatients = [...currentPatients, newPatient];
     
     await new Promise(resolve => setTimeout(resolve, 500));
     
