@@ -35,7 +35,7 @@ export function getDoseStatus(dose: Dose) {
     return { label: "Vencida", color: "bg-destructive/80", textColor: "text-destructive-foreground" };
   }
   if (daysUntilDose <= 2) {
-    return { label: "Vencendo", color: "bg-red-500", textColor: "text-white" };
+    return { label: "Vencendo", color: "bg-orange-500", textColor: "text-white" };
   }
   if (daysUntilDose <= 5) {
     return { label: "Próxima", color: "bg-yellow-400", textColor: "text-yellow-900" };

@@ -119,7 +119,7 @@ export default async function DashboardPage() {
                       <TableCell>{formatDate(dose.date)}</TableCell>
                       <TableCell>{dose.doseNumber}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={`${status.color} ${status.textColor} border-none`}>
+                        <Badge variant={status.color.includes('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>
                           {status.label}
                         </Badge>
                       </TableCell>
