@@ -23,7 +23,7 @@ export type Patient = {
   doses: Dose[];
 };
 
-export type NewPatientData = Omit<Patient, 'id' | 'avatarUrl' | 'doses'>;
+export type NewPatientData = Omit<Patient, 'id' | 'avatarUrl' | 'doses' | 'healthContraindications'> & { healthContraindications?: string };
 
 export type Dose = {
   id: number;
@@ -55,7 +55,7 @@ const generateDoseSchedule = (startDate: Date): Dose[] => {
 };
 
 // Exporting the array so it can be mutated and read across the application instance.
-export const mockPatients: Patient[] = [
+export let mockPatients: Patient[] = [
   {
     id: "1",
     fullName: "Ana Silva",
@@ -79,6 +79,7 @@ export const mockPatients: Patient[] = [
             ...dose,
             status: 'administered' as 'administered',
             weight: 85 - (index * 1.2),
+            bmi: calculateBmi(85 - (index * 1.2), 1.65),
             administeredDose: 2.5,
             payment: { method: 'pix' as 'pix' }
         })),
@@ -124,15 +125,15 @@ export const mockPatients: Patient[] = [
     healthContraindications: "Alergia a amendoim.",
     avatarUrl: placeholderImages.find(p => p.id === "woman-outdoors-1")?.imageUrl ?? "/placeholder.jpg",
     doses: [
-      { id: 1, doseNumber: 1, date: new Date(new Date().setDate(new Date().getDate() - 21)), status: 'administered', weight: 72, administeredDose: 2.5, payment: { method: 'credit', installments: 2 } },
-      { id: 2, doseNumber: 2, date: new Date(new Date().setDate(new Date().getDate() - 14)), status: 'administered', weight: 70.5, administeredDose: 2.5, payment: { method: 'credit', installments: 2 } },
+      { id: 1, doseNumber: 1, date: new Date(new Date().setDate(new Date().getDate() - 21)), status: 'administered', weight: 72, bmi: calculateBmi(72, 1.72), administeredDose: 2.5, payment: { method: 'credit', installments: 2 } },
+      { id: 2, doseNumber: 2, date: new Date(new Date().setDate(new Date().getDate() - 14)), status: 'administered', weight: 70.5, bmi: calculateBmi(70.5, 1.72), administeredDose: 2.5, payment: { method: 'credit', installments: 2 } },
       ...generateDoseSchedule(new Date(new Date().setDate(new Date().getDate() - 21))).slice(2)
     ],
   },
 ];
 
 export const getPatients = async (): Promise<Patient[]> => {
-    return new Promise(resolve => setTimeout(() => resolve([...mockPatients].sort((a,b) => b.firstDoseDate.getTime() - a.firstDoseDate.getTime())), 500));
+    return new Promise(resolve => setTimeout(() => resolve([...mockPatients].sort((a,b) => a.fullName.localeCompare(b.fullName))), 500));
 }
 
 export const getPatientById = async (id: string): Promise<Patient | null> => {
@@ -141,26 +142,30 @@ export const getPatientById = async (id: string): Promise<Patient | null> => {
 }
 
 export const addPatient = async (patientData: NewPatientData): Promise<Patient> => {
-    const newId = (Math.max(...mockPatients.map(p => parseInt(p.id, 10))) + 1).toString();
+    const newId = (mockPatients.length > 0 ? Math.max(...mockPatients.map(p => parseInt(p.id, 10))) : 0) + 1;
     
     const initialBmi = calculateBmi(patientData.initialWeight, patientData.height / 100);
     const doses = generateDoseSchedule(patientData.firstDoseDate).map(dose => {
         const today = new Date();
-        if (dose.date < today) {
+        today.setHours(0, 0, 0, 0);
+        const doseDate = new Date(dose.date);
+        doseDate.setHours(0, 0, 0, 0);
+
+        if (doseDate < today) {
             return {
                 ...dose,
                 status: 'administered' as 'administered',
                 weight: patientData.initialWeight,
                 bmi: initialBmi,
-                administeredDose: 2.5,
-                payment: { method: 'pix' as 'pix' }
+                administeredDose: 2.5, // Default dose for past dates
+                payment: { method: 'pix' as 'pix' } // Default payment
             };
         }
         return dose;
     });
 
     const newPatient: Patient = {
-        id: newId,
+        id: String(newId),
         fullName: patientData.fullName,
         age: patientData.age,
         initialWeight: patientData.initialWeight,
@@ -180,7 +185,7 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         doses: doses,
     };
 
-    mockPatients.push(newPatient);
+    mockPatients = [...mockPatients, newPatient];
     
     await new Promise(resolve => setTimeout(resolve, 500));
     

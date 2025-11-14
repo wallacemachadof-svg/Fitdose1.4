@@ -27,6 +27,16 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { addPatient } from "@/lib/data";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const healthConditions = [
+    { id: "hypertension", label: "Hipertensão" },
+    { id: "diabetes", label: "Diabetes" },
+    { id: "heart_disease", label: "Doença Cardíaca" },
+    { id: "thyroid", label: "Problemas de Tireoide" },
+    { id: "allergies", label: "Alergias" },
+    { id: "respiratory", label: "Problemas Respiratórios" },
+] as const;
 
 const patientFormSchema = z.object({
   fullName: z.string().min(3, "Nome completo é obrigatório."),
@@ -43,6 +53,7 @@ const patientFormSchema = z.object({
   city: z.string().min(1, "Cidade é obrigatória."),
   state: z.string().min(2, "Estado é obrigatório.").max(2, "Use a sigla do estado."),
   phone: z.string().min(10, "Telefone inválido."),
+  healthConditions: z.array(z.string()).optional(),
   healthContraindications: z.string().optional(),
 });
 
@@ -57,7 +68,8 @@ export default function NewPatientPage() {
     const form = useForm<PatientFormValues>({
         resolver: zodResolver(patientFormSchema),
         defaultValues: {
-            healthContraindications: ""
+            healthContraindications: "",
+            healthConditions: [],
         }
     });
 
@@ -110,7 +122,21 @@ export default function NewPatientPage() {
     async function onSubmit(data: PatientFormValues) {
         setIsSubmitting(true);
         try {
-            await addPatient(data);
+            const conditions = data.healthConditions
+                ?.map(id => healthConditions.find(c => c.id === id)?.label)
+                .filter(Boolean) ?? [];
+                
+            const fullContraindications = [
+                ...conditions,
+                data.healthContraindications
+            ].filter(Boolean).join(', ');
+
+            const patientDataForApi = {
+                ...data,
+                healthContraindications: fullContraindications || 'Nenhuma observação.',
+            };
+
+            await addPatient(patientDataForApi);
             toast({
                 title: "Paciente Registrado!",
                 description: `${data.fullName} foi adicionado(a) com sucesso.`,
@@ -146,6 +172,7 @@ export default function NewPatientPage() {
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                            <h3 className="text-lg font-semibold -mb-2">Informações Pessoais</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <FormField control={form.control} name="fullName" render={({ field }) => (
                                     <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input placeholder="Ex: João da Silva" {...field} /></FormControl><FormMessage /></FormItem>
@@ -195,7 +222,7 @@ export default function NewPatientPage() {
                                 </div>
                             </div>
                             
-                            <h3 className="text-lg font-semibold border-t pt-6">Endereço</h3>
+                            <h3 className="text-lg font-semibold border-t pt-6 -mb-2">Endereço</h3>
                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <FormField control={form.control} name="zip" render={({ field }) => (
                                     <FormItem><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} /></FormControl><FormMessage /></FormItem>
@@ -218,11 +245,70 @@ export default function NewPatientPage() {
                                 )}/>
                             </div>
 
-                            <FormField control={form.control} name="healthContraindications" render={({ field }) => (
-                                <FormItem><FormLabel>Contraindicações e Observações</FormLabel><FormControl><Textarea rows={5} placeholder="Liste alergias, condições médicas, medicamentos em uso, etc." {...field} /></FormControl><FormMessage /></FormItem>
-                            )}/>
+                             <div className="space-y-4 border-t pt-6">
+                                <h3 className="text-lg font-semibold">Ficha de Avaliação de Saúde</h3>
+                                <FormField
+                                    control={form.control}
+                                    name="healthConditions"
+                                    render={() => (
+                                        <FormItem>
+                                        <div className="mb-4">
+                                            <FormLabel className="text-base">Condições de Saúde</FormLabel>
+                                            <FormDescription>
+                                                Selecione as condições pré-existentes do paciente.
+                                            </FormDescription>
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        {healthConditions.map((item) => (
+                                            <FormField
+                                                key={item.id}
+                                                control={form.control}
+                                                name="healthConditions"
+                                                render={({ field }) => {
+                                                    return (
+                                                    <FormItem
+                                                        key={item.id}
+                                                        className="flex flex-row items-center space-x-3 space-y-0"
+                                                    >
+                                                        <FormControl>
+                                                        <Checkbox
+                                                            checked={field.value?.includes(item.id)}
+                                                            onCheckedChange={(checked) => {
+                                                            return checked
+                                                                ? field.onChange([...(field.value || []), item.id])
+                                                                : field.onChange(
+                                                                    field.value?.filter(
+                                                                    (value) => value !== item.id
+                                                                    )
+                                                                )
+                                                            }}
+                                                        />
+                                                        </FormControl>
+                                                        <FormLabel className="font-normal">
+                                                        {item.label}
+                                                        </FormLabel>
+                                                    </FormItem>
+                                                    )
+                                                }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField control={form.control} name="healthContraindications" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Outras Observações e Contraindicações</FormLabel>
+                                        <FormControl>
+                                            <Textarea rows={4} placeholder="Liste outras alergias, condições médicas, medicamentos em uso, etc." {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}/>
+                            </div>
                             
-                            <div className="flex justify-end gap-2">
+                            <div className="flex justify-end gap-2 pt-4">
                                 <Button type="button" variant="outline" onClick={() => router.push('/patients')} disabled={isSubmitting}>Cancelar</Button>
                                 <Button type="submit" disabled={isSubmitting}>
                                     {isSubmitting ? 'Salvando...' : 'Salvar Paciente'}
