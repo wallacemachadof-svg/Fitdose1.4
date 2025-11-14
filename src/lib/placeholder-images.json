@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "woman-smiling-1",
+      "description": "A woman smiling",
+      "imageUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzYzMDY2ODU4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "man-posing-1",
+      "description": "A man posing for a photo",
+      "imageUrl": "https://images.unsplash.com/photo-1631186623896-900967726a35?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYW4lMjBwb3Npbmd8ZW58MHx8fHwxNzYzMTEyMzU3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man posing"
+    },
+    {
+      "id": "woman-outdoors-1",
+      "description": "A woman outdoors",
+      "imageUrl": "https://images.unsplash.com/photo-1592387816700-795f86358127?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx3b21hbiUyMG91dGRvb3JzfGVufDB8fHx8MTc2MzExMjM1N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman outdoors"
+    },
+    {
+      "id": "health-dashboard-hero",
+      "description": "Abstract health data visualization",
+      "imageUrl": "https://images.unsplash.com/photo-1644088379091-d574269d422f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGRhdGF8ZW58MHx8fHwxNzYyOTkxNjAyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract data"
+    }
+  ]
 }
