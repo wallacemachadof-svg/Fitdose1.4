@@ -51,6 +51,7 @@ type PatientFormValues = z.infer<typeof patientFormSchema>;
 export default function NewPatientPage() {
     const router = useRouter();
     const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [bmi, setBmi] = useState<number | null>(null);
 
     const form = useForm<PatientFormValues>({
@@ -74,8 +75,8 @@ export default function NewPatientPage() {
     
     useEffect(() => {
         const fetchAddress = async () => {
-            const zipCode = watchZip.replace(/\D/g, '');
-            if (zipCode.length === 8) {
+            const zipCode = watchZip?.replace(/\D/g, '');
+            if (zipCode && zipCode.length === 8) {
                 try {
                     const response = await fetch(`https://viacep.com.br/ws/${zipCode}/json/`);
                     const data = await response.json();
@@ -100,19 +101,33 @@ export default function NewPatientPage() {
                 }
             }
         };
-        fetchAddress();
+        if (watchZip) {
+            fetchAddress();
+        }
     }, [watchZip, form, toast]);
 
 
     async function onSubmit(data: PatientFormValues) {
-        await addPatient(data);
-        toast({
-            title: "Paciente Registrado!",
-            description: `${data.fullName} foi adicionado(a) com sucesso.`,
-            variant: "default",
-        });
-        router.push("/patients");
-        router.refresh(); // Forces a refresh on the patients page to show the new data
+        setIsSubmitting(true);
+        try {
+            await addPatient(data);
+            toast({
+                title: "Paciente Registrado!",
+                description: `${data.fullName} foi adicionado(a) com sucesso.`,
+                variant: "default",
+            });
+            router.push("/patients");
+            router.refresh();
+        } catch (error) {
+            console.error("Failed to add patient", error);
+             toast({
+                variant: "destructive",
+                title: "Erro ao salvar",
+                description: "Não foi possível salvar o paciente. Tente novamente.",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     return (
@@ -208,8 +223,10 @@ export default function NewPatientPage() {
                             )}/>
                             
                             <div className="flex justify-end gap-2">
-                                <Button type="button" variant="outline" onClick={() => router.push('/patients')}>Cancelar</Button>
-                                <Button type="submit">Salvar Paciente</Button>
+                                <Button type="button" variant="outline" onClick={() => router.push('/patients')} disabled={isSubmitting}>Cancelar</Button>
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting ? 'Salvando...' : 'Salvar Paciente'}
+                                </Button>
                             </div>
                         </form>
                     </Form>

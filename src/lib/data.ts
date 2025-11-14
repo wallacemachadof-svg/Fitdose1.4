@@ -54,7 +54,8 @@ const generateDoseSchedule = (startDate: Date): Dose[] => {
   return doses;
 };
 
-const mockPatients: Patient[] = [
+// Exporting the array so it can be mutated and read across the application instance.
+export const mockPatients: Patient[] = [
   {
     id: "1",
     fullName: "Ana Silva",
@@ -131,21 +132,17 @@ const mockPatients: Patient[] = [
 ];
 
 export const getPatients = async (): Promise<Patient[]> => {
-    // In a real app, this would fetch from a database.
-    // We'll simulate that by returning a copy of our mock data.
     return new Promise(resolve => setTimeout(() => resolve([...mockPatients].sort((a,b) => b.firstDoseDate.getTime() - a.firstDoseDate.getTime())), 500));
 }
 
 export const getPatientById = async (id: string): Promise<Patient | null> => {
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 500));
     return mockPatients.find(p => p.id === id) ?? null;
 }
 
 export const addPatient = async (patientData: NewPatientData): Promise<Patient> => {
-    const newId = (mockPatients.length + 1).toString();
+    const newId = (Math.max(...mockPatients.map(p => parseInt(p.id, 10))) + 1).toString();
     
-    // Some doses might be administered already, let's update them based on the BMI calculated with their initial weight
     const initialBmi = calculateBmi(patientData.initialWeight, patientData.height / 100);
     const doses = generateDoseSchedule(patientData.firstDoseDate).map(dose => {
         const today = new Date();
@@ -153,9 +150,9 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
             return {
                 ...dose,
                 status: 'administered' as 'administered',
-                weight: patientData.initialWeight, // Assume initial weight for past doses
+                weight: patientData.initialWeight,
                 bmi: initialBmi,
-                administeredDose: 2.5, // Default dose
+                administeredDose: 2.5,
                 payment: { method: 'pix' as 'pix' }
             };
         }
@@ -179,13 +176,12 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         },
         phone: patientData.phone,
         healthContraindications: patientData.healthContraindications ?? "Nenhuma observação.",
-        avatarUrl: `https://i.pravatar.cc/150?u=${newId}`, // Using a random avatar service
+        avatarUrl: `https://i.pravatar.cc/150?u=${newId}`,
         doses: doses,
     };
 
     mockPatients.push(newPatient);
     
-    // Simulate network delay for saving
     await new Promise(resolve => setTimeout(resolve, 500));
     
     return newPatient;
