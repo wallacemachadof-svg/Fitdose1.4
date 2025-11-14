@@ -45,7 +45,7 @@ export default async function PatientsPage() {
           <TableBody>
             {patients.length > 0 ? (
               patients.map((patient) => {
-                const initialBmi = calculateBmi(patient.initialWeight, patient.height);
+                const initialBmi = calculateBmi(patient.initialWeight, patient.height / 100);
                 const patientNameInitial = patient.fullName.charAt(0).toUpperCase();
                 return (
                   <TableRow key={patient.id}>

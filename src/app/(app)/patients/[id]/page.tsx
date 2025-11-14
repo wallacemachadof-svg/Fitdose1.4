@@ -27,6 +27,7 @@ import {
     CalendarIcon,
     Pencil,
     Bot,
+    TrendingDown,
 } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { summarizeHealthData } from '@/ai/flows/summarize-health-data';
@@ -74,7 +75,8 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
   }
   
   const currentWeight = patient.doses.findLast(d => d.status === 'administered' && d.weight)?.weight ?? patient.initialWeight;
-  const currentBmi = calculateBmi(currentWeight, patient.height);
+  const currentBmi = calculateBmi(currentWeight, patient.height / 100);
+  const weightToLose = currentWeight - patient.desiredWeight;
   const patientNameInitial = patient.fullName.charAt(0).toUpperCase();
   
   return (
@@ -98,8 +100,9 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
         <div className="w-full md:w-2/3 grid grid-cols-2 gap-4">
             <InfoCard icon={Weight} label="Peso Atual" value={`${currentWeight} kg`} />
             <InfoCard icon={Activity} label="IMC Atual" value={currentBmi} />
-            <InfoCard icon={Ruler} label="Altura" value={`${patient.height} m`} />
+            <InfoCard icon={Ruler} label="Altura" value={`${patient.height} cm`} />
             <InfoCard icon={Target} label="Meta de Peso" value={`${patient.desiredWeight} kg`} />
+            <InfoCard icon={TrendingDown} label="Faltam Perder" value={`${weightToLose > 0 ? weightToLose.toFixed(1) : 0} kg`} />
         </div>
       </div>
       
@@ -163,7 +166,7 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
                     <TableCell>{dose.bmi ?? '-'}</TableCell>
                     <TableCell>{dose.administeredDose ? `${dose.administeredDose} mg` : '-'}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
+                      <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
                     </TableCell>
                     <TableCell>
                       <Button variant="outline" size="icon" className="h-8 w-8" disabled={dose.status === 'administered'}>

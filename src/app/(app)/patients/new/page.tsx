@@ -26,12 +26,13 @@ import { ptBR } from "date-fns/locale";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { addPatient } from "@/lib/data";
 
 const patientFormSchema = z.object({
   fullName: z.string().min(3, "Nome completo é obrigatório."),
   age: z.coerce.number().min(1, "Idade é obrigatória.").positive("Idade deve ser um número positivo."),
   initialWeight: z.coerce.number().min(1, "Peso inicial é obrigatório.").positive("Peso deve ser um número positivo."),
-  height: z.coerce.number().min(0.5, "Altura é obrigatória.").positive("Altura deve ser um número positivo."),
+  height: z.coerce.number().min(1, "Altura é obrigatória.").positive("Altura deve ser um número positivo."),
   desiredWeight: z.coerce.number().min(1, "Peso desejado é obrigatório.").positive("Peso deve ser um número positivo."),
   firstDoseDate: z.date({
     required_error: "A data da primeira dose é obrigatória.",
@@ -61,23 +62,57 @@ export default function NewPatientPage() {
 
     const watchWeight = form.watch("initialWeight");
     const watchHeight = form.watch("height");
+    const watchZip = form.watch("zip");
 
     useEffect(() => {
         if (watchWeight && watchHeight) {
-            setBmi(calculateBmi(watchWeight, watchHeight));
+            setBmi(calculateBmi(watchWeight, watchHeight / 100)); // Convert cm to meters
         } else {
             setBmi(null);
         }
     }, [watchWeight, watchHeight]);
+    
+    useEffect(() => {
+        const fetchAddress = async () => {
+            const zipCode = watchZip.replace(/\D/g, '');
+            if (zipCode.length === 8) {
+                try {
+                    const response = await fetch(`https://viacep.com.br/ws/${zipCode}/json/`);
+                    const data = await response.json();
+                    if (!data.erro) {
+                        form.setValue("street", data.logradouro);
+                        form.setValue("city", data.localidade);
+                        form.setValue("state", data.uf);
+                    } else {
+                        toast({
+                            variant: "destructive",
+                            title: "CEP não encontrado",
+                            description: "Verifique o CEP e tente novamente.",
+                        });
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch address", error);
+                    toast({
+                        variant: "destructive",
+                        title: "Erro ao buscar CEP",
+                        description: "Não foi possível buscar o endereço. Tente novamente.",
+                    });
+                }
+            }
+        };
+        fetchAddress();
+    }, [watchZip, form, toast]);
 
-    function onSubmit(data: PatientFormValues) {
-        console.log("New Patient Data:", data);
+
+    async function onSubmit(data: PatientFormValues) {
+        await addPatient(data);
         toast({
             title: "Paciente Registrado!",
             description: `${data.fullName} foi adicionado(a) com sucesso.`,
             variant: "default",
         });
         router.push("/patients");
+        router.refresh(); // Forces a refresh on the patients page to show the new data
     }
 
     return (
@@ -113,7 +148,7 @@ export default function NewPatientPage() {
                                     <FormItem><FormLabel>Peso Inicial (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="height" render={({ field }) => (
-                                    <FormItem><FormLabel>Altura (m)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ex: 1.75" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Altura (cm)</FormLabel><FormControl><Input type="number" placeholder="Ex: 175" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="desiredWeight" render={({ field }) => (
                                     <FormItem><FormLabel>Meta de Peso (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>

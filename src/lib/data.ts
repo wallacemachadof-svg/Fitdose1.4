@@ -1,4 +1,5 @@
 import { placeholderImages } from "@/lib/placeholder-images";
+import { calculateBmi } from "./utils";
 
 export type Patient = {
   id: string;
@@ -21,6 +22,8 @@ export type Patient = {
   avatarUrl: string;
   doses: Dose[];
 };
+
+export type NewPatientData = Omit<Patient, 'id' | 'avatarUrl' | 'doses'>;
 
 export type Dose = {
   id: number;
@@ -57,7 +60,7 @@ const mockPatients: Patient[] = [
     fullName: "Ana Silva",
     age: 34,
     initialWeight: 85,
-    height: 1.65,
+    height: 165,
     desiredWeight: 65,
     firstDoseDate: new Date("2024-05-10"),
     address: {
@@ -86,7 +89,7 @@ const mockPatients: Patient[] = [
     fullName: "Bruno Costa",
     age: 42,
     initialWeight: 102,
-    height: 1.80,
+    height: 180,
     desiredWeight: 88,
     firstDoseDate: new Date("2024-06-01"),
     address: {
@@ -106,7 +109,7 @@ const mockPatients: Patient[] = [
     fullName: "Carla Dias",
     age: 28,
     initialWeight: 72,
-    height: 1.72,
+    height: 172,
     desiredWeight: 60,
     firstDoseDate: new Date(new Date().setDate(new Date().getDate() - 21)),
     address: {
@@ -127,12 +130,63 @@ const mockPatients: Patient[] = [
   },
 ];
 
-export const getPatients = async () => {
-    return mockPatients;
+export const getPatients = async (): Promise<Patient[]> => {
+    // In a real app, this would fetch from a database.
+    // We'll simulate that by returning a copy of our mock data.
+    return new Promise(resolve => setTimeout(() => resolve([...mockPatients].sort((a,b) => b.firstDoseDate.getTime() - a.firstDoseDate.getTime())), 500));
 }
 
-export const getPatientById = async (id: string) => {
+export const getPatientById = async (id: string): Promise<Patient | null> => {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 500));
     return mockPatients.find(p => p.id === id) ?? null;
 }
+
+export const addPatient = async (patientData: NewPatientData): Promise<Patient> => {
+    const newId = (mockPatients.length + 1).toString();
+    
+    // Some doses might be administered already, let's update them based on the BMI calculated with their initial weight
+    const initialBmi = calculateBmi(patientData.initialWeight, patientData.height / 100);
+    const doses = generateDoseSchedule(patientData.firstDoseDate).map(dose => {
+        const today = new Date();
+        if (dose.date < today) {
+            return {
+                ...dose,
+                status: 'administered' as 'administered',
+                weight: patientData.initialWeight, // Assume initial weight for past doses
+                bmi: initialBmi,
+                administeredDose: 2.5, // Default dose
+                payment: { method: 'pix' as 'pix' }
+            };
+        }
+        return dose;
+    });
+
+    const newPatient: Patient = {
+        id: newId,
+        fullName: patientData.fullName,
+        age: patientData.age,
+        initialWeight: patientData.initialWeight,
+        height: patientData.height,
+        desiredWeight: patientData.desiredWeight,
+        firstDoseDate: patientData.firstDoseDate,
+        address: {
+            zip: patientData.zip,
+            street: patientData.street,
+            number: patientData.number,
+            city: patientData.city,
+            state: patientData.state,
+        },
+        phone: patientData.phone,
+        healthContraindications: patientData.healthContraindications ?? "Nenhuma observação.",
+        avatarUrl: `https://i.pravatar.cc/150?u=${newId}`, // Using a random avatar service
+        doses: doses,
+    };
+
+    mockPatients.push(newPatient);
+    
+    // Simulate network delay for saving
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return newPatient;
+};
