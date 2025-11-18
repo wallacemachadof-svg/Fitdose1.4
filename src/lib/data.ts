@@ -367,6 +367,23 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
 
     return newSale;
 };
+
+export const deleteSale = async (id: string): Promise<void> => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const saleIndex = sales.findIndex(s => s.id === id);
+    if (saleIndex !== -1) {
+        sales.splice(saleIndex, 1);
+    } else {
+        throw new Error("Sale not found");
+    }
+
+    const cashFlowEntryId = `sale-${id}`;
+    const cashFlowIndex = cashFlowEntries.findIndex(cf => cf.id === cashFlowEntryId);
+    if (cashFlowIndex !== -1) {
+        cashFlowEntries.splice(cashFlowIndex, 1);
+    }
+};
     
 export const getCashFlowEntries = async (): Promise<CashFlowEntry[]> => {
   await new Promise(resolve => setTimeout(resolve, 500));
