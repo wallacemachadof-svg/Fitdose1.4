@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { addPatient } from "@/lib/data";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const healthConditions = [
     { id: "hypertension", label: "Hipertensão" },
@@ -70,7 +71,20 @@ const patientFormSchema = z.object({
   phone: z.string().min(10, "Telefone inválido."),
   healthConditions: z.array(z.string()).optional(),
   contraindications: z.array(z.string()).optional(),
-  healthContraindications: z.string().optional(),
+  otherHealthIssues: z.string().optional(),
+  dailyMedications: z.string().optional(),
+  oralContraceptive: z.enum(['yes', 'no']).optional(),
+  usedMonjauro: z.enum(['yes', 'no']),
+  monjauroDose: z.string().optional(),
+  monjauroTime: z.string().optional(),
+}).refine(data => {
+    if (data.usedMonjauro === 'yes') {
+        return !!data.monjauroDose && !!data.monjauroTime;
+    }
+    return true;
+}, {
+    message: "Dose e tempo de uso são obrigatórios se você já usou Monjauro.",
+    path: ["usedMonjauro"],
 });
 
 type PatientFormValues = z.infer<typeof patientFormSchema>;
@@ -84,7 +98,6 @@ export default function NewPatientPage() {
     const form = useForm<PatientFormValues>({
         resolver: zodResolver(patientFormSchema),
         defaultValues: {
-            healthContraindications: "",
             healthConditions: [],
             contraindications: [],
         }
@@ -93,6 +106,7 @@ export default function NewPatientPage() {
     const watchWeight = form.watch("initialWeight");
     const watchHeight = form.watch("height");
     const watchZip = form.watch("zip");
+    const watchUsedMonjauro = form.watch("usedMonjauro");
 
     useEffect(() => {
         if (watchWeight && watchHeight) {
@@ -151,15 +165,19 @@ export default function NewPatientPage() {
             const fullContraindications = [
                 ...conditions,
                 ...contraindications,
-                data.healthContraindications
+                data.otherHealthIssues
             ].filter(Boolean).join(', ');
 
             const patientDataForApi = {
                 ...data,
                 healthContraindications: fullContraindications || 'Nenhuma observação.',
             };
+            
+            // Remove the temporary field
+            const { otherHealthIssues, ...finalPatientData } = patientDataForApi;
 
-            await addPatient(patientDataForApi);
+
+            await addPatient(finalPatientData);
             toast({
                 title: "Paciente Registrado!",
                 description: `${data.fullName} foi adicionado(a) com sucesso.`,
@@ -268,8 +286,19 @@ export default function NewPatientPage() {
                                 )}/>
                             </div>
 
-                             <div className="space-y-6 border-t pt-6">
+                             <div className="space-y-8 border-t pt-6">
                                 <h3 className="text-lg font-semibold">Ficha de Avaliação de Saúde</h3>
+                                
+                                <FormField control={form.control} name="otherHealthIssues" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Quais os problemas de saúde?</FormLabel>
+                                        <FormControl>
+                                            <Textarea rows={3} placeholder="Liste problemas de saúde não mencionados, se houver." {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}/>
+
                                 <FormField
                                     control={form.control}
                                     name="healthConditions"
@@ -376,15 +405,88 @@ export default function NewPatientPage() {
                                 
                                 <Separator />
 
-                                <FormField control={form.control} name="healthContraindications" render={({ field }) => (
+                                <FormField control={form.control} name="dailyMedications" render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Outras Observações e Contraindicações</FormLabel>
+                                        <FormLabel>Quais medicamentos toma todos os dias?</FormLabel>
                                         <FormControl>
-                                            <Textarea rows={4} placeholder="Liste outras alergias, condições médicas, medicamentos em uso, etc." {...field} />
+                                            <Textarea rows={3} placeholder="Liste os medicamentos de uso contínuo." {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}/>
+
+                                <FormField control={form.control} name="oralContraceptive" render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                        <FormLabel>Faz uso de anticoncepcional oral?</FormLabel>
+                                        <FormControl>
+                                            <RadioGroup
+                                            onValueChange={field.onChange}
+                                            defaultValue={field.value}
+                                            className="flex items-center gap-6"
+                                            >
+                                            <FormItem className="flex items-center space-x-3 space-y-0">
+                                                <FormControl>
+                                                <RadioGroupItem value="yes" />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">Sim</FormLabel>
+                                            </FormItem>
+                                            <FormItem className="flex items-center space-x-3 space-y-0">
+                                                <FormControl>
+                                                <RadioGroupItem value="no" />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">Não</FormLabel>
+                                            </FormItem>
+                                            </RadioGroup>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}/>
+                                
+                                <FormField control={form.control} name="usedMonjauro" render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                        <FormLabel>Já tomou Monjauro?</FormLabel>
+                                        <FormControl>
+                                            <RadioGroup
+                                            onValueChange={field.onChange}
+                                            defaultValue={field.value}
+                                            className="flex items-center gap-6"
+                                            >
+                                            <FormItem className="flex items-center space-x-3 space-y-0">
+                                                <FormControl>
+                                                <RadioGroupItem value="yes" />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">Sim</FormLabel>
+                                            </FormItem>
+                                            <FormItem className="flex items-center space-x-3 space-y-0">
+                                                <FormControl>
+                                                <RadioGroupItem value="no" />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">Não</FormLabel>
+                                            </FormItem>
+                                            </RadioGroup>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}/>
+
+                                {watchUsedMonjauro === 'yes' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField control={form.control} name="monjauroDose" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Qual a dose?</FormLabel>
+                                                <FormControl><Input placeholder="Ex: 2.5mg" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}/>
+                                        <FormField control={form.control} name="monjauroTime" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Há quanto tempo?</FormLabel>
+                                                <FormControl><Input placeholder="Ex: 3 meses" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}/>
+                                    </div>
+                                )}
                             </div>
                             
                             <div className="flex justify-end gap-2 pt-4">
@@ -400,5 +502,3 @@ export default function NewPatientPage() {
         </>
     )
 }
-
-    

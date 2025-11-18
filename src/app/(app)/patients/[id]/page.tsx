@@ -28,6 +28,9 @@ import {
     Pencil,
     Bot,
     TrendingDown,
+    Pill,
+    Stethoscope,
+    CircleSlash
 } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { summarizeHealthData } from '@/ai/flows/summarize-health-data';
@@ -78,6 +81,19 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
   const currentBmi = calculateBmi(currentWeight, patient.height / 100);
   const weightToLose = currentWeight - patient.desiredWeight;
   const patientNameInitial = patient.fullName.charAt(0).toUpperCase();
+
+  const HealthInfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | null | undefined }) => {
+    if (!value) return null;
+    return (
+      <div className="flex items-start gap-3">
+        <Icon className="w-4 h-4 text-muted-foreground mt-1" />
+        <div>
+            <p className="font-semibold text-sm">{label}</p>
+            <p className="text-sm text-muted-foreground">{value}</p>
+        </div>
+      </div>
+    );
+  };
   
   return (
     <div className="space-y-6">
@@ -111,7 +127,7 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
           <div className="flex justify-between items-start">
             <div>
               <CardTitle>Ficha de Avaliação de Saúde</CardTitle>
-              <CardDescription>Observações e contraindicações do paciente.</CardDescription>
+              <CardDescription>Observações, contraindicações e histórico do paciente.</CardDescription>
             </div>
             <Dialog>
                 <DialogTrigger asChild>
@@ -133,13 +149,38 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-sm text-muted-foreground space-y-2">
-            {patient.healthContraindications.split(', ').map((item, index) => (
-              <p key={index} className={item.startsWith('[CONTRAINDICADO]') ? 'text-destructive font-medium' : ''}>
-                {item.replace('[CONTRAINDICADO]', '• ')}
-              </p>
-            ))}
-          </div>
+            <div className="grid md:grid-cols-2 gap-x-8 gap-y-6">
+                <div className="space-y-4">
+                    <h4 className="font-semibold">Histórico e Uso</h4>
+                    <HealthInfoItem icon={Pill} label="Medicamentos de uso diário" value={patient.dailyMedications || "Nenhum informado"} />
+                    <HealthInfoItem icon={CircleSlash} label="Uso de anticoncepcional oral" value={patient.oralContraceptive === 'yes' ? 'Sim' : (patient.oralContraceptive === 'no' ? 'Não' : 'Não informado')} />
+                     <HealthInfoItem 
+                        icon={Stethoscope} 
+                        label="Uso anterior de Monjauro" 
+                        value={
+                            patient.usedMonjauro === 'yes' 
+                            ? `Sim (Dose: ${patient.monjauroDose}, Tempo: ${patient.monjauroTime})`
+                            : (patient.usedMonjauro === 'no' ? 'Não' : 'Não informado')
+                        } 
+                    />
+                </div>
+                <div className="space-y-4">
+                    <h4 className="font-semibold">Condições e Contraindicações</h4>
+                    <div className="text-sm text-muted-foreground space-y-2">
+                        {patient.healthContraindications.split(', ').map((item, index) => {
+                            if (!item.trim()) return null;
+                            return (
+                            <p key={index} className={`flex items-start gap-2 ${item.startsWith('[CONTRAINDICADO]') ? 'text-destructive font-medium' : ''}`}>
+                                <span className='mt-1'>
+                                {item.startsWith('[CONTRAINDICADO]') ? '🚫' : 'ⓘ'}
+                                </span>
+                                <span>{item.replace('[CONTRAINDICADO]', '')}</span>
+                            </p>
+                            )
+                        })}
+                    </div>
+                </div>
+            </div>
         </CardContent>
       </Card>
 
@@ -234,5 +275,3 @@ function PatientDetailSkeleton() {
     </div>
   );
 }
-
-    

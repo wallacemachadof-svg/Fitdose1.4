@@ -21,9 +21,14 @@ export type Patient = {
   healthContraindications: string;
   avatarUrl: string;
   doses: Dose[];
+  dailyMedications?: string;
+  oralContraceptive?: 'yes' | 'no';
+  usedMonjauro?: 'yes' | 'no';
+  monjauroDose?: string;
+  monjauroTime?: string;
 };
 
-export type NewPatientData = Omit<Patient, 'id' | 'avatarUrl' | 'doses' | 'healthContraindications'> & { healthContraindications?: string };
+export type NewPatientData = Omit<Patient, 'id' | 'avatarUrl' | 'doses'>;
 
 export type Dose = {
   id: number;
@@ -60,12 +65,7 @@ const globalWithMockPatients = global as typeof global & {
   mockPatients?: Patient[];
 };
 
-
-const initializePatients = (): Patient[] => {
-    if (globalWithMockPatients.mockPatients) {
-        return globalWithMockPatients.mockPatients;
-    }
-    
+if (!globalWithMockPatients.mockPatients) {
     globalWithMockPatients.mockPatients = [
       {
         id: "1",
@@ -142,30 +142,22 @@ const initializePatients = (): Patient[] => {
         ],
       },
     ];
-    return globalWithMockPatients.mockPatients;
-};
-
-// Initialize the patient list
-let mockPatients = initializePatients();
+}
 
 
 export const getPatients = async (): Promise<Patient[]> => {
-    // Re-read from global to ensure we have the latest list
-    const currentPatients = globalWithMockPatients.mockPatients ?? initializePatients();
-    return new Promise(resolve => setTimeout(() => resolve([...currentPatients].sort((a,b) => a.fullName.localeCompare(b.fullName))), 500));
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return [...(globalWithMockPatients.mockPatients || [])].sort((a,b) => a.fullName.localeCompare(b.fullName));
 }
 
 export const getPatientById = async (id: string): Promise<Patient | null> => {
-    const currentPatients = globalWithMockPatients.mockPatients ?? initializePatients();
     await new Promise(resolve => setTimeout(resolve, 500));
-    return currentPatients.find(p => p.id === id) ?? null;
+    return (globalWithMockPatients.mockPatients || []).find(p => p.id === id) ?? null;
 }
 
 export const addPatient = async (patientData: NewPatientData): Promise<Patient> => {
-    // Re-read from global to ensure we add to the correct list
-    const currentPatients = globalWithMockPatients.mockPatients ?? initializePatients();
     
-    const newId = (currentPatients.length > 0 ? Math.max(...currentPatients.map(p => parseInt(p.id, 10))) : 0) + 1;
+    const newId = ((globalWithMockPatients.mockPatients || []).length > 0 ? Math.max(...(globalWithMockPatients.mockPatients || []).map(p => parseInt(p.id, 10))) : 0) + 1;
     
     const initialBmi = calculateBmi(patientData.initialWeight, patientData.height / 100);
     const doses = generateDoseSchedule(patientData.firstDoseDate).map(dose => {
@@ -206,10 +198,14 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         healthContraindications: patientData.healthContraindications ?? "Nenhuma observação.",
         avatarUrl: `https://i.pravatar.cc/150?u=${newId}`,
         doses: doses,
+        dailyMedications: patientData.dailyMedications,
+        oralContraceptive: patientData.oralContraceptive,
+        usedMonjauro: patientData.usedMonjauro,
+        monjauroDose: patientData.monjauroDose,
+        monjauroTime: patientData.monjauroTime,
     };
 
-    // Update the global list
-    globalWithMockPatients.mockPatients = [...currentPatients, newPatient];
+    globalWithMockPatients.mockPatients?.push(newPatient);
     
     await new Promise(resolve => setTimeout(resolve, 500));
     
