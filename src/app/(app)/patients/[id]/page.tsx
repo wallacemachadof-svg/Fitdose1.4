@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -802,7 +803,7 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
                                             </div>
                                         )}
                                         <FormControl>
-                                            <>
+                                            <div>
                                                 <input
                                                     id="evolution-photo"
                                                     type="file"
@@ -814,7 +815,7 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
                                                     <Camera className="mr-2 h-4 w-4" />
                                                     {imagePreview ? 'Trocar Foto' : 'Adicionar Foto'}
                                                 </Button>
-                                            </>
+                                            </div>
                                         </FormControl>
                                      </div>
                                     <FormMessage />
