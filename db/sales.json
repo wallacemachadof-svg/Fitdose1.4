@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "1",
+    "patientId": "1",
+    "saleDate": "2025-11-18T03:00:00.000Z",
+    "soldDose": "5.0",
+    "price": 380,
+    "discount": 380,
+    "total": 0,
+    "paymentStatus": "pago",
+    "deliveryStatus": "entregue",
+    "deliveryDate": "2025-11-18T03:00:00.000Z",
+    "observations": "",
+    "patientName": "WALLACE KEVELLYN MACHADO FONSECA"
+  }
+]
