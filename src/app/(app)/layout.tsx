@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  DollarSign,
   FlaskConical,
   LayoutDashboard,
   ShoppingCart,
@@ -74,6 +75,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link href="/sales-control">
                   <ShoppingCart />
                   <span>Controle de Vendas</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive('/cash-flow')}
+                tooltip="Fluxo de Caixa"
+              >
+                <Link href="/cash-flow">
+                  <DollarSign />
+                  <span>Fluxo de Caixa</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

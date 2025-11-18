@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format, differenceInDays } from "date-fns";
-import type { Dose, Sale } from "@/lib/data";
+import type { Dose, Sale, CashFlowEntry } from "@/lib/data";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -50,12 +50,14 @@ export function getDoseStatus(dose: Dose) {
 }
 
 
-export function getPaymentStatusVariant(status: Sale['paymentStatus']) {
+export function getPaymentStatusVariant(status: Sale['paymentStatus'] | CashFlowEntry['status']) {
   switch (status) {
     case 'pago':
       return { label: "Pago", color: "bg-green-500", textColor: "text-white" };
     case 'pendente':
       return { label: "Pendente", color: "bg-yellow-500", textColor: "text-white" };
+    case 'vencido':
+        return { label: "Vencido", color: "bg-red-500", textColor: "text-white" };
     default:
       return { label: "Pendente", color: "bg-yellow-500", textColor: "text-white" };
   }

@@ -63,34 +63,30 @@ export type Sale = {
   patientName: string;
   paymentDate?: Date;
   paymentStatus: 'pago' | 'pendente';
-  deliveryDate?: Date;
   deliveryStatus: 'em agendamento' | 'entregue' | 'em processamento';
   observations?: string;
 };
 
 export type NewSaleData = Omit<Sale, 'id' | 'patientName' | 'total'>;
 
-
-const generateDoseSchedule = (startDate: Date): Dose[] => {
-  const doses: Dose[] = [];
-  let currentDate = new Date(startDate);
-  for (let i = 1; i <= 12; i++) {
-    doses.push({
-      id: i,
-      doseNumber: i,
-      date: new Date(currentDate),
-      status: 'pending',
-    });
-    currentDate.setDate(currentDate.getDate() + 7);
-  }
-  return doses;
-};
+export type CashFlowEntry = {
+  id: string;
+  type: 'entrada' | 'saida';
+  purchaseDate: Date;
+  description: string;
+  installments?: string; // e.g., "1/3"
+  dueDate?: Date;
+  paymentMethod?: 'pix' | 'dinheiro' | 'debito' | 'credito';
+  status: 'pago' | 'pendente' | 'vencido';
+  amount: number;
+}
 
 // We use a global variable to simulate a database in a development environment.
 // This is not suitable for production.
 const globalWithMockData = global as typeof global & {
   mockPatients?: Patient[];
   mockSales?: Sale[];
+  mockCashFlowEntries?: CashFlowEntry[];
 };
 
 if (!globalWithMockData.mockPatients) {
@@ -184,20 +180,50 @@ if (!globalWithMockData.mockSales) {
   ];
 }
 
+if (!globalWithMockData.mockCashFlowEntries) {
+  globalWithMockData.mockCashFlowEntries = [
+    { id: '1', type: 'entrada', purchaseDate: new Date('2024-07-20'), description: 'Venda dose Ana Silva', status: 'pago', amount: 220, paymentMethod: 'pix' },
+    { id: '2', type: 'saida', purchaseDate: new Date('2024-07-19'), description: 'Compra de material', status: 'pago', amount: 80, paymentMethod: 'debito' },
+    { id: '3', type: 'entrada', purchaseDate: new Date('2024-07-22'), description: 'Venda dose Carla Dias', status: 'pago', amount: 380, paymentMethod: 'credito' },
+    { id: '4', type: 'saida', purchaseDate: new Date('2024-07-25'), description: 'Aluguel do espaço', status: 'pendente', amount: 500, dueDate: new Date('2024-08-05') },
+  ];
+}
+
+const generateDoseSchedule = (startDate: Date): Dose[] => {
+  const doses: Dose[] = [];
+  let currentDate = new Date(startDate);
+  for (let i = 1; i <= 12; i++) {
+    doses.push({
+      id: i,
+      doseNumber: i,
+      date: new Date(currentDate),
+      status: 'pending',
+    });
+    currentDate.setDate(currentDate.getDate() + 7);
+  }
+  return doses;
+};
 
 export const getPatients = async (): Promise<Patient[]> => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    return [...(globalWithMockData.mockPatients || [])].sort((a,b) => a.fullName.localeCompare(b.fullName));
+    const patients = globalWithMockData.mockPatients ?? [];
+    return [...patients].sort((a,b) => a.fullName.localeCompare(b.fullName));
 }
 
 export const getPatientById = async (id: string): Promise<Patient | null> => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    return (globalWithMockData.mockPatients || []).find(p => p.id === id) ?? null;
+    const patients = globalWithMockData.mockPatients ?? [];
+    return patients.find(p => p.id === id) ?? null;
 }
 
 export const addPatient = async (patientData: NewPatientData): Promise<Patient> => {
     
-    const newId = ((globalWithMockData.mockPatients || []).length > 0 ? Math.max(...(globalWithMockData.mockPatients || []).map(p => parseInt(p.id, 10))) : 0) + 1;
+    if (!globalWithMockData.mockPatients) {
+        globalWithMockData.mockPatients = [];
+    }
+    const patients = globalWithMockData.mockPatients;
+    
+    const newId = (patients.length > 0 ? Math.max(...patients.map(p => parseInt(p.id, 10))) : 0) + 1;
     
     const initialBmi = calculateBmi(patientData.initialWeight, patientData.height / 100);
     const doses = generateDoseSchedule(patientData.firstDoseDate).map(dose => {
@@ -246,10 +272,7 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         monjauroTime: patientData.monjauroTime,
     };
 
-    if (!globalWithMockData.mockPatients) {
-        globalWithMockData.mockPatients = [];
-    }
-    globalWithMockData.mockPatients.push(newPatient);
+    patients.push(newPatient);
     
     await new Promise(resolve => setTimeout(resolve, 500));
     
@@ -258,13 +281,12 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
 
 export const deletePatient = async (id: string): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    if (globalWithMockData.mockPatients) {
-        const index = globalWithMockData.mockPatients.findIndex(p => p.id === id);
-        if (index !== -1) {
-            globalWithMockData.mockPatients.splice(index, 1);
-        } else {
-            throw new Error("Patient not found");
-        }
+    const patients = globalWithMockData.mockPatients ?? [];
+    const index = patients.findIndex(p => p.id === id);
+    if (index !== -1) {
+        patients.splice(index, 1);
+    } else {
+        throw new Error("Patient not found");
     }
 };
 
@@ -306,7 +328,8 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
 
 export const getSales = async (): Promise<Sale[]> => {
   await new Promise(resolve => setTimeout(resolve, 500));
-  return [...(globalWithMockData.mockSales || [])].sort((a, b) => b.saleDate.getTime() - a.saleDate.getTime());
+  const sales = globalWithMockData.mockSales || [];
+  return [...sales].sort((a, b) => b.saleDate.getTime() - a.saleDate.getTime());
 };
 
 export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
@@ -316,8 +339,13 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     if (!patient) {
         throw new Error("Patient not found");
     }
+    
+    if (!globalWithMockData.mockSales) {
+      globalWithMockData.mockSales = [];
+    }
+    const sales = globalWithMockData.mockSales;
 
-    const newId = ((globalWithMockData.mockSales || []).length > 0 ? Math.max(...(globalWithMockData.mockSales || []).map(s => parseInt(s.id, 10))) : 0) + 1;
+    const newId = (sales.length > 0 ? Math.max(...sales.map(s => parseInt(s.id, 10))) : 0) + 1;
     
     const newSale: Sale = {
         id: String(newId),
@@ -326,13 +354,15 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         total: saleData.price - (saleData.discount || 0),
     };
 
-    if (!globalWithMockData.mockSales) {
-        globalWithMockData.mockSales = [];
-    }
-    globalWithMockData.mockSales.push(newSale);
+    sales.push(newSale);
 
     await new Promise(resolve => setTimeout(resolve, 500));
 
     return newSale;
 };
     
+export const getCashFlowEntries = async (): Promise<CashFlowEntry[]> => {
+  await new Promise(resolve => setTimeout(resolve, 500));
+  const entries = globalWithMockData.mockCashFlowEntries || [];
+  return [...entries].sort((a, b) => b.purchaseDate.getTime() - a.purchaseDate.getTime());
+}
