@@ -11,7 +11,7 @@ import {
   Warehouse,
   LogOut,
 } from 'lucide-react';
-import { StethoscopeIcon } from '@/components/icons';
+import { FitDoseLogo, StethoscopeIcon } from '@/components/icons';
 import {
   SidebarProvider,
   Sidebar,
@@ -74,11 +74,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center gap-2 p-2">
-             <StethoscopeIcon className="w-8 h-8 text-primary" />
-             <div className="flex flex-col">
-                <h1 className="text-lg font-bold">Controle de Doses</h1>
-             </div>
+          <div className="flex items-center justify-center p-4">
+             <FitDoseLogo className="h-8 text-primary" />
           </div>
         </SidebarHeader>
         <SidebarContent>

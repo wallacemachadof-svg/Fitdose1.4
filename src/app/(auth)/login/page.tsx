@@ -1,7 +1,7 @@
 'use client';
 import { FcGoogle } from 'react-icons/fc';
 import { Button } from '@/components/ui/button';
-import { StethoscopeIcon } from '@/components/icons';
+import { FitDoseLogo, StethoscopeIcon } from '@/components/icons';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { app } from '@/firebase/config';
 import { useRouter } from 'next/navigation';
@@ -42,7 +42,7 @@ export default function LoginPage() {
         <div className="flex h-screen w-full items-center justify-center bg-background px-4">
             <div className="w-full max-w-md space-y-8 text-center">
                 <div className="flex justify-center">
-                    <StethoscopeIcon className="h-12 w-12 text-primary" />
+                    <FitDoseLogo className="h-12 text-primary" />
                 </div>
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Bem-vindo(a) de volta!</h1>
