@@ -122,6 +122,11 @@ export default function NewPatientPage() {
             contraindications: [],
             otherHealthIssues: "",
             dailyMedications: "",
+            monjauroDose: "",
+            monjauroTime: "",
+            avatarUrl: "",
+            indicationName: "",
+            indicationPatientId: "",
         }
     });
 

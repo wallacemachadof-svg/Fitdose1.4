@@ -39,11 +39,11 @@ export type Patient = {
   avatarUrl: string;
   doses: Dose[];
   evolutions: Evolution[];
-  dailyMedications?: string;
+  dailyMedications: string;
   oralContraceptive?: 'yes' | 'no';
   usedMonjauro?: 'yes' | 'no';
-  monjauroDose?: string;
-  monjauroTime?: string;
+  monjauroDose: string;
+  monjauroTime: string;
   indication?: {
     type: 'indicado' | 'indicador' | 'nao_se_aplica';
     name: string;
@@ -203,11 +203,11 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         avatarUrl: patientData.avatarUrl || `https://i.pravatar.cc/150?u=${newId}`,
         doses: doses,
         evolutions: [],
-        dailyMedications: patientData.dailyMedications,
+        dailyMedications: patientData.dailyMedications ?? '',
         oralContraceptive: patientData.oralContraceptive,
         usedMonjauro: patientData.usedMonjauro,
-        monjauroDose: patientData.monjauroDose,
-        monjauroTime: patientData.monjauroTime,
+        monjauroDose: patientData.monjauroDose ?? '',
+        monjauroTime: patientData.monjauroTime ?? '',
         indication: patientData.indication,
     };
 
