@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CalendarIcon, ArrowLeft } from "lucide-react";
+import { CalendarIcon, ArrowLeft, User as UserIcon, Upload } from "lucide-react";
 import { cn, calculateBmi } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -31,6 +31,7 @@ import { addPatient } from "@/lib/data";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import Image from "next/image";
 
 const healthConditions = [
     { id: "hypertension", label: "Hipertensão" },
@@ -78,6 +79,7 @@ const patientFormSchema = z.object({
   usedMonjauro: z.enum(['yes', 'no']),
   monjauroDose: z.string().optional(),
   monjauroTime: z.string().optional(),
+  avatarUrl: z.string().optional(),
 }).refine(data => {
     if (data.usedMonjauro === 'yes') {
         return !!data.monjauroDose && !!data.monjauroTime;
@@ -95,6 +97,8 @@ export default function NewPatientPage() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [bmi, setBmi] = useState<number | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+
 
     const form = useForm<PatientFormValues>({
         resolver: zodResolver(patientFormSchema),
@@ -201,6 +205,20 @@ export default function NewPatientPage() {
         }
     }
 
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const dataUrl = reader.result as string;
+                setImagePreview(dataUrl);
+                form.setValue("avatarUrl", dataUrl);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+
     return (
         <>
             <Button variant="ghost" asChild className="mb-4 -ml-4">
@@ -217,13 +235,47 @@ export default function NewPatientPage() {
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                            <h3 className="text-lg font-semibold -mb-2">Informações Pessoais</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <FormField control={form.control} name="fullName" render={({ field }) => (
-                                    <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input placeholder="Ex: João da Silva" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name="phone" render={({ field }) => (
-                                    <FormItem><FormLabel>Telefone (WhatsApp)</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                                <div className="md:col-span-2 space-y-8">
+                                    <h3 className="text-lg font-semibold -mb-2">Informações Pessoais</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <FormField control={form.control} name="fullName" render={({ field }) => (
+                                            <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input placeholder="Ex: João da Silva" {...field} /></FormControl><FormMessage /></FormItem>
+                                        )}/>
+                                        <FormField control={form.control} name="phone" render={({ field }) => (
+                                            <FormItem><FormLabel>Telefone (WhatsApp)</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>
+                                        )}/>
+                                    </div>
+                                </div>
+                                <FormField control={form.control} name="avatarUrl" render={({ field }) => (
+                                <FormItem className="flex flex-col items-center justify-center gap-2">
+                                    <FormLabel htmlFor="picture" className="cursor-pointer">
+                                        <div className="w-32 h-32 rounded-full bg-muted flex items-center justify-center border-2 border-dashed border-gray-300 relative">
+                                            {imagePreview ? (
+                                                <Image src={imagePreview} alt="Avatar Preview" layout="fill" className="rounded-full object-cover" />
+                                            ) : (
+                                                <div className="flex flex-col items-center text-muted-foreground">
+                                                    <UserIcon className="w-12 h-12" />
+                                                    <span className="text-sm mt-1">Foto</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            id="picture"
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handleImageChange}
+                                        />
+                                    </FormControl>
+                                    <Button type="button" size="sm" variant="outline" onClick={() => document.getElementById('picture')?.click()}>
+                                        <Upload className="w-4 h-4 mr-2" />
+                                        Enviar Foto
+                                    </Button>
+                                    <FormMessage />
+                                </FormItem>
                                 )}/>
                             </div>
                             
@@ -506,3 +558,5 @@ export default function NewPatientPage() {
         </>
     )
 }
+
+    

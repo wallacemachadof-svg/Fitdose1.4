@@ -1,4 +1,5 @@
 
+
 import { placeholderImages } from "@/lib/placeholder-images";
 import { calculateBmi } from "./utils";
 
@@ -30,7 +31,7 @@ export type Patient = {
   monjauroTime?: string;
 };
 
-export type NewPatientData = Omit<Patient, 'id' | 'avatarUrl' | 'doses' | 'evolutions'>;
+export type NewPatientData = Omit<Patient, 'id' | 'doses' | 'evolutions'>;
 
 export type Dose = {
   id: number;
@@ -262,7 +263,7 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         },
         phone: patientData.phone,
         healthContraindications: patientData.healthContraindications ?? "Nenhuma observação.",
-        avatarUrl: `https://i.pravatar.cc/150?u=${newId}`,
+        avatarUrl: patientData.avatarUrl || `https://i.pravatar.cc/150?u=${newId}`,
         doses: doses,
         evolutions: [],
         dailyMedications: patientData.dailyMedications,
@@ -371,3 +372,6 @@ export const getCashFlowEntries = async (): Promise<CashFlowEntry[]> => {
   await new Promise(resolve => setTimeout(resolve, 500));
   return [...cashFlowEntries].sort((a, b) => b.purchaseDate.getTime() - a.purchaseDate.getTime());
 }
+
+
+    
