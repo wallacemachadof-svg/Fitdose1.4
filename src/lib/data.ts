@@ -44,6 +44,11 @@ export type Patient = {
   usedMonjauro?: 'yes' | 'no';
   monjauroDose?: string;
   monjauroTime?: string;
+  indication?: {
+    type: 'indicado' | 'indicador';
+    name: string;
+    patientId?: string;
+  };
 };
 
 export type NewPatientData = Omit<Patient, 'id' | 'doses' | 'evolutions'>;
@@ -203,6 +208,7 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         usedMonjauro: patientData.usedMonjauro,
         monjauroDose: patientData.monjauroDose,
         monjauroTime: patientData.monjauroTime,
+        indication: patientData.indication,
     };
 
     patients.push(newPatient);
@@ -428,4 +434,3 @@ export const addVial = async (vialData: NewVialData): Promise<Vial[]> => {
 
     return newVials;
 }
-

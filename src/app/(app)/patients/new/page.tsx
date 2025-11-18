@@ -27,11 +27,12 @@ import { ptBR } from "date-fns/locale";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { addPatient } from "@/lib/data";
+import { addPatient, getPatients, type Patient } from "@/lib/data";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Image from "next/image";
+import { Combobox } from "@/components/ui/combobox";
 
 const healthConditions = [
     { id: "hypertension", label: "Hipertensão" },
@@ -80,6 +81,9 @@ const patientFormSchema = z.object({
   monjauroDose: z.string().optional(),
   monjauroTime: z.string().optional(),
   avatarUrl: z.string().optional(),
+  indicationType: z.enum(['indicado', 'indicador']).optional(),
+  indicationName: z.string().optional(),
+  indicationPatientId: z.string().optional(),
 }).refine(data => {
     if (data.usedMonjauro === 'yes') {
         return !!data.monjauroDose && !!data.monjauroTime;
@@ -88,6 +92,14 @@ const patientFormSchema = z.object({
 }, {
     message: "Dose e tempo de uso são obrigatórios se você já usou Monjauro.",
     path: ["usedMonjauro"],
+}).refine(data => {
+    if (data.indicationType) {
+        return !!data.indicationName;
+    }
+    return true;
+}, {
+    message: "O nome da indicação é obrigatório.",
+    path: ["indicationName"],
 });
 
 type PatientFormValues = z.infer<typeof patientFormSchema>;
@@ -98,7 +110,18 @@ export default function NewPatientPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [bmi, setBmi] = useState<number | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [patients, setPatients] = useState<Patient[]>([]);
 
+
+    useEffect(() => {
+        const fetchPatients = async () => {
+            const data = await getPatients();
+            setPatients(data);
+        }
+        fetchPatients();
+    }, []);
+
+    const patientOptions = patients.map(p => ({ value: p.id, label: p.fullName }));
 
     const form = useForm<PatientFormValues>({
         resolver: zodResolver(patientFormSchema),
@@ -114,6 +137,7 @@ export default function NewPatientPage() {
     const watchHeight = form.watch("height");
     const watchZip = form.watch("zip");
     const watchUsedMonjauro = form.watch("usedMonjauro");
+    const watchIndicationType = form.watch("indicationType");
 
     useEffect(() => {
         if (watchWeight && watchHeight) {
@@ -182,9 +206,15 @@ export default function NewPatientPage() {
             const patientDataForApi = {
                 ...data,
                 healthContraindications: fullContraindications || 'Nenhuma observação.',
+                indication: data.indicationType && data.indicationName ? {
+                    type: data.indicationType,
+                    name: data.indicationName,
+                    patientId: data.indicationPatientId,
+                } : undefined,
             };
             
-            const { otherHealthIssues, ...finalPatientData } = patientDataForApi;
+            const { otherHealthIssues, indicationType, indicationName, indicationPatientId, ...finalPatientData } = patientDataForApi;
+
 
             await addPatient(finalPatientData);
             toast({
@@ -519,7 +549,7 @@ export default function NewPatientPage() {
                                                 </FormControl>
                                                 <FormLabel className="font-normal">Não</FormLabel>
                                             </FormItem>
-                                            </RadioGroup>
+                                            </Group>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -544,6 +574,60 @@ export default function NewPatientPage() {
                                     </div>
                                 )}
                             </div>
+
+                             <div className="space-y-8 border-t pt-6">
+                                <h3 className="text-lg font-semibold">Indicação</h3>
+                                 <FormField control={form.control} name="indicationType" render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                        <FormLabel>Tipo de Indicação</FormLabel>
+                                        <FormControl>
+                                            <RadioGroup
+                                            onValueChange={field.onChange}
+                                            defaultValue={field.value}
+                                            className="flex items-center gap-6"
+                                            >
+                                            <FormItem className="flex items-center space-x-3 space-y-0">
+                                                <FormControl>
+                                                <RadioGroupItem value="indicado" />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">Indicado(a) por</FormLabel>
+                                            </FormItem>
+                                            <FormItem className="flex items-center space-x-3 space-y-0">
+                                                <FormControl>
+                                                <RadioGroupItem value="indicador" />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">Indicou</FormLabel>
+                                            </FormItem>
+                                            </RadioGroup>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}/>
+                                
+                                {watchIndicationType && (
+                                     <FormField
+                                        control={form.control}
+                                        name="indicationName"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-col">
+                                                <FormLabel>Nome</FormLabel>
+                                                <Combobox
+                                                    options={patientOptions}
+                                                    value={field.value}
+                                                    onChange={(value, label) => {
+                                                        form.setValue("indicationPatientId", value);
+                                                        form.setValue("indicationName", label);
+                                                    }}
+                                                    placeholder="Selecione ou digite um nome..."
+                                                    noResultsText="Nenhum paciente encontrado."
+                                                    allowCustom
+                                                />
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
+                            </div>
                             
                             <div className="flex justify-end gap-2 pt-4">
                                 <Button type="button" variant="outline" onClick={() => router.push('/patients')} disabled={isSubmitting}>Cancelar</Button>
@@ -558,5 +642,3 @@ export default function NewPatientPage() {
         </>
     )
 }
-
-    
