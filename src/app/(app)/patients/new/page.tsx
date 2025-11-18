@@ -577,34 +577,41 @@ export default function NewPatientPage() {
 
                              <div className="space-y-8 border-t pt-6">
                                 <h3 className="text-lg font-semibold">Indicação</h3>
-                                 <FormField control={form.control} name="indicationType" render={({ field }) => (
-                                    <FormItem className="space-y-3">
-                                        <FormLabel>Tipo de Indicação</FormLabel>
-                                        <FormControl>
-                                            <RadioGroup
-                                            onValueChange={field.onChange}
-                                            defaultValue={field.value}
-                                            className="flex items-center gap-6"
-                                            >
-                                            <FormItem className="flex items-center space-x-3 space-y-0">
-                                                <FormControl>
-                                                <RadioGroupItem value="indicado" />
-                                                </FormControl>
-                                                <FormLabel className="font-normal">Indicado(a) por</FormLabel>
-                                            </FormItem>
-                                            <FormItem className="flex items-center space-x-3 space-y-0">
-                                                <FormControl>
-                                                <RadioGroupItem value="indicador" />
-                                                </FormControl>
-                                                <FormLabel className="font-normal">Indicou</FormLabel>
-                                            </FormItem>
-                                            </RadioGroup>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}/>
-                                
-                                {watchIndicationType && (
+                                 <FormField
+                                    control={form.control}
+                                    name="indicationType"
+                                    render={({ field }) => (
+                                        <FormItem className="space-y-3">
+                                            <FormLabel>Tipo de Indicação</FormLabel>
+                                            <FormControl>
+                                                <RadioGroup
+                                                    onValueChange={(value) => {
+                                                        const newValue = field.value === value ? undefined : value;
+                                                        field.onChange(newValue);
+                                                    }}
+                                                    value={field.value}
+                                                    className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6"
+                                                >
+                                                    <FormItem className="flex items-center space-x-3 space-y-0">
+                                                        <FormControl><RadioGroupItem value="indicado" /></FormControl>
+                                                        <FormLabel className="font-normal">Indicado(a) por</FormLabel>
+                                                    </FormItem>
+                                                    <FormItem className="flex items-center space-x-3 space-y-0">
+                                                        <FormControl><RadioGroupItem value="indicador" /></FormControl>
+                                                        <FormLabel className="font-normal">Indicou</FormLabel>
+                                                    </FormItem>
+                                                    <FormItem className="flex items-center space-x-3 space-y-0">
+                                                        <FormControl><RadioGroupItem value="nao_se_aplica" /></FormControl>
+                                                        <FormLabel className="font-normal">Não se aplica</FormLabel>
+                                                    </FormItem>
+                                                </RadioGroup>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {watchIndicationType && watchIndicationType !== 'nao_se_aplica' && (
                                      <FormField
                                         control={form.control}
                                         name="indicationName"
@@ -642,3 +649,5 @@ export default function NewPatientPage() {
         </>
     )
 }
+
+    
