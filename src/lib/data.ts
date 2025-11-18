@@ -47,7 +47,7 @@ export type Dose = {
 export type Sale = {
   id: string;
   saleDate: Date;
-  soldDose: '2.5' | '3.75' | '5.0' | '6.25' | '7.05';
+  soldDose: string;
   price: number;
   patientId: string;
   patientName: string;
@@ -56,6 +56,8 @@ export type Sale = {
   deliveryStatus: 'em agendamento' | 'entregue' | 'em preparo';
   observations?: string;
 };
+
+export type NewSaleData = Omit<Sale, 'id' | 'patientName'>;
 
 
 const generateDoseSchedule = (startDate: Date): Dose[] => {
@@ -242,4 +244,30 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
 export const getSales = async (): Promise<Sale[]> => {
   await new Promise(resolve => setTimeout(resolve, 500));
   return [...(globalWithMockData.mockSales || [])].sort((a, b) => b.saleDate.getTime() - a.saleDate.getTime());
+};
+
+export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
+    const patients = globalWithMockData.mockPatients || [];
+    const patient = patients.find(p => p.id === saleData.patientId);
+
+    if (!patient) {
+        throw new Error("Patient not found");
+    }
+
+    const newId = ((globalWithMockData.mockSales || []).length > 0 ? Math.max(...(globalWithMockData.mockSales || []).map(s => parseInt(s.id, 10))) : 0) + 1;
+    
+    const newSale: Sale = {
+        id: String(newId),
+        ...saleData,
+        patientName: patient.fullName,
+    };
+
+    if (!globalWithMockData.mockSales) {
+        globalWithMockData.mockSales = [];
+    }
+    globalWithMockData.mockSales.push(newSale);
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    return newSale;
 };
