@@ -97,7 +97,7 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
              <div className="flex items-center gap-3"><CalendarIcon className="w-4 h-4 text-muted-foreground" /> <span>Início: {formatDate(patient.firstDoseDate)}</span></div>
           </CardContent>
         </Card>
-        <div className="w-full md:w-2/3 grid grid-cols-2 gap-4">
+        <div className="w-full md:w-2/3 grid grid-cols-2 lg:grid-cols-3 gap-4">
             <InfoCard icon={Weight} label="Peso Atual" value={`${currentWeight} kg`} />
             <InfoCard icon={Activity} label="IMC Atual" value={currentBmi} />
             <InfoCard icon={Ruler} label="Altura" value={`${patient.height} cm`} />
@@ -110,8 +110,8 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle>Contraindicações de Saúde</CardTitle>
-              <CardDescription>Observações importantes do paciente.</CardDescription>
+              <CardTitle>Ficha de Avaliação de Saúde</CardTitle>
+              <CardDescription>Observações e contraindicações do paciente.</CardDescription>
             </div>
             <Dialog>
                 <DialogTrigger asChild>
@@ -133,7 +133,13 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">{patient.healthContraindications}</p>
+          <div className="text-sm text-muted-foreground space-y-2">
+            {patient.healthContraindications.split(', ').map((item, index) => (
+              <p key={index} className={item.startsWith('[CONTRAINDICADO]') ? 'text-destructive font-medium' : ''}>
+                {item.replace('[CONTRAINDICADO]', '• ')}
+              </p>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
@@ -215,7 +221,8 @@ function PatientDetailSkeleton() {
             <Skeleton className="h-4 w-2/3" />
           </CardContent>
         </Card>
-        <div className="w-full md:w-2/3 grid grid-cols-2 gap-4">
+        <div className="w-full md:w-2/3 grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
             <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
             <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
             <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
@@ -227,3 +234,5 @@ function PatientDetailSkeleton() {
     </div>
   );
 }
+
+    

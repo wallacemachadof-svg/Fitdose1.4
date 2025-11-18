@@ -28,6 +28,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { addPatient } from "@/lib/data";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 
 const healthConditions = [
     { id: "hypertension", label: "Hipertensão" },
@@ -37,6 +38,20 @@ const healthConditions = [
     { id: "allergies", label: "Alergias" },
     { id: "respiratory", label: "Problemas Respiratórios" },
 ] as const;
+
+const contraindicationsList = [
+    { id: "allergy", label: "Alergia ao glimepirida ou componentes da fórmula" },
+    { id: "hypoglycemia", label: "Hipoglicemia não controlada" },
+    { id: "ketoacidosis", label: "Cetoacidose diabética e coma diabético" },
+    { id: "renal_failure", label: "Insuficiência renal grave" },
+    { id: "hepatic_failure", label: "Insuficiência hepática grave" },
+    { id: "pregnancy", label: "Gravidez e amamentação" },
+    { id: "alcohol", label: "Uso concomitante de álcool" },
+    { id: "drug_interaction_hypo", label: "Interações com medicamentos que aumentam o risco de hipoglicemia" },
+    { id: "cardiovascular", label: "Histórico de doenças cardiovasculares graves (monitoramento necessário)" },
+    { id: "drug_interaction_efficacy", label: "Uso de medicamentos que podem afetar a eficácia do Monjauro (ex: AINEs, diuréticos, corticosteroides)" },
+] as const;
+
 
 const patientFormSchema = z.object({
   fullName: z.string().min(3, "Nome completo é obrigatório."),
@@ -54,6 +69,7 @@ const patientFormSchema = z.object({
   state: z.string().min(2, "Estado é obrigatório.").max(2, "Use a sigla do estado."),
   phone: z.string().min(10, "Telefone inválido."),
   healthConditions: z.array(z.string()).optional(),
+  contraindications: z.array(z.string()).optional(),
   healthContraindications: z.string().optional(),
 });
 
@@ -70,6 +86,7 @@ export default function NewPatientPage() {
         defaultValues: {
             healthContraindications: "",
             healthConditions: [],
+            contraindications: [],
         }
     });
 
@@ -125,9 +142,15 @@ export default function NewPatientPage() {
             const conditions = data.healthConditions
                 ?.map(id => healthConditions.find(c => c.id === id)?.label)
                 .filter(Boolean) ?? [];
+
+            const contraindications = data.contraindications
+                ?.map(id => contraindicationsList.find(c => c.id === id)?.label)
+                .filter(Boolean)
+                .map(label => `[CONTRAINDICADO] ${label}`) ?? [];
                 
             const fullContraindications = [
                 ...conditions,
+                ...contraindications,
                 data.healthContraindications
             ].filter(Boolean).join(', ');
 
@@ -245,7 +268,7 @@ export default function NewPatientPage() {
                                 )}/>
                             </div>
 
-                             <div className="space-y-4 border-t pt-6">
+                             <div className="space-y-6 border-t pt-6">
                                 <h3 className="text-lg font-semibold">Ficha de Avaliação de Saúde</h3>
                                 <FormField
                                     control={form.control}
@@ -253,12 +276,12 @@ export default function NewPatientPage() {
                                     render={() => (
                                         <FormItem>
                                         <div className="mb-4">
-                                            <FormLabel className="text-base">Condições de Saúde</FormLabel>
+                                            <FormLabel className="text-base">Condições de Saúde Pré-existentes</FormLabel>
                                             <FormDescription>
-                                                Selecione as condições pré-existentes do paciente.
+                                                Selecione as condições relevantes do paciente.
                                             </FormDescription>
                                         </div>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         {healthConditions.map((item) => (
                                             <FormField
                                                 key={item.id}
@@ -297,6 +320,62 @@ export default function NewPatientPage() {
                                         </FormItem>
                                     )}
                                 />
+
+                                <Separator />
+
+                                <FormField
+                                    control={form.control}
+                                    name="contraindications"
+                                    render={() => (
+                                        <FormItem>
+                                        <div className="mb-4">
+                                            <FormLabel className="text-base">Contraindicações do Monjauro</FormLabel>
+                                            <FormDescription>
+                                                Marque todas as contraindicações que se aplicam ao paciente.
+                                            </FormDescription>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                                        {contraindicationsList.map((item) => (
+                                            <FormField
+                                                key={item.id}
+                                                control={form.control}
+                                                name="contraindications"
+                                                render={({ field }) => {
+                                                    return (
+                                                    <FormItem
+                                                        key={item.id}
+                                                        className="flex flex-row items-start space-x-3 space-y-0"
+                                                    >
+                                                        <FormControl>
+                                                        <Checkbox
+                                                            checked={field.value?.includes(item.id)}
+                                                            onCheckedChange={(checked) => {
+                                                            return checked
+                                                                ? field.onChange([...(field.value || []), item.id])
+                                                                : field.onChange(
+                                                                    field.value?.filter(
+                                                                    (value) => value !== item.id
+                                                                    )
+                                                                )
+                                                            }}
+                                                        />
+                                                        </FormControl>
+                                                        <FormLabel className="font-normal text-sm">
+                                                        {item.label}
+                                                        </FormLabel>
+                                                    </FormItem>
+                                                    )
+                                                }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                
+                                <Separator />
+
                                 <FormField control={form.control} name="healthContraindications" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Outras Observações e Contraindicações</FormLabel>
@@ -321,3 +400,5 @@ export default function NewPatientPage() {
         </>
     )
 }
+
+    
