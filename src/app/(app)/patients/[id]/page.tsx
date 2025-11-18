@@ -16,6 +16,7 @@ import {
   calculateBmi,
   formatDate,
   getDoseStatus,
+  generateWhatsAppLink,
 } from '@/lib/utils';
 import { useForm, useForm as useEvolutionForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,6 +47,7 @@ import {
     Camera,
     Upload,
 } from 'lucide-react';
+import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
 import { summarizeHealthData } from '@/ai/flows/summarize-health-data';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -124,6 +126,11 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
     setSelectedDose(dose);
     setIsDoseModalOpen(true);
   }
+
+  const handleNotifyClick = (patient: Patient, dose: Dose) => {
+    const whatsappUrl = generateWhatsAppLink(patient, dose);
+    window.open(whatsappUrl, '_blank');
+  };
   
   const onDoseUpdate = (updatedPatient: Patient) => {
     setPatient(updatedPatient);
@@ -278,10 +285,18 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
                       <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleManageDoseClick(dose)} disabled={dose.status === 'administered'}>
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Gerenciar Dose</span>
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleManageDoseClick(dose)} disabled={dose.status === 'administered'}>
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Gerenciar Dose</span>
+                        </Button>
+                        {dose.status === 'pending' && (
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-600" onClick={() => handleNotifyClick(patient, dose)}>
+                            <FaWhatsapp className="h-5 w-5" />
+                            <span className="sr-only">Notificar via WhatsApp</span>
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -662,4 +677,6 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
         </Card>
     );
 }
+    
+
     

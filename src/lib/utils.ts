@@ -1,7 +1,8 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format, differenceInDays } from "date-fns";
-import type { Dose, Sale, CashFlowEntry } from "@/lib/data";
+import type { Dose, Sale, CashFlowEntry, Patient } from "@/lib/data";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -32,21 +33,21 @@ export function getDoseStatus(dose: Dose) {
   doseDate.setHours(0, 0, 0, 0);
 
   if (dose.status === 'administered') {
-    return { label: "Administrada", color: "bg-accent/80", textColor: "text-accent-foreground" };
+    return { label: "Administrada", color: "bg-gray-500", textColor: "text-white", days: null, messageType: "info" };
   }
   
   const daysUntilDose = differenceInDays(doseDate, today);
 
   if (daysUntilDose < 0) {
-    return { label: "Vencida", color: "bg-destructive/80", textColor: "text-destructive-foreground" };
+    return { label: "Vencida", color: "bg-red-500", textColor: "text-white", days: daysUntilDose, messageType: "overdue" };
   }
   if (daysUntilDose <= 2) {
-    return { label: "Vencendo", color: "bg-orange-500", textColor: "text-white" };
+    return { label: "Vencendo", color: "bg-orange-500", textColor: "text-white", days: daysUntilDose, messageType: "urgent" };
   }
   if (daysUntilDose <= 5) {
-    return { label: "Próxima", color: "bg-yellow-400", textColor: "text-yellow-900" };
+    return { label: "Próxima", color: "bg-yellow-500", textColor: "text-white", days: daysUntilDose, messageType: "upcoming" };
   }
-  return { label: "Agendada", color: "bg-primary/50", textColor: "text-primary-foreground" };
+  return { label: "Agendada", color: "bg-green-500", textColor: "text-white", days: daysUntilDose, messageType: "scheduled" };
 }
 
 
@@ -85,3 +86,36 @@ export function getStockStatusVariant(quantity: number) {
     }
     return { label: "Em Estoque", color: "bg-green-500", textColor: "text-white" };
 }
+
+export function generateWhatsAppLink(patient: Patient, dose: Dose): string {
+    const status = getDoseStatus(dose);
+    const patientFirstName = patient.fullName.split(' ')[0];
+    const doseDate = formatDate(dose.date);
+    let message = '';
+
+    switch (status.messageType) {
+        case 'overdue':
+            message = `Olá, ${patientFirstName}! Passando para lembrar que sua dose de número ${dose.doseNumber}, que estava agendada para ${doseDate}, está vencida. Vamos regularizar?`;
+            break;
+        case 'urgent':
+            message = `Olá, ${patientFirstName}! Sua dose de número ${dose.doseNumber} vence em ${status.days === 0 ? 'hoje' : `${status.days} dia(s)`} (${doseDate}). Não se esqueça!`;
+            break;
+        case 'upcoming':
+            message = `Olá, ${patientFirstName}! Um lembrete amigável de que sua próxima dose (Nº ${dose.doseNumber}) está agendada para ${doseDate}.`;
+            break;
+        case 'scheduled':
+             message = `Olá, ${patientFirstName}! Tudo bem? Passando para confirmar que sua dose Nº ${dose.doseNumber} está agendada para ${doseDate}.`;
+            break;
+        default:
+            message = `Olá, ${patientFirstName}! Como você está?`;
+            break;
+    }
+
+    const encodedMessage = encodeURIComponent(message);
+    const cleanPhoneNumber = patient.phone.replace(/\D/g, ''); // Remove non-digit characters
+
+    return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
+}
+
+
+    
