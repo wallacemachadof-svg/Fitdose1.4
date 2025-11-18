@@ -45,7 +45,7 @@ export type Patient = {
   monjauroDose?: string;
   monjauroTime?: string;
   indication?: {
-    type: 'indicado' | 'indicador';
+    type: 'indicado' | 'indicador' | 'nao_se_aplica';
     name: string;
     patientId?: string;
   };

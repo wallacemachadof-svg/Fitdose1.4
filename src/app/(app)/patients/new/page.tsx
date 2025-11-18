@@ -81,7 +81,7 @@ const patientFormSchema = z.object({
   monjauroDose: z.string().optional(),
   monjauroTime: z.string().optional(),
   avatarUrl: z.string().optional(),
-  indicationType: z.enum(['indicado', 'indicador']).optional(),
+  indicationType: z.enum(['indicado', 'indicador', 'nao_se_aplica']).optional(),
   indicationName: z.string().optional(),
   indicationPatientId: z.string().optional(),
 }).refine(data => {
@@ -92,14 +92,6 @@ const patientFormSchema = z.object({
 }, {
     message: "Dose e tempo de uso são obrigatórios se você já usou Monjauro.",
     path: ["usedMonjauro"],
-}).refine(data => {
-    if (data.indicationType) {
-        return !!data.indicationName;
-    }
-    return true;
-}, {
-    message: "O nome da indicação é obrigatório.",
-    path: ["indicationName"],
 });
 
 type PatientFormValues = z.infer<typeof patientFormSchema>;
@@ -206,7 +198,7 @@ export default function NewPatientPage() {
             const patientDataForApi = {
                 ...data,
                 healthContraindications: fullContraindications || 'Nenhuma observação.',
-                indication: data.indicationType && data.indicationName ? {
+                indication: data.indicationType && data.indicationType !== 'nao_se_aplica' && data.indicationName ? {
                     type: data.indicationType,
                     name: data.indicationName,
                     patientId: data.indicationPatientId,
@@ -586,7 +578,7 @@ export default function NewPatientPage() {
                                             <FormControl>
                                                 <RadioGroup
                                                     onValueChange={(value) => {
-                                                        const newValue = field.value === value ? undefined : value;
+                                                        const newValue = field.value === value ? undefined : (value as 'indicado' | 'indicador' | 'nao_se_aplica');
                                                         field.onChange(newValue);
                                                     }}
                                                     value={field.value}
@@ -649,5 +641,3 @@ export default function NewPatientPage() {
         </>
     )
 }
-
-    
