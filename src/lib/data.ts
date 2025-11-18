@@ -194,7 +194,6 @@ if (globalWithMockData.mockSales === undefined) {
   globalWithMockData.mockSales = [
     { id: '1', saleDate: new Date('2024-07-20'), soldDose: '2.5', price: 220, discount: 0, total: 220, patientId: '1', patientName: 'Ana Silva', paymentDate: new Date('2024-07-20'), paymentStatus: 'pago', deliveryStatus: 'entregue', observations: 'Primeira compra.', deliveryDate: new Date('2024-07-21') },
     { id: '2', saleDate: new Date('2024-07-21'), soldDose: '3.75', price: 330, discount: 10, total: 320, patientId: '2', patientName: 'Bruno Costa', paymentStatus: 'pendente', deliveryStatus: 'em processamento' },
-    { id: '3', saleDate: new Date('2024-07-22'), soldDose: '5.0', price: 380, discount: 0, total: 380, patientId: '3', patientName: 'Carla Dias', paymentDate: new Date('2024-07-22'), paymentStatus: 'pago', deliveryStatus: 'entregue', deliveryDate: new Date('2024-07-23') },
     { id: '4', saleDate: new Date('2024-07-23'), soldDose: '2.5', price: 220, discount: 0, total: 220, patientId: '2', patientName: 'Bruno Costa', paymentStatus: 'pendente', deliveryStatus: 'em agendamento', observations: 'Agendar entrega para a parte da manhã.' },
   ];
 }
@@ -203,7 +202,6 @@ if (globalWithMockData.mockCashFlowEntries === undefined) {
   globalWithMockData.mockCashFlowEntries = [
     { id: 'sale-1', type: 'entrada', purchaseDate: new Date('2024-07-20'), description: 'Venda dose Ana Silva', status: 'pago', amount: 220, paymentMethod: 'pix' },
     { id: 'manual-1', type: 'saida', purchaseDate: new Date('2024-07-19'), description: 'Compra de material', status: 'pago', amount: 80, paymentMethod: 'debito' },
-    { id: 'sale-3', type: 'entrada', purchaseDate: new Date('2024-07-22'), description: 'Venda dose Carla Dias', status: 'pago', amount: 380, paymentMethod: 'credito' },
     { id: 'manual-2', type: 'saida', purchaseDate: new Date('2024-07-25'), description: 'Aluguel do espaço', status: 'pendente', amount: 500, dueDate: new Date('2024-08-05') },
   ];
 }
