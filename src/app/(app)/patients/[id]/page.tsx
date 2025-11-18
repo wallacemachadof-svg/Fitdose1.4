@@ -54,7 +54,8 @@ import {
     HeartPulse,
     UserCheck,
     Droplets,
-    FileText
+    FileText,
+    ArrowLeft
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -203,6 +204,21 @@ export default function PatientDetailPage() {
   
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center mb-4">
+        <Button variant="ghost" asChild className="-ml-4">
+            <Link href="/patients">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar para Pacientes
+            </Link>
+        </Button>
+        <Button asChild>
+            <Link href={`/patients/${patientId}/edit`}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar Perfil
+            </Link>
+        </Button>
+      </div>
+
       <div className="flex flex-col md:flex-row items-start gap-6">
         <Card className="w-full md:w-1/3">
           <CardHeader className="items-center text-center">
@@ -418,6 +434,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 function PatientDetailSkeleton() {
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center mb-4">
+        <Skeleton className="h-10 w-44" />
+        <Skeleton className="h-10 w-32" />
+      </div>
       <div className="flex flex-col md:flex-row items-start gap-6">
         <Card className="w-full md:w-1/3">
           <CardHeader className="items-center text-center">
@@ -857,4 +877,3 @@ function BioimpedanceItem({ label, value, unit }: { label: string, value?: numbe
         </div>
     )
 }
-

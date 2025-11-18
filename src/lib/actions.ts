@@ -119,6 +119,8 @@ export type Patient = {
 };
 
 export type NewPatientData = Omit<Patient, 'id' | 'doses' | 'evolutions'>;
+export type UpdatePatientData = Omit<Patient, 'id' | 'doses' | 'evolutions'>;
+
 
 export type Dose = {
   id: number;
@@ -264,6 +266,44 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
     await new Promise(resolve => setTimeout(resolve, 100));
     return newPatient;
 };
+
+export const updatePatient = async (id: string, patientData: UpdatePatientData): Promise<Patient> => {
+    const data = readData();
+    const patientIndex = data.patients.findIndex(p => p.id === id);
+
+    if (patientIndex === -1) {
+        throw new Error("Patient not found");
+    }
+
+    const originalPatient = data.patients[patientIndex];
+
+    const updatedPatient: Patient = {
+        ...originalPatient, // Keep original doses, evolutions, id
+        fullName: patientData.fullName,
+        age: patientData.age,
+        initialWeight: patientData.initialWeight,
+        height: patientData.height,
+        desiredWeight: patientData.desiredWeight,
+        firstDoseDate: patientData.firstDoseDate,
+        address: { ...patientData.address },
+        phone: patientData.phone,
+        healthContraindications: patientData.healthContraindications,
+        avatarUrl: patientData.avatarUrl || originalPatient.avatarUrl,
+        dailyMedications: patientData.dailyMedications ?? '',
+        oralContraceptive: patientData.oralContraceptive,
+        usedMonjauro: patientData.usedMonjauro,
+        monjauroDose: patientData.monjauroDose ?? '',
+        monjauroTime: patientData.monjauroTime ?? '',
+        indication: patientData.indication,
+    };
+
+    data.patients[patientIndex] = updatedPatient;
+    writeData(data);
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return updatedPatient;
+};
+
 
 export const deletePatient = async (id: string): Promise<void> => {
     const data = readData();
@@ -490,4 +530,3 @@ export const addVial = async (vialData: NewVialData): Promise<Vial[]> => {
     await new Promise(resolve => setTimeout(resolve, 100));
     return newVials;
 }
-
