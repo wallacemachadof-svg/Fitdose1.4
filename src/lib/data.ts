@@ -1,7 +1,68 @@
 
-
-import { placeholderImages } from "@/lib/placeholder-images";
 import { calculateBmi } from "./utils";
+import fs from 'fs';
+import path from 'path';
+
+// --- Data Persistence Setup ---
+const dataDir = path.join(process.cwd(), 'db');
+
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir);
+}
+
+const patientsFilePath = path.join(dataDir, 'patients.json');
+const salesFilePath = path.join(dataDir, 'sales.json');
+const cashFlowFilePath = path.join(dataDir, 'cashflow.json');
+const vialsFilePath = path.join(dataDir, 'vials.json');
+
+type MockData = {
+    patients: Patient[];
+    sales: Sale[];
+    cashFlowEntries: CashFlowEntry[];
+    vials: Vial[];
+};
+
+const readData = (): MockData => {
+    try {
+        const patients = JSON.parse(fs.readFileSync(patientsFilePath, 'utf-8'));
+        const sales = JSON.parse(fs.readFileSync(salesFilePath, 'utf-8'));
+        const cashFlowEntries = JSON.parse(fs.readFileSync(cashFlowFilePath, 'utf-8'));
+        const vials = JSON.parse(fs.readFileSync(vialsFilePath, 'utf-8'));
+        
+        // Dates are stored as strings in JSON, so we need to convert them back to Date objects
+        patients.forEach((p: Patient) => {
+            p.firstDoseDate = new Date(p.firstDoseDate);
+            p.doses.forEach(d => d.date = new Date(d.date));
+            p.evolutions.forEach(e => e.date = new Date(e.date));
+        });
+        sales.forEach((s: Sale) => {
+            s.saleDate = new Date(s.saleDate);
+            if (s.paymentDate) s.paymentDate = new Date(s.paymentDate);
+            if (s.deliveryDate) s.deliveryDate = new Date(s.deliveryDate);
+        });
+        cashFlowEntries.forEach((c: CashFlowEntry) => {
+            c.purchaseDate = new Date(c.purchaseDate);
+            if (c.dueDate) c.dueDate = new Date(c.dueDate);
+        });
+        vials.forEach((v: Vial) => {
+            v.purchaseDate = new Date(v.purchaseDate);
+        });
+
+        return { patients, sales, cashFlowEntries, vials };
+    } catch (error) {
+        // If files don't exist, return empty arrays
+        return { patients: [], sales: [], cashFlowEntries: [], vials: [] };
+    }
+};
+
+const writeData = (data: MockData) => {
+    fs.writeFileSync(patientsFilePath, JSON.stringify(data.patients, null, 2));
+    fs.writeFileSync(salesFilePath, JSON.stringify(data.sales, null, 2));
+    fs.writeFileSync(cashFlowFilePath, JSON.stringify(data.cashFlowEntries, null, 2));
+    fs.writeFileSync(vialsFilePath, JSON.stringify(data.vials, null, 2));
+};
+
+// --- Type Definitions ---
 
 const generateDoseSchedule = (startDate: Date): Dose[] => {
   const doses: Dose[] = [];
@@ -63,15 +124,25 @@ export type Dose = {
   payment?: {
     method: "cash" | "pix" | "debit" | "credit" | "payment_link";
     installments?: number;
+    amount?: number;
   };
   status: 'administered' | 'pending';
 };
+
+export type Bioimpedance = {
+    fatPercentage?: number;
+    muscleMass?: number;
+    visceralFat?: number;
+    metabolicAge?: number;
+    hydration?: number;
+}
 
 export type Evolution = {
     id: string;
     date: Date;
     notes: string;
     photoUrl?: string;
+    bioimpedance?: Bioimpedance;
 };
 export type NewEvolutionData = Omit<Evolution, 'id' | 'date'>;
 
@@ -120,48 +191,23 @@ export type NewVialData = Omit<Vial, 'id' | 'remainingMg' | 'soldMg'> & {
     quantity: number;
 };
 
-
-// We use a global variable to simulate a database in a development environment.
-// This is not suitable for production.
-const globalWithMockData = global as typeof global & {
-  mockPatients?: Patient[];
-  mockSales?: Sale[];
-  mockCashFlowEntries?: CashFlowEntry[];
-  mockVials?: Vial[];
-};
-
-if (globalWithMockData.mockPatients === undefined) {
-    globalWithMockData.mockPatients = [];
-}
-if (globalWithMockData.mockSales === undefined) {
-  globalWithMockData.mockSales = [];
-}
-if (globalWithMockData.mockCashFlowEntries === undefined) {
-  globalWithMockData.mockCashFlowEntries = [];
-}
-if (globalWithMockData.mockVials === undefined) {
-    globalWithMockData.mockVials = [];
-}
-
-const patients = globalWithMockData.mockPatients!;
-const sales = globalWithMockData.mockSales!;
-const cashFlowEntries = globalWithMockData.mockCashFlowEntries!;
-const vials = globalWithMockData.mockVials!;
-
+// --- Data Access Functions ---
 
 export const getPatients = async (): Promise<Patient[]> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 100)); // simulate async
+    const { patients } = readData();
     return [...patients].sort((a,b) => a.fullName.localeCompare(b.fullName));
 }
 
 export const getPatientById = async (id: string): Promise<Patient | null> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const { patients } = readData();
     return patients.find(p => p.id === id) ?? null;
 }
 
 export const addPatient = async (patientData: NewPatientData): Promise<Patient> => {
-    
-    const newId = (patients.length > 0 ? Math.max(...patients.map(p => parseInt(p.id, 10))) : 0) + 1;
+    const data = readData();
+    const newId = (data.patients.length > 0 ? Math.max(...data.patients.map(p => parseInt(p.id, 10))) : 0) + 1;
     
     const initialBmi = calculateBmi(patientData.initialWeight, patientData.height / 100);
     const doses = generateDoseSchedule(patientData.firstDoseDate).map(dose => {
@@ -170,14 +216,16 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         const doseDate = new Date(dose.date);
         doseDate.setHours(0, 0, 0, 0);
 
+        // This logic for past doses is for demo purposes.
+        // In a real app, this might not be desired.
         if (doseDate < today) {
             return {
                 ...dose,
                 status: 'administered' as 'administered',
                 weight: patientData.initialWeight,
                 bmi: initialBmi,
-                administeredDose: 2.5, // Default dose for past dates
-                payment: { method: 'pix' as 'pix' } // Default payment
+                administeredDose: 2.5,
+                payment: { method: 'pix' as 'pix', amount: 220 } 
             };
         }
         return dose;
@@ -191,13 +239,7 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         height: patientData.height,
         desiredWeight: patientData.desiredWeight,
         firstDoseDate: patientData.firstDoseDate,
-        address: {
-            zip: patientData.zip,
-            street: patientData.street,
-            number: patientData.number,
-            city: patientData.city,
-            state: patientData.state,
-        },
+        address: { ...patientData.address },
         phone: patientData.phone,
         healthContraindications: patientData.healthContraindications ?? "Nenhuma observação.",
         avatarUrl: patientData.avatarUrl || `https://i.pravatar.cc/150?u=${newId}`,
@@ -211,40 +253,37 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         indication: patientData.indication,
     };
 
-    patients.push(newPatient);
+    data.patients.push(newPatient);
+    writeData(data);
     
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    await new Promise(resolve => setTimeout(resolve, 100));
     return newPatient;
 };
 
 export const deletePatient = async (id: string): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const index = patients.findIndex(p => p.id === id);
+    const data = readData();
+    const index = data.patients.findIndex(p => p.id === id);
     if (index !== -1) {
-        patients.splice(index, 1);
+        data.patients.splice(index, 1);
+        writeData(data);
     } else {
         throw new Error("Patient not found");
     }
+    await new Promise(resolve => setTimeout(resolve, 100));
 };
 
 export type DoseUpdateData = Partial<Omit<Dose, 'id' | 'doseNumber'>>;
 
 export const updateDose = async (patientId: string, doseId: number, doseData: DoseUpdateData): Promise<Patient | null> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const data = readData();
+    const patientIndex = data.patients.findIndex(p => p.id === patientId);
 
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex === -1) return null;
 
-    if (patientIndex === -1) {
-        return null;
-    }
-
-    const patient = patients[patientIndex];
+    const patient = data.patients[patientIndex];
     const doseIndex = patient.doses.findIndex(d => d.id === doseId);
 
-    if (doseIndex === -1) {
-        return null;
-    }
+    if (doseIndex === -1) return null;
 
     const originalDose = patient.doses[doseIndex];
     const updatedDose: Dose = {
@@ -255,62 +294,69 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     if (updatedDose.status === 'administered' && updatedDose.weight) {
         updatedDose.bmi = calculateBmi(updatedDose.weight, patient.height / 100);
     }
+     // Add payment amount if method is selected
+    if(doseData.payment?.method && updatedDose.payment) {
+        updatedDose.payment.amount = originalDose.payment?.amount || 0; // Default or calculate based on dose
+    }
+
 
     patient.doses[doseIndex] = updatedDose;
-    
-    // Sort doses by date after update
     patient.doses.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    data.patients[patientIndex] = patient;
+    writeData(data);
 
-    patients[patientIndex] = patient;
-
+    await new Promise(resolve => setTimeout(resolve, 100));
     return patient;
 };
 
 export const addPatientEvolution = async (patientId: string, evolutionData: NewEvolutionData): Promise<Patient> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const patientIndex = patients.findIndex(p => p.id === patientId);
+    const data = readData();
+    const patientIndex = data.patients.findIndex(p => p.id === patientId);
     if (patientIndex === -1) {
         throw new Error("Patient not found");
     }
 
-    const patient = patients[patientIndex];
+    const patient = data.patients[patientIndex];
     const newEvolution: Evolution = {
         id: `evo-${Date.now()}`,
         date: new Date(),
         notes: evolutionData.notes,
         photoUrl: evolutionData.photoUrl,
+        bioimpedance: evolutionData.bioimpedance,
     };
 
+    if (!patient.evolutions) {
+        patient.evolutions = [];
+    }
     patient.evolutions.push(newEvolution);
-    patients[patientIndex] = patient;
+    data.patients[patientIndex] = patient;
+    writeData(data);
 
+    await new Promise(resolve => setTimeout(resolve, 100));
     return patient;
 };
 
 
 export const getSales = async (): Promise<Sale[]> => {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return [...sales].sort((a, b) => b.saleDate.getTime() - a.saleDate.getTime());
+  const { sales } = readData();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  return [...sales].sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
 };
 
 export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
-    const patient = patients.find(p => p.id === saleData.patientId);
+    const data = readData();
+    const patient = data.patients.find(p => p.id === saleData.patientId);
     if (!patient) {
         throw new Error("Paciente não encontrado");
     }
 
     const soldMg = parseFloat(saleData.soldDose);
-    
-    // Check total available stock
-    const totalRemainingMg = vials.reduce((acc, v) => acc + v.remainingMg, 0);
+    const totalRemainingMg = data.vials.reduce((acc, v) => acc + v.remainingMg, 0);
     if (totalRemainingMg < soldMg) {
         throw new Error(`Estoque insuficiente. Apenas ${totalRemainingMg.toFixed(2)}mg disponíveis.`);
     }
 
-    // FIFO: Find oldest vials with enough stock
-    const sortedVials = [...vials].sort((a, b) => a.purchaseDate.getTime() - b.purchaseDate.getTime());
-
+    const sortedVials = [...data.vials].sort((a, b) => new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime());
     let remainingToDeduct = soldMg;
     for (const vial of sortedVials) {
         if (remainingToDeduct <= 0) break;
@@ -321,9 +367,8 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             remainingToDeduct -= amountToDeduct;
         }
     }
-
     
-    const newId = (sales.length > 0 ? Math.max(...sales.map(s => parseInt(s.id, 10))) : 0) + 1;
+    const newId = (data.sales.length > 0 ? Math.max(...data.sales.map(s => parseInt(s.id, 10))) : 0) + 1;
     const total = (saleData.price || 0) - (saleData.discount || 0);
     
     const newSale: Sale = {
@@ -333,9 +378,8 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         total: total,
     };
 
-    sales.push(newSale);
+    data.sales.push(newSale);
 
-    // Now, add to cash flow if it's paid
     if (newSale.paymentStatus === 'pago') {
         const newCashFlowEntry: CashFlowEntry = {
             id: `sale-${newSale.id}`,
@@ -344,71 +388,70 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             description: `Venda p/ ${patient.fullName}`,
             amount: total,
             status: 'pago',
-            paymentMethod: 'pix', // Defaulting, can be improved
+            paymentMethod: 'pix',
         };
-        cashFlowEntries.push(newCashFlowEntry);
+        data.cashFlowEntries.push(newCashFlowEntry);
     }
-
-
-    await new Promise(resolve => setTimeout(resolve, 500));
-
+    
+    writeData(data);
+    await new Promise(resolve => setTimeout(resolve, 100));
     return newSale;
 };
 
 export const deleteSale = async (id: string): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const saleIndex = sales.findIndex(s => s.id === id);
+    const data = readData();
+    const saleIndex = data.sales.findIndex(s => s.id === id);
     if (saleIndex !== -1) {
-        sales.splice(saleIndex, 1);
+        data.sales.splice(saleIndex, 1);
     } else {
         throw new Error("Venda não encontrada");
     }
 
     const cashFlowEntryId = `sale-${id}`;
-    const cashFlowIndex = cashFlowEntries.findIndex(cf => cf.id === cashFlowEntryId);
+    const cashFlowIndex = data.cashFlowEntries.findIndex(cf => cf.id === cashFlowEntryId);
     if (cashFlowIndex !== -1) {
-        cashFlowEntries.splice(cashFlowIndex, 1);
+        data.cashFlowEntries.splice(cashFlowIndex, 1);
     }
+    writeData(data);
+    await new Promise(resolve => setTimeout(resolve, 100));
 };
     
 export const getCashFlowEntries = async (): Promise<CashFlowEntry[]> => {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return [...cashFlowEntries].sort((a, b) => b.purchaseDate.getTime() - a.purchaseDate.getTime());
+  const { cashFlowEntries } = readData();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  return [...cashFlowEntries].sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime());
 }
 
 export const addCashFlowEntry = async (entryData: NewCashFlowData): Promise<CashFlowEntry> => {
-    const newId = `manual-${(cashFlowEntries.filter(e => e.id.startsWith('manual-')).length > 0 ? Math.max(...cashFlowEntries.filter(e => e.id.startsWith('manual-')).map(e => parseInt(e.id.replace('manual-',''), 10))) : 0) + 1}`;
-
-    const newEntry: CashFlowEntry = {
-        id: newId,
-        ...entryData,
-    };
-
-    cashFlowEntries.push(newEntry);
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const data = readData();
+    const newId = `manual-${(data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).length > 0 ? Math.max(...data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).map(e => parseInt(e.id.replace('manual-',''), 10))) : 0) + 1}`;
+    const newEntry: CashFlowEntry = { id: newId, ...entryData };
+    data.cashFlowEntries.push(newEntry);
+    writeData(data);
+    await new Promise(resolve => setTimeout(resolve, 100));
     return newEntry;
 }
 
 export const deleteCashFlowEntry = async (id: string): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const index = cashFlowEntries.findIndex(e => e.id === id);
+    const data = readData();
+    const index = data.cashFlowEntries.findIndex(e => e.id === id);
     if (index !== -1) {
-        cashFlowEntries.splice(index, 1);
+        data.cashFlowEntries.splice(index, 1);
+        writeData(data);
     } else {
         throw new Error("Lançamento não encontrado no fluxo de caixa");
     }
+    await new Promise(resolve => setTimeout(resolve, 100));
 };
 
 export const getVials = async (): Promise<Vial[]> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return [...vials].sort((a,b) => a.purchaseDate.getTime() - b.purchaseDate.getTime());
+    const { vials } = readData();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return [...vials].sort((a,b) => new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime());
 }
 
 export const addVial = async (vialData: NewVialData): Promise<Vial[]> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
+    const data = readData();
     const newVials: Vial[] = [];
     for (let i = 0; i < vialData.quantity; i++) {
         const newId = `vial-${Date.now()}-${i}`;
@@ -421,20 +464,23 @@ export const addVial = async (vialData: NewVialData): Promise<Vial[]> => {
             soldMg: 0,
         };
         newVials.push(newVial);
-        vials.push(newVial);
+        data.vials.push(newVial);
     }
     
-    // Also add to cash flow as an expense
     const cashFlowEntry: NewCashFlowData = {
         type: 'saida',
         purchaseDate: vialData.purchaseDate,
         description: `Compra ${vialData.quantity}x frasco ${vialData.totalMg}mg`,
         amount: vialData.cost * vialData.quantity,
         status: 'pago',
-        paymentMethod: 'pix' // Defaulting, can be improved
+        paymentMethod: 'pix'
     };
-    await addCashFlowEntry(cashFlowEntry);
-
-
+    
+    const newId = `manual-${(data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).length > 0 ? Math.max(...data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).map(e => parseInt(e.id.replace('manual-',''), 10))) : 0) + 1}`;
+    const newEntry: CashFlowEntry = { id: newId, ...cashFlowEntry };
+    data.cashFlowEntries.push(newEntry);
+    
+    writeData(data);
+    await new Promise(resolve => setTimeout(resolve, 100));
     return newVials;
 }

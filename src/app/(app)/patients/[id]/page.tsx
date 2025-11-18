@@ -1,9 +1,10 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { notFound, useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   getPatientById,
   updateDose,
@@ -11,14 +12,16 @@ import {
   type Patient,
   type Dose,
   type Evolution,
+  type Bioimpedance
 } from '@/lib/data';
 import {
   calculateBmi,
   formatDate,
   getDoseStatus,
   generateWhatsAppLink,
+  formatCurrency
 } from '@/lib/utils';
-import { useForm, useForm as useEvolutionForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
@@ -46,6 +49,12 @@ import {
     BookPlus,
     Camera,
     Upload,
+    BarChart3,
+    DollarSign,
+    HeartPulse,
+    UserCheck,
+    Droplets,
+    FileText
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -61,7 +70,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format as formatDateFns } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 const doseManagementSchema = z.object({
   date: z.date({ required_error: "A data é obrigatória." }),
@@ -148,6 +157,23 @@ export default function PatientDetailPage() {
     setPatient(updatedPatient);
   }
 
+  const weightChartData = useMemo(() => {
+    if (!patient) return [];
+    
+    const data = patient.doses
+      .filter(d => d.status === 'administered' && d.weight)
+      .map(d => ({
+        date: formatDate(d.date),
+        peso: d.weight,
+      }));
+
+    if (data.length === 0 && patient.initialWeight) {
+        return [{ date: formatDate(patient.firstDoseDate), peso: patient.initialWeight }];
+    }
+      
+    return data;
+  }, [patient]);
+
   if (loading || !patient) {
     return <PatientDetailSkeleton />;
   }
@@ -156,6 +182,10 @@ export default function PatientDetailPage() {
   const currentBmi = calculateBmi(currentWeight, patient.height / 100);
   const weightToLose = currentWeight - patient.desiredWeight;
   const patientNameInitial = patient.fullName.charAt(0).toUpperCase();
+
+  const totalPaid = patient.doses
+    .filter(d => d.status === 'administered' && d.payment?.amount)
+    .reduce((acc, d) => acc + (d.payment?.amount || 0), 0);
 
   const HealthInfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | null | undefined }) => {
     if (!value) return null;
@@ -181,6 +211,16 @@ export default function PatientDetailPage() {
             </Avatar>
             <CardTitle>{patient.fullName}</CardTitle>
             <CardDescription>{patient.age} anos</CardDescription>
+            {patient.indication?.name && (
+                <CardDescription>
+                    {patient.indication.type === 'indicado' ? 'Indicado(a) por ' : 'Indicou '} 
+                    {patient.indication.patientId ? (
+                        <Link href={`/patients/${patient.indication.patientId}`} className="text-primary hover:underline">{patient.indication.name}</Link>
+                    ) : (
+                        patient.indication.name
+                    )}
+                </CardDescription>
+            )}
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex items-center gap-3"><Phone className="w-4 h-4 text-muted-foreground" /> <span>{patient.phone}</span></div>
@@ -194,14 +234,34 @@ export default function PatientDetailPage() {
             <InfoCard icon={Ruler} label="Altura" value={`${patient.height} cm`} />
             <InfoCard icon={Target} label="Meta de Peso" value={`${patient.desiredWeight} kg`} />
             <InfoCard icon={TrendingDown} label="Faltam Perder" value={`${weightToLose > 0 ? weightToLose.toFixed(1) : 0} kg`} />
+            <InfoCard icon={DollarSign} label="Total Pago" value={formatCurrency(totalPaid)} />
         </div>
       </div>
       
+       {weightChartData.length > 0 && (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" /> Evolução de Peso</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={weightChartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" stroke="#888888" fontSize={12} />
+                        <YAxis stroke="#888888" fontSize={12} domain={['dataMin - 2', 'dataMax + 2']} tickFormatter={(value) => `${value}kg`} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Line type="monotone" dataKey="peso" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                </ResponsiveContainer>
+            </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle>Ficha de Avaliação de Saúde</CardTitle>
+              <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5"/>Ficha de Avaliação de Saúde</CardTitle>
               <CardDescription>Observações, contraindicações e histórico do paciente.</CardDescription>
             </div>
             <Dialog>
@@ -341,6 +401,19 @@ function InfoCard({ icon: Icon, label, value }: { icon: React.ElementType, label
     )
 }
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-background/80 backdrop-blur-sm p-2 border rounded-md shadow-lg">
+        <p className="label font-bold">{`Data: ${label}`}</p>
+        <p className="intro text-primary">{`Peso: ${payload[0].value} kg`}</p>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 function PatientDetailSkeleton() {
   return (
     <div className="space-y-6">
@@ -363,8 +436,10 @@ function PatientDetailSkeleton() {
             <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
             <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
             <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
+            <Card><CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
         </div>
       </div>
+      <Card><CardHeader><Skeleton className="h-8 w-1/3" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card>
       <Card><CardHeader><Skeleton className="h-8 w-1/3" /></CardHeader><CardContent><Skeleton className="h-20 w-full" /></CardContent></Card>
       <Card><CardHeader><Skeleton className="h-8 w-1/3" /></CardHeader><CardContent><Skeleton className="h-64 w-full" /></CardContent></Card>
     </div>
@@ -412,6 +487,9 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
     async function onSubmit(data: DoseManagementFormValues) {
         setIsSubmitting(true);
         try {
+            // This is a placeholder for a price. In a real scenario, this would be dynamic.
+            const dosePrice = 220; 
+
             const updatedPatient = await updateDose(patientId, dose.id, {
                 date: data.date,
                 status: data.status,
@@ -420,6 +498,7 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                 payment: data.paymentMethod ? {
                     method: data.paymentMethod,
                     installments: data.installments,
+                    amount: dose.payment?.amount || (data.status === 'administered' ? dosePrice : 0),
                 } : undefined,
             });
 
@@ -564,6 +643,13 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
 const evolutionFormSchema = z.object({
     notes: z.string().min(1, "As anotações são obrigatórias."),
     photoUrl: z.string().optional(),
+    bioimpedance: z.object({
+        fatPercentage: z.coerce.number().optional(),
+        muscleMass: z.coerce.number().optional(),
+        visceralFat: z.coerce.number().optional(),
+        metabolicAge: z.coerce.number().optional(),
+        hydration: z.coerce.number().optional(),
+    }).optional(),
 });
 
 type EvolutionFormValues = z.infer<typeof evolutionFormSchema>;
@@ -578,11 +664,18 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-    const form = useEvolutionForm<EvolutionFormValues>({
+    const form = useForm<EvolutionFormValues>({
         resolver: zodResolver(evolutionFormSchema),
         defaultValues: {
             notes: "",
             photoUrl: "",
+            bioimpedance: {
+                fatPercentage: undefined,
+                muscleMass: undefined,
+                visceralFat: undefined,
+                metabolicAge: undefined,
+                hydration: undefined,
+            }
         },
     });
 
@@ -625,12 +718,12 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Evolução de Desempenho</CardTitle>
-                <CardDescription>Adicione e visualize a evolução do paciente ao longo do tempo.</CardDescription>
+                <CardTitle className="flex items-center gap-2"><HeartPulse className="h-5 w-5"/> Evolução de Desempenho</CardTitle>
+                <CardDescription>Adicione e visualize a evolução do paciente, incluindo bioimpedância.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mb-6">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mb-6">
                         <FormField
                             control={form.control}
                             name="notes"
@@ -644,6 +737,29 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
                                 </FormItem>
                             )}
                         />
+                        
+                        <div>
+                            <h4 className="text-sm font-medium mb-2">Dados de Bioimpedância (Opcional)</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                                <FormField control={form.control} name="bioimpedance.fatPercentage" render={({ field }) => (
+                                    <FormItem><FormLabel>% Gordura</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 25.5" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="bioimpedance.muscleMass" render={({ field }) => (
+                                    <FormItem><FormLabel>Massa Musc. (kg)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 58.2" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="bioimpedance.visceralFat" render={({ field }) => (
+                                    <FormItem><FormLabel>Gordura Visceral</FormLabel><FormControl><Input type="number" placeholder="Ex: 8" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="bioimpedance.metabolicAge" render={({ field }) => (
+                                    <FormItem><FormLabel>Idade Metab.</FormLabel><FormControl><Input type="number" placeholder="Ex: 35" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="bioimpedance.hydration" render={({ field }) => (
+                                    <FormItem><FormLabel>Hidratação (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 55.3" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                            </div>
+                        </div>
+
+
                         <FormField
                             control={form.control}
                             name="photoUrl"
@@ -686,14 +802,25 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
                 <div className="space-y-4 pt-6 border-t">
                     <h4 className="font-semibold text-md">Histórico de Evolução</h4>
                      {patient.evolutions && patient.evolutions.length > 0 ? (
-                        <div className="grid gap-6">
+                        <div className="space-y-6">
                             {patient.evolutions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(evo => (
                                 <Card key={evo.id} className="bg-muted/50">
                                     <CardHeader className="p-4 flex-row justify-between items-center">
                                         <CardTitle className="text-base">{formatDate(evo.date)}</CardTitle>
                                     </CardHeader>
-                                    <CardContent className="p-4 pt-0 grid md:grid-cols-3 gap-4">
-                                        <p className="text-sm text-muted-foreground col-span-3 md:col-span-2">{evo.notes}</p>
+                                    <CardContent className="p-4 pt-0 grid md:grid-cols-3 gap-6">
+                                        <div className="md:col-span-2">
+                                            <p className="text-sm text-muted-foreground">{evo.notes}</p>
+                                            {evo.bioimpedance && (
+                                                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
+                                                    <BioimpedanceItem label="% Gordura" value={evo.bioimpedance.fatPercentage} unit="%" />
+                                                    <BioimpedanceItem label="Massa Muscular" value={evo.bioimpedance.muscleMass} unit="kg" />
+                                                    <BioimpedanceItem label="Gordura Visceral" value={evo.bioimpedance.visceralFat} />
+                                                    <BioimpedanceItem label="Idade Metabólica" value={evo.bioimpedance.metabolicAge} unit=" anos" />
+                                                    <BioimpedanceItem label="Hidratação" value={evo.bioimpedance.hydration} unit="%" />
+                                                </div>
+                                            )}
+                                        </div>
                                         {evo.photoUrl && (
                                             <div className="relative w-full aspect-square rounded-md border overflow-hidden">
                                                 <Image src={evo.photoUrl} alt={`Evolução em ${formatDate(evo.date)}`} layout="fill" className="object-cover"/>
@@ -711,6 +838,13 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
         </Card>
     );
 }
-    
 
-    
+function BioimpedanceItem({ label, value, unit }: { label: string, value?: number, unit?: string }) {
+    if (value === undefined || value === null) return null;
+    return (
+        <div className="flex justify-between items-baseline p-1.5 bg-background/50 rounded">
+            <span className="font-medium text-foreground/80">{label}:</span>
+            <span className="font-semibold text-foreground">{value}{unit}</span>
+        </div>
+    )
+}

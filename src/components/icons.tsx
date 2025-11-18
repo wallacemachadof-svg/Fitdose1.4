@@ -30,16 +30,3 @@ export function StethoscopeIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-export function FitDoseLogo(props: SVGProps<SVGSVGElement>) {
-    return (
-      <svg
-        {...props}
-        width="130"
-        height="32"
-        viewBox="0 0 130 32"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-      </svg>
-    );
-  }
