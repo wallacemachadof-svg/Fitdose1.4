@@ -70,7 +70,7 @@ export type Sale = {
   deliveryDate?: Date;
 };
 
-export type NewSaleData = Omit<Sale, 'id' | 'patientName' | 'total'>;
+export type NewSaleData = Omit<Sale, 'id' | 'patientName'>;
 
 export type CashFlowEntry = {
   id: string;
@@ -106,6 +106,7 @@ const generateDoseSchedule = (startDate: Date): Dose[] => {
   }
   return doses;
 };
+
 
 if (globalWithMockData.mockPatients === undefined) {
     globalWithMockData.mockPatients = [
@@ -393,9 +394,11 @@ export const getCashFlowEntries = async (): Promise<CashFlowEntry[]> => {
 export const deleteCashFlowEntry = async (id: string): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Prevent deleting entries linked to sales
+    // If the entry is linked to a sale, delete the sale as well
     if (id.startsWith('sale-')) {
-        throw new Error("Cannot delete cash flow entries that are linked to a sale. Please delete the sale instead.");
+        const saleId = id.substring(5); // remove 'sale-' prefix
+        await deleteSale(saleId); // This will also remove the cash flow entry
+        return;
     }
     
     const index = cashFlowEntries.findIndex(e => e.id === id);
@@ -407,4 +410,5 @@ export const deleteCashFlowEntry = async (id: string): Promise<void> => {
 };
 
     
+
 
