@@ -56,9 +56,15 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { format as formatDateFns } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 
 const doseManagementSchema = z.object({
+  date: z.date({ required_error: "A data é obrigatória." }),
   status: z.enum(['administered', 'pending']),
   weight: z.coerce.number().optional(),
   administeredDose: z.coerce.number().optional(),
@@ -288,7 +294,7 @@ export default function PatientDetailPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleManageDoseClick(dose)} disabled={dose.status === 'administered'}>
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleManageDoseClick(dose)}>
                           <Pencil className="h-4 w-4" />
                           <span className="sr-only">Gerenciar Dose</span>
                         </Button>
@@ -380,6 +386,7 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
     const form = useForm<DoseManagementFormValues>({
         resolver: zodResolver(doseManagementSchema),
         defaultValues: {
+            date: new Date(dose.date),
             status: dose.status,
             weight: dose.weight || undefined,
             administeredDose: dose.administeredDose || undefined,
@@ -390,6 +397,7 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
 
     useEffect(() => {
         form.reset({
+            date: new Date(dose.date),
             status: dose.status,
             weight: dose.weight || undefined,
             administeredDose: dose.administeredDose || undefined,
@@ -405,6 +413,7 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
         setIsSubmitting(true);
         try {
             const updatedPatient = await updateDose(patientId, dose.id, {
+                date: data.date,
                 status: data.status,
                 weight: data.weight,
                 administeredDose: data.administeredDose,
@@ -442,11 +451,34 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                 <DialogHeader>
                     <DialogTitle>Gerenciar Dose N° {dose.doseNumber}</DialogTitle>
                     <DialogDescription>
-                        Atualize as informações da dose agendada para {formatDate(dose.date)}.
+                        Atualize ou reagende a dose.
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        
+                        <FormField
+                            control={form.control}
+                            name="date"
+                            render={({ field }) => (
+                            <FormItem className="flex flex-col"><FormLabel>Data da Dose</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                            {field.value ? formatDateFns(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                    </PopoverContent>
+                                </Popover>
+                            <FormMessage />
+                            </FormItem>
+                        )}/>
+                        
                         <FormField
                             control={form.control}
                             name="status"

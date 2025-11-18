@@ -228,7 +228,7 @@ export const deletePatient = async (id: string): Promise<void> => {
     }
 };
 
-export type DoseUpdateData = Partial<Omit<Dose, 'id' | 'doseNumber' | 'date'>>;
+export type DoseUpdateData = Partial<Omit<Dose, 'id' | 'doseNumber'>>;
 
 export const updateDose = async (patientId: string, doseId: number, doseData: DoseUpdateData): Promise<Patient | null> => {
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -257,6 +257,10 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     }
 
     patient.doses[doseIndex] = updatedDose;
+    
+    // Sort doses by date after update
+    patient.doses.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
     patients[patientIndex] = patient;
 
     return patient;
