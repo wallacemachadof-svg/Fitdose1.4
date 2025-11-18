@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowDownCircle, ArrowUpCircle, PlusCircle, MoreVertical, Edit, Trash2, Loader2 } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, PlusCircle, MoreVertical, Edit, Trash2, Loader2, DollarSign } from "lucide-react";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -134,9 +134,10 @@ export default function CashFlowPage() {
                         <div className="text-2xl font-bold text-red-500">{formatCurrency(totalExpenses)}</div>
                     </CardContent>
                 </Card>
-                <Card>
+                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Saldo Atual</CardTitle>
+                        <DollarSign className="h-4 w-4 text-muted-foreground"/>
                     </CardHeader>
                     <CardContent>
                         <div className={`text-2xl font-bold ${balance >= 0 ? 'text-foreground' : 'text-destructive'}`}>{formatCurrency(balance)}</div>
@@ -211,11 +212,12 @@ function EntriesTable({ entries, onEdit, onDelete }: EntriesTableProps) {
                 {entries.length > 0 ? (
                     entries.map((entry) => {
                         const status = getPaymentStatusVariant(entry.status);
+                        const typeStyle = getPaymentStatusVariant(entry.type);
                         return (
                             <TableRow key={entry.id}>
                                 <TableCell>{formatDate(entry.purchaseDate)}</TableCell>
                                 <TableCell className="font-medium">{entry.description}</TableCell>
-                                <TableCell className={`font-semibold ${entry.type === 'entrada' ? 'text-green-600' : 'text-red-600'}`}>
+                                <TableCell className={`font-semibold ${typeStyle.color} ${typeStyle.textColor}`}>
                                     {entry.type === 'saida' && '- '}{formatCurrency(entry.amount)}
                                 </TableCell>
                                 <TableCell>{entry.paymentMethod ?? '-'}</TableCell>
@@ -256,3 +258,5 @@ function EntriesTable({ entries, onEdit, onDelete }: EntriesTableProps) {
         </Table>
     )
 }
+
+    

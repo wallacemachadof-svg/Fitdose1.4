@@ -51,7 +51,7 @@ export function getDoseStatus(dose: Dose) {
 }
 
 
-export function getPaymentStatusVariant(status: Sale['paymentStatus'] | CashFlowEntry['status']) {
+export function getPaymentStatusVariant(status: Sale['paymentStatus'] | CashFlowEntry['status'] | CashFlowEntry['type']) {
   switch (status) {
     case 'pago':
       return { label: "Pago", color: "bg-green-500", textColor: "text-white" };
@@ -59,6 +59,10 @@ export function getPaymentStatusVariant(status: Sale['paymentStatus'] | CashFlow
       return { label: "Pendente", color: "bg-yellow-500", textColor: "text-white" };
     case 'vencido':
         return { label: "Vencido", color: "bg-red-500", textColor: "text-white" };
+    case 'entrada':
+        return { label: "Entrada", color: "text-green-600", textColor: "" };
+    case 'saida':
+        return { label: "Saída", color: "text-red-600", textColor: "" };
     default:
       return { label: "Pendente", color: "bg-yellow-500", textColor: "text-white" };
   }
@@ -140,3 +144,4 @@ export function generateGoogleCalendarLink(patientName: string, dose: Dose): str
     return url.toString();
 }
 
+    
