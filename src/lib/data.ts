@@ -100,29 +100,44 @@ export type CashFlowEntry = {
 }
 export type NewCashFlowData = Omit<CashFlowEntry, 'id'>;
 
+export type Stock = {
+    dose: string;
+    quantity: number;
+};
+
+
 // We use a global variable to simulate a database in a development environment.
 // This is not suitable for production.
 const globalWithMockData = global as typeof global & {
   mockPatients?: Patient[];
   mockSales?: Sale[];
   mockCashFlowEntries?: CashFlowEntry[];
+  mockStock?: Stock[];
 };
 
 if (globalWithMockData.mockPatients === undefined) {
     globalWithMockData.mockPatients = [];
 }
-
 if (globalWithMockData.mockSales === undefined) {
   globalWithMockData.mockSales = [];
 }
-
 if (globalWithMockData.mockCashFlowEntries === undefined) {
   globalWithMockData.mockCashFlowEntries = [];
+}
+if (globalWithMockData.mockStock === undefined) {
+    globalWithMockData.mockStock = [
+        { dose: '2.5', quantity: 10 },
+        { dose: '3.75', quantity: 8 },
+        { dose: '5.0', quantity: 15 },
+        { dose: '6.25', quantity: 5 },
+        { dose: '7.05', quantity: 3 },
+    ];
 }
 
 const patients = globalWithMockData.mockPatients!;
 const sales = globalWithMockData.mockSales!;
 const cashFlowEntries = globalWithMockData.mockCashFlowEntries!;
+const stock = globalWithMockData.mockStock!;
 
 
 export const getPatients = async (): Promise<Patient[]> => {
@@ -245,10 +260,16 @@ export const getSales = async (): Promise<Sale[]> => {
 
 export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     const patient = patients.find(p => p.id === saleData.patientId);
-
     if (!patient) {
         throw new Error("Patient not found");
     }
+
+    const stockItem = stock.find(s => s.dose === saleData.soldDose);
+    if (!stockItem || stockItem.quantity <= 0) {
+        throw new Error(`Dose ${saleData.soldDose}mg está fora de estoque.`);
+    }
+    
+    stockItem.quantity -= 1;
     
     const newId = (sales.length > 0 ? Math.max(...sales.map(s => parseInt(s.id, 10))) : 0) + 1;
     const total = (saleData.price || 0) - (saleData.discount || 0);
@@ -330,4 +351,19 @@ export const deleteCashFlowEntry = async (id: string): Promise<void> => {
         throw new Error("Cash flow entry not found");
     }
 };
-    
+
+export const getStockLevels = async (): Promise<Stock[]> => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return [...stock].sort((a,b) => parseFloat(a.dose) - parseFloat(b.dose));
+}
+
+export const updateStockLevel = async (dose: string, newQuantity: number): Promise<Stock> => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const stockItem = stock.find(s => s.dose === dose);
+    if (stockItem) {
+        stockItem.quantity = newQuantity;
+        return stockItem;
+    } else {
+        throw new Error("Dose not found in stock");
+    }
+}

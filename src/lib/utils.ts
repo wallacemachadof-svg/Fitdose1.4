@@ -75,3 +75,13 @@ export function getDeliveryStatusVariant(status: Sale['deliveryStatus']) {
             return { label: "Pendente", color: "bg-gray-400", textColor: "text-white" };
     }
 }
+
+export function getStockStatusVariant(quantity: number) {
+    if (quantity <= 0) {
+        return { label: "Esgotado", color: "bg-red-500", textColor: "text-white" };
+    }
+    if (quantity <= 5) {
+        return { label: "Estoque Baixo", color: "bg-yellow-500", textColor: "text-white" };
+    }
+    return { label: "Em Estoque", color: "bg-green-500", textColor: "text-white" };
+}

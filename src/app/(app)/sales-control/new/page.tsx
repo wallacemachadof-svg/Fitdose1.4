@@ -110,12 +110,12 @@ export default function NewSalePage() {
             });
             router.push("/sales-control");
             router.refresh();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to add sale", error);
              toast({
                 variant: "destructive",
                 title: "Erro ao salvar",
-                description: "Não foi possível salvar a venda. Tente novamente.",
+                description: error.message || "Não foi possível salvar a venda. Tente novamente.",
             });
         } finally {
             setIsSubmitting(false);

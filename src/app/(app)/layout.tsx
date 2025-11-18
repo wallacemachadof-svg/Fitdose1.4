@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   ShoppingCart,
   Users,
+  Warehouse,
 } from 'lucide-react';
 import { StethoscopeIcon } from '@/components/icons';
 import {
@@ -69,7 +70,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={isActive('/sales-control')}
+                isActive={pathname.startsWith('/sales-control')}
                 tooltip="Controle de Vendas"
               >
                 <Link href="/sales-control">
@@ -81,12 +82,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={isActive('/cash-flow')}
+                isActive={pathname.startsWith('/cash-flow')}
                 tooltip="Fluxo de Caixa"
               >
                 <Link href="/cash-flow">
                   <DollarSign />
                   <span>Fluxo de Caixa</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive('/stock-control')}
+                tooltip="Controle de Estoque"
+              >
+                <Link href="/stock-control">
+                  <Warehouse />
+                  <span>Controle de Estoque</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
