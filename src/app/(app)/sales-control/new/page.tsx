@@ -29,7 +29,7 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
-import { addSale, getPatients, type Patient } from "@/lib/data";
+import { addSale, getPatients, type Patient } from "@/lib/actions";
 
 const doseOptions = [
     { value: '2.5', label: '2.5 mg', price: 220 },

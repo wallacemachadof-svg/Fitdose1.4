@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getPatients, getSales, type Dose, type Sale } from "@/lib/data";
+import { getPatients, getSales, type Dose, type Sale } from "@/lib/actions";
 import { getDoseStatus, formatDate, formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Syringe, User, BellDot, BarChart3, PieChart, TrendingUp, DollarSign } from "lucide-react";

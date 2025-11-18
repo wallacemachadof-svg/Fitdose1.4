@@ -27,7 +27,7 @@ import { ptBR } from "date-fns/locale";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { addPatient, getPatients, type Patient } from "@/lib/data";
+import { addPatient, getPatients, type Patient } from "@/lib/actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -127,6 +127,7 @@ export default function NewPatientPage() {
             avatarUrl: "",
             indicationName: "",
             indicationPatientId: "",
+            indicationType: "nao_se_aplica"
         }
     });
 

@@ -13,7 +13,7 @@ import {
   type Dose,
   type Evolution,
   type Bioimpedance
-} from '@/lib/data';
+} from '@/lib/actions';
 import {
   calculateBmi,
   formatDate,

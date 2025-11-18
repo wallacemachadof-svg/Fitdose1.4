@@ -1,3 +1,4 @@
+'use server';
 
 import { calculateBmi } from "./utils";
 import fs from 'fs';
@@ -24,10 +25,10 @@ type MockData = {
 
 const readData = (): MockData => {
     try {
-        const patients = JSON.parse(fs.readFileSync(patientsFilePath, 'utf-8'));
-        const sales = JSON.parse(fs.readFileSync(salesFilePath, 'utf-8'));
-        const cashFlowEntries = JSON.parse(fs.readFileSync(cashFlowFilePath, 'utf-8'));
-        const vials = JSON.parse(fs.readFileSync(vialsFilePath, 'utf-8'));
+        const patients = fs.existsSync(patientsFilePath) ? JSON.parse(fs.readFileSync(patientsFilePath, 'utf-8')) : [];
+        const sales = fs.existsSync(salesFilePath) ? JSON.parse(fs.readFileSync(salesFilePath, 'utf-8')) : [];
+        const cashFlowEntries = fs.existsSync(cashFlowFilePath) ? JSON.parse(fs.readFileSync(cashFlowFilePath, 'utf-8')) : [];
+        const vials = fs.existsSync(vialsFilePath) ? JSON.parse(fs.readFileSync(vialsFilePath, 'utf-8')) : [];
         
         // Dates are stored as strings in JSON, so we need to convert them back to Date objects
         patients.forEach((p: Patient) => {
@@ -216,8 +217,6 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         const doseDate = new Date(dose.date);
         doseDate.setHours(0, 0, 0, 0);
 
-        // This logic for past doses is for demo purposes.
-        // In a real app, this might not be desired.
         if (doseDate < today) {
             return {
                 ...dose,

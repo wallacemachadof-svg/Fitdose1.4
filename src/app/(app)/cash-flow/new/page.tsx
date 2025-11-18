@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
-import { addCashFlowEntry } from "@/lib/data";
+import { addCashFlowEntry } from "@/lib/actions";
 
 const cashFlowFormSchema = z.object({
     type: z.enum(['entrada', 'saida'], { required_error: 'O tipo é obrigatório.' }),

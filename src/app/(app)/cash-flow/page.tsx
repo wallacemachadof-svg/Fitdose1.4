@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { getCashFlowEntries, deleteCashFlowEntry, type CashFlowEntry } from "@/lib/data";
+import { getCashFlowEntries, deleteCashFlowEntry, type CashFlowEntry } from "@/lib/actions";
 import { formatCurrency, formatDate, getPaymentStatusVariant } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

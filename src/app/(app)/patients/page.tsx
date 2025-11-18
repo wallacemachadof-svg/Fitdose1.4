@@ -13,7 +13,7 @@ import {
   CardDescription
 } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getPatients, deletePatient, type Patient } from "@/lib/data";
+import { getPatients, deletePatient, type Patient } from "@/lib/actions";
 import { calculateBmi, formatDate } from "@/lib/utils";
 import { PlusCircle, ArrowRight, MoreVertical, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

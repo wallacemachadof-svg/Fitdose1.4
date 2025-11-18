@@ -12,7 +12,7 @@ import {
   CardDescription
 } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getSales, deleteSale, type Sale } from "@/lib/data";
+import { getSales, deleteSale, type Sale } from "@/lib/actions";
 import { formatDate, formatCurrency, getPaymentStatusVariant, getDeliveryStatusVariant } from "@/lib/utils";
 import { PlusCircle, MoreVertical, Trash2, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
