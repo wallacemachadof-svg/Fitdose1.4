@@ -109,7 +109,9 @@ export type Vial = {
   soldMg: number;
 };
 
-export type NewVialData = Omit<Vial, 'id' | 'remainingMg' | 'soldMg'>;
+export type NewVialData = Omit<Vial, 'id' | 'remainingMg' | 'soldMg'> & {
+    quantity: number;
+};
 
 
 // We use a global variable to simulate a database in a development environment.
@@ -374,30 +376,35 @@ export const getVials = async (): Promise<Vial[]> => {
     return [...vials].sort((a,b) => a.purchaseDate.getTime() - b.purchaseDate.getTime());
 }
 
-export const addVial = async (vialData: NewVialData): Promise<Vial> => {
+export const addVial = async (vialData: NewVialData): Promise<Vial[]> => {
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    const newId = `vial-${Date.now()}`;
-    const newVial: Vial = {
-        id: newId,
-        ...vialData,
-        remainingMg: vialData.totalMg,
-        soldMg: 0,
-    };
-
-    vials.push(newVial);
+    const newVials: Vial[] = [];
+    for (let i = 0; i < vialData.quantity; i++) {
+        const newId = `vial-${Date.now()}-${i}`;
+        const newVial: Vial = {
+            id: newId,
+            purchaseDate: vialData.purchaseDate,
+            totalMg: vialData.totalMg,
+            cost: vialData.cost,
+            remainingMg: vialData.totalMg,
+            soldMg: 0,
+        };
+        newVials.push(newVial);
+        vials.push(newVial);
+    }
     
     // Also add to cash flow as an expense
     const cashFlowEntry: NewCashFlowData = {
         type: 'saida',
         purchaseDate: vialData.purchaseDate,
-        description: `Compra frasco ${vialData.totalMg}mg`,
-        amount: vialData.cost,
+        description: `Compra ${vialData.quantity}x frasco ${vialData.totalMg}mg`,
+        amount: vialData.cost * vialData.quantity,
         status: 'pago',
         paymentMethod: 'pix' // Defaulting, can be improved
     };
     await addCashFlowEntry(cashFlowEntry);
 
 
-    return newVial;
+    return newVials;
 }

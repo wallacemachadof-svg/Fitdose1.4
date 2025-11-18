@@ -34,6 +34,7 @@ const vialFormSchema = z.object({
   purchaseDate: z.date({ required_error: "A data da compra é obrigatória." }),
   totalMg: z.enum(['40', '60', '90'], { required_error: "Selecione a miligramagem." }),
   cost: z.coerce.number().min(0.01, "O custo deve ser maior que zero."),
+  quantity: z.coerce.number().min(1, "A quantidade deve ser de pelo menos 1.").default(1),
 });
 
 type VialFormValues = z.infer<typeof vialFormSchema>;
@@ -54,8 +55,8 @@ export default function StockControlPage() {
         setLoading(false);
     };
     
-    const onVialAdded = (newVial: Vial) => {
-        setVials(prev => [...prev, newVial].sort((a,b) => a.purchaseDate.getTime() - b.purchaseDate.getTime()));
+    const onVialAdded = (newVials: Vial[]) => {
+        setVials(prev => [...prev, ...newVials].sort((a,b) => a.purchaseDate.getTime() - b.purchaseDate.getTime()));
     }
 
     if (loading) {
@@ -138,7 +139,7 @@ export default function StockControlPage() {
 }
 
 interface NewVialFormProps {
-    onVialAdded: (vial: Vial) => void;
+    onVialAdded: (vials: Vial[]) => void;
 }
 
 function NewVialForm({ onVialAdded }: NewVialFormProps) {
@@ -150,22 +151,23 @@ function NewVialForm({ onVialAdded }: NewVialFormProps) {
         defaultValues: {
             cost: 0,
             purchaseDate: new Date(),
+            quantity: 1,
         },
     });
 
     async function onSubmit(data: VialFormValues) {
         setIsSubmitting(true);
         try {
-            const newVial = await addVial({
+            const newVials = await addVial({
                 ...data,
                 totalMg: parseInt(data.totalMg, 10) as 40 | 60 | 90,
             });
             toast({
-                title: "Frasco Adicionado!",
-                description: `O frasco de ${newVial.totalMg}mg foi adicionado ao estoque.`,
+                title: "Frasco(s) Adicionado(s)!",
+                description: `${data.quantity} frasco(s) de ${data.totalMg}mg foram adicionados ao estoque.`,
             });
-            onVialAdded(newVial);
-            form.reset({ cost: 0, purchaseDate: new Date(), totalMg: undefined });
+            onVialAdded(newVials);
+            form.reset({ cost: 0, purchaseDate: new Date(), totalMg: undefined, quantity: 1 });
         } catch (error) {
             toast({
                 variant: "destructive",
@@ -184,7 +186,7 @@ function NewVialForm({ onVialAdded }: NewVialFormProps) {
             </CardHeader>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
-                    <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
                          <FormField control={form.control} name="purchaseDate" render={({ field }) => (
                             <FormItem className="flex flex-col"><FormLabel>Data da Compra</FormLabel>
                                 <Popover>
@@ -227,6 +229,9 @@ function NewVialForm({ onVialAdded }: NewVialFormProps) {
                         />
                          <FormField control={form.control} name="cost" render={({ field }) => (
                             <FormItem><FormLabel>Valor do Frasco (R$)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ex: 1200.00" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                        <FormField control={form.control} name="quantity" render={({ field }) => (
+                            <FormItem><FormLabel>Quantidade</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                         )}/>
                     </CardContent>
                     <CardFooter className="justify-end">
@@ -286,5 +291,3 @@ function StockControlSkeleton() {
         </div>
     );
 }
-
-    
