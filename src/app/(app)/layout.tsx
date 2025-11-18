@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   FlaskConical,
   LayoutDashboard,
+  ShoppingCart,
   Users,
 } from 'lucide-react';
 import { StethoscopeIcon } from '@/components/icons';
@@ -61,6 +62,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link href="/patients">
                   <Users />
                   <span>Pacientes</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive('/sales-control')}
+                tooltip="Controle de Vendas"
+              >
+                <Link href="/sales-control">
+                  <ShoppingCart />
+                  <span>Controle de Vendas</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

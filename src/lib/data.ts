@@ -44,6 +44,20 @@ export type Dose = {
   status: 'administered' | 'pending';
 };
 
+export type Sale = {
+  id: string;
+  saleDate: Date;
+  soldDose: '2.5' | '3.75' | '5.0' | '6.25' | '7.05';
+  price: number;
+  patientId: string;
+  patientName: string;
+  paymentDate?: Date;
+  paymentStatus: 'pago' | 'pendente';
+  deliveryStatus: 'em agendamento' | 'entregue' | 'em preparo';
+  observations?: string;
+};
+
+
 const generateDoseSchedule = (startDate: Date): Dose[] => {
   const doses: Dose[] = [];
   let currentDate = new Date(startDate);
@@ -61,12 +75,13 @@ const generateDoseSchedule = (startDate: Date): Dose[] => {
 
 // We use a global variable to simulate a database in a development environment.
 // This is not suitable for production.
-const globalWithMockPatients = global as typeof global & {
+const globalWithMockData = global as typeof global & {
   mockPatients?: Patient[];
+  mockSales?: Sale[];
 };
 
-if (!globalWithMockPatients.mockPatients) {
-    globalWithMockPatients.mockPatients = [
+if (!globalWithMockData.mockPatients) {
+    globalWithMockData.mockPatients = [
       {
         id: "1",
         fullName: "Ana Silva",
@@ -144,20 +159,29 @@ if (!globalWithMockPatients.mockPatients) {
     ];
 }
 
+if (!globalWithMockData.mockSales) {
+  globalWithMockData.mockSales = [
+    { id: '1', saleDate: new Date('2024-07-20'), soldDose: '2.5', price: 220, patientId: '1', patientName: 'Ana Silva', paymentDate: new Date('2024-07-20'), paymentStatus: 'pago', deliveryStatus: 'entregue', observations: 'Primeira compra.' },
+    { id: '2', saleDate: new Date('2024-07-21'), soldDose: '3.75', price: 330, patientId: '2', patientName: 'Bruno Costa', paymentStatus: 'pendente', deliveryStatus: 'em preparo' },
+    { id: '3', saleDate: new Date('2024-07-22'), soldDose: '5.0', price: 380, patientId: '3', patientName: 'Carla Dias', paymentDate: new Date('2024-07-22'), paymentStatus: 'pago', deliveryStatus: 'entregue' },
+    { id: '4', saleDate: new Date('2024-07-23'), soldDose: '2.5', price: 220, patientId: '2', patientName: 'Bruno Costa', paymentStatus: 'pendente', deliveryStatus: 'em agendamento', observations: 'Agendar entrega para a parte da manhã.' },
+  ];
+}
+
 
 export const getPatients = async (): Promise<Patient[]> => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    return [...(globalWithMockPatients.mockPatients || [])].sort((a,b) => a.fullName.localeCompare(b.fullName));
+    return [...(globalWithMockData.mockPatients || [])].sort((a,b) => a.fullName.localeCompare(b.fullName));
 }
 
 export const getPatientById = async (id: string): Promise<Patient | null> => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    return (globalWithMockPatients.mockPatients || []).find(p => p.id === id) ?? null;
+    return (globalWithMockData.mockPatients || []).find(p => p.id === id) ?? null;
 }
 
 export const addPatient = async (patientData: NewPatientData): Promise<Patient> => {
     
-    const newId = ((globalWithMockPatients.mockPatients || []).length > 0 ? Math.max(...(globalWithMockPatients.mockPatients || []).map(p => parseInt(p.id, 10))) : 0) + 1;
+    const newId = ((globalWithMockData.mockPatients || []).length > 0 ? Math.max(...(globalWithMockData.mockPatients || []).map(p => parseInt(p.id, 10))) : 0) + 1;
     
     const initialBmi = calculateBmi(patientData.initialWeight, patientData.height / 100);
     const doses = generateDoseSchedule(patientData.firstDoseDate).map(dose => {
@@ -205,9 +229,17 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         monjauroTime: patientData.monjauroTime,
     };
 
-    globalWithMockPatients.mockPatients?.push(newPatient);
+    if (!globalWithMockData.mockPatients) {
+        globalWithMockData.mockPatients = [];
+    }
+    globalWithMockData.mockPatients.push(newPatient);
     
     await new Promise(resolve => setTimeout(resolve, 500));
     
     return newPatient;
+};
+
+export const getSales = async (): Promise<Sale[]> => {
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return [...(globalWithMockData.mockSales || [])].sort((a, b) => b.saleDate.getTime() - a.saleDate.getTime());
 };
