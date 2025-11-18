@@ -1,65 +1,61 @@
-
 'use client';
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 import { useState, useEffect } from "react";
-import { getStockLevels, updateStockLevel, type Stock } from "@/lib/data";
-import { getStockStatusVariant } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { addVial, getVials, type Vial } from "@/lib/data";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter
+} from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Warehouse, Edit, Save, X, Loader2 } from "lucide-react";
+import { Warehouse, PlusCircle, CalendarIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Progress } from "@/components/ui/progress";
+
+const vialFormSchema = z.object({
+  purchaseDate: z.date({ required_error: "A data da compra é obrigatória." }),
+  totalMg: z.enum(['40', '60', '90'], { required_error: "Selecione a miligramagem." }),
+  cost: z.coerce.number().min(0.01, "O custo deve ser maior que zero."),
+});
+
+type VialFormValues = z.infer<typeof vialFormSchema>;
 
 export default function StockControlPage() {
-    const [stockLevels, setStockLevels] = useState<Stock[]>([]);
+    const [vials, setVials] = useState<Vial[]>([]);
     const [loading, setLoading] = useState(true);
-    const [editingDose, setEditingDose] = useState<string | null>(null);
-    const [newQuantity, setNewQuantity] = useState<number>(0);
-    const [isUpdating, setIsUpdating] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
-        const fetchStock = async () => {
-            setLoading(true);
-            const data = await getStockLevels();
-            setStockLevels(data);
-            setLoading(false);
-        };
-        fetchStock();
+        fetchVials();
     }, []);
 
-    const handleEditClick = (stockItem: Stock) => {
-        setEditingDose(stockItem.dose);
-        setNewQuantity(stockItem.quantity);
+    const fetchVials = async () => {
+        setLoading(true);
+        const data = await getVials();
+        setVials(data);
+        setLoading(false);
     };
-
-    const handleCancelClick = () => {
-        setEditingDose(null);
-    };
-
-    const handleSaveClick = async (dose: string) => {
-        setIsUpdating(true);
-        try {
-            await updateStockLevel(dose, newQuantity);
-            setStockLevels(stockLevels.map(s => s.dose === dose ? { ...s, quantity: newQuantity } : s));
-            toast({
-                title: "Estoque Atualizado!",
-                description: `A quantidade da dose de ${dose}mg foi atualizada.`,
-            });
-            setEditingDose(null);
-        } catch (error) {
-            toast({
-                variant: "destructive",
-                title: "Erro ao atualizar",
-                description: "Não foi possível atualizar o estoque.",
-            });
-        } finally {
-            setIsUpdating(false);
-        }
-    };
+    
+    const onVialAdded = (newVial: Vial) => {
+        setVials(prev => [...prev, newVial].sort((a,b) => a.purchaseDate.getTime() - b.purchaseDate.getTime()));
+    }
 
     if (loading) {
         return <StockControlSkeleton />;
@@ -67,68 +63,56 @@ export default function StockControlPage() {
 
     return (
         <div className="space-y-6">
+             <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold flex items-center gap-2"><Warehouse className="h-6 w-6" /> Controle de Estoque</h1>
+                    <p className="text-muted-foreground">Visualize e gerencie seus frascos de matéria-prima.</p>
+                </div>
+            </div>
+            
+            <NewVialForm onVialAdded={onVialAdded}/>
+            
             <Card>
                 <CardHeader>
-                    <div className="flex items-center gap-2">
-                        <Warehouse className="h-6 w-6" />
-                        <div>
-                            <CardTitle>Controle de Estoque</CardTitle>
-                            <CardDescription>Visualize e gerencie a quantidade de doses disponíveis.</CardDescription>
-                        </div>
-                    </div>
+                    <CardTitle>Frascos em Estoque</CardTitle>
+                    <CardDescription>Lista de frascos disponíveis e seu consumo.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Dose (mg)</TableHead>
-                                <TableHead>Quantidade</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Ações</TableHead>
+                                <TableHead>Data Compra</TableHead>
+                                <TableHead>Custo Frasco</TableHead>
+                                <TableHead>Custo por MG</TableHead>
+                                <TableHead>Uso do Frasco (mg)</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {stockLevels.map((item) => {
-                                const status = getStockStatusVariant(item.quantity);
-                                const isEditing = editingDose === item.dose;
-                                return (
-                                    <TableRow key={item.dose}>
-                                        <TableCell className="font-semibold">{item.dose}</TableCell>
-                                        <TableCell>
-                                            {isEditing ? (
-                                                <Input
-                                                    type="number"
-                                                    value={newQuantity}
-                                                    onChange={(e) => setNewQuantity(parseInt(e.target.value, 10) || 0)}
-                                                    className="w-24 h-8"
-                                                    disabled={isUpdating}
-                                                />
-                                            ) : (
-                                                item.quantity
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant={'default'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            {isEditing ? (
-                                                <div className="flex gap-2 justify-end">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSaveClick(item.dose)} disabled={isUpdating}>
-                                                        {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 text-green-500" />}
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCancelClick} disabled={isUpdating}>
-                                                        <X className="h-4 w-4 text-red-500" />
-                                                    </Button>
+                            {vials.length > 0 ? (
+                                vials.map((vial) => {
+                                    const costPerMg = vial.cost / vial.totalMg;
+                                    const usagePercentage = (vial.soldMg / vial.totalMg) * 100;
+                                    return (
+                                        <TableRow key={vial.id}>
+                                            <TableCell className="font-semibold">{formatDate(vial.purchaseDate)}</TableCell>
+                                            <TableCell>{formatCurrency(vial.cost)}</TableCell>
+                                            <TableCell>{formatCurrency(costPerMg)}</TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-2">
+                                                     <Progress value={usagePercentage} className="h-2"/>
+                                                     <span className="text-xs text-muted-foreground">
+                                                        {vial.soldMg.toFixed(2)}mg vendidos de {vial.totalMg}mg ({vial.remainingMg.toFixed(2)}mg restantes)
+                                                     </span>
                                                 </div>
-                                            ) : (
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditClick(item)}>
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="h-24 text-center">Nenhum frasco em estoque. Adicione um novo.</TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
@@ -137,40 +121,152 @@ export default function StockControlPage() {
     );
 }
 
-function StockControlSkeleton() {
+interface NewVialFormProps {
+    onVialAdded: (vial: Vial) => void;
+}
+
+function NewVialForm({ onVialAdded }: NewVialFormProps) {
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    const form = useForm<VialFormValues>({
+        resolver: zodResolver(vialFormSchema),
+        defaultValues: {
+            cost: 0,
+            purchaseDate: new Date(),
+        },
+    });
+
+    async function onSubmit(data: VialFormValues) {
+        setIsSubmitting(true);
+        try {
+            const newVial = await addVial({
+                ...data,
+                totalMg: parseInt(data.totalMg, 10) as 40 | 60 | 90,
+            });
+            toast({
+                title: "Frasco Adicionado!",
+                description: `O frasco de ${newVial.totalMg}mg foi adicionado ao estoque.`,
+            });
+            onVialAdded(newVial);
+            form.reset();
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Erro ao adicionar",
+                description: "Não foi possível adicionar o frasco ao estoque.",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+    
     return (
         <Card>
             <CardHeader>
-                <div className="flex items-center gap-2">
-                    <Skeleton className="h-8 w-8" />
-                    <div>
-                        <Skeleton className="h-6 w-48" />
-                        <Skeleton className="h-4 w-64 mt-2" />
-                    </div>
-                </div>
+                <CardTitle>Adicionar Novo Frasco</CardTitle>
             </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead><Skeleton className="h-5 w-24" /></TableHead>
-                            <TableHead><Skeleton className="h-5 w-24" /></TableHead>
-                            <TableHead><Skeleton className="h-5 w-24" /></TableHead>
-                            <TableHead className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {[...Array(5)].map((_, i) => (
-                            <TableRow key={i}>
-                                <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                                <TableCell><Skeleton className="h-5 w-10" /></TableCell>
-                                <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
-                                <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                    <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                         <FormField control={form.control} name="purchaseDate" render={({ field }) => (
+                            <FormItem className="flex flex-col"><FormLabel>Data da Compra</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                            {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                    </PopoverContent>
+                                </Popover>
+                            <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField
+                            control={form.control}
+                            name="totalMg"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>MG Total do Frasco</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="40">40 mg</SelectItem>
+                                            <SelectItem value="60">60 mg</SelectItem>
+                                            <SelectItem value="90">90 mg</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField control={form.control} name="cost" render={({ field }) => (
+                            <FormItem><FormLabel>Valor do Frasco (R$)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ex: 1200.00" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                    </CardContent>
+                    <CardFooter className="justify-end">
+                         <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adicionando...</> : <><PlusCircle className="mr-2 h-4 w-4" /> Adicionar ao Estoque</>}
+                        </Button>
+                    </CardFooter>
+                </form>
+            </Form>
         </Card>
+    );
+}
+
+function StockControlSkeleton() {
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                <div>
+                    <Skeleton className="h-8 w-64" />
+                    <Skeleton className="h-4 w-80 mt-2" />
+                </div>
+            </div>
+             <Card>
+                <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
+                <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                </CardContent>
+                <CardFooter className="justify-end">
+                    <Skeleton className="h-10 w-48" />
+                </CardFooter>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-40" />
+                    <Skeleton className="h-4 w-64 mt-2" />
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                {[...Array(4)].map((_, i) => <TableHead key={i}><Skeleton className="h-5 w-24" /></TableHead>)}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {[...Array(3)].map((_, i) => (
+                                <TableRow key={i}>
+                                    {[...Array(4)].map((_, j) => <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>)}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </div>
     );
 }

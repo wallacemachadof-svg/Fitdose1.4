@@ -100,10 +100,16 @@ export type CashFlowEntry = {
 }
 export type NewCashFlowData = Omit<CashFlowEntry, 'id'>;
 
-export type Stock = {
-    dose: string;
-    quantity: number;
+export type Vial = {
+  id: string;
+  purchaseDate: Date;
+  totalMg: 40 | 60 | 90;
+  cost: number;
+  remainingMg: number;
+  soldMg: number;
 };
+
+export type NewVialData = Omit<Vial, 'id' | 'remainingMg' | 'soldMg'>;
 
 
 // We use a global variable to simulate a database in a development environment.
@@ -112,7 +118,7 @@ const globalWithMockData = global as typeof global & {
   mockPatients?: Patient[];
   mockSales?: Sale[];
   mockCashFlowEntries?: CashFlowEntry[];
-  mockStock?: Stock[];
+  mockVials?: Vial[];
 };
 
 if (globalWithMockData.mockPatients === undefined) {
@@ -124,20 +130,14 @@ if (globalWithMockData.mockSales === undefined) {
 if (globalWithMockData.mockCashFlowEntries === undefined) {
   globalWithMockData.mockCashFlowEntries = [];
 }
-if (globalWithMockData.mockStock === undefined) {
-    globalWithMockData.mockStock = [
-        { dose: '2.5', quantity: 10 },
-        { dose: '3.75', quantity: 8 },
-        { dose: '5.0', quantity: 15 },
-        { dose: '6.25', quantity: 5 },
-        { dose: '7.05', quantity: 3 },
-    ];
+if (globalWithMockData.mockVials === undefined) {
+    globalWithMockData.mockVials = [];
 }
 
 const patients = globalWithMockData.mockPatients!;
 const sales = globalWithMockData.mockSales!;
 const cashFlowEntries = globalWithMockData.mockCashFlowEntries!;
-const stock = globalWithMockData.mockStock!;
+const vials = globalWithMockData.mockVials!;
 
 
 export const getPatients = async (): Promise<Patient[]> => {
@@ -261,15 +261,31 @@ export const getSales = async (): Promise<Sale[]> => {
 export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     const patient = patients.find(p => p.id === saleData.patientId);
     if (!patient) {
-        throw new Error("Patient not found");
+        throw new Error("Paciente não encontrado");
     }
 
-    const stockItem = stock.find(s => s.dose === saleData.soldDose);
-    if (!stockItem || stockItem.quantity <= 0) {
-        throw new Error(`Dose ${saleData.soldDose}mg está fora de estoque.`);
-    }
+    const soldMg = parseFloat(saleData.soldDose);
     
-    stockItem.quantity -= 1;
+    // Check total available stock
+    const totalRemainingMg = vials.reduce((acc, v) => acc + v.remainingMg, 0);
+    if (totalRemainingMg < soldMg) {
+        throw new Error(`Estoque insuficiente. Apenas ${totalRemainingMg.toFixed(2)}mg disponíveis.`);
+    }
+
+    // FIFO: Find oldest vials with enough stock
+    const sortedVials = [...vials].sort((a, b) => a.purchaseDate.getTime() - b.purchaseDate.getTime());
+
+    let remainingToDeduct = soldMg;
+    for (const vial of sortedVials) {
+        if (remainingToDeduct <= 0) break;
+        if (vial.remainingMg > 0) {
+            const amountToDeduct = Math.min(vial.remainingMg, remainingToDeduct);
+            vial.remainingMg -= amountToDeduct;
+            vial.soldMg += amountToDeduct;
+            remainingToDeduct -= amountToDeduct;
+        }
+    }
+
     
     const newId = (sales.length > 0 ? Math.max(...sales.map(s => parseInt(s.id, 10))) : 0) + 1;
     const total = (saleData.price || 0) - (saleData.discount || 0);
@@ -283,18 +299,19 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
 
     sales.push(newSale);
 
-    // Now, add to cash flow
-    const newCashFlowEntry: CashFlowEntry = {
-        id: `sale-${newSale.id}`,
-        type: 'entrada',
-        purchaseDate: newSale.saleDate,
-        description: `Venda dose ${patient.fullName}`,
-        amount: total,
-        status: newSale.paymentStatus,
-        dueDate: newSale.paymentStatus === 'pendente' ? newSale.paymentDate : undefined,
-    };
-    
-    cashFlowEntries.push(newCashFlowEntry);
+    // Now, add to cash flow if it's paid
+    if (newSale.paymentStatus === 'pago') {
+        const newCashFlowEntry: CashFlowEntry = {
+            id: `sale-${newSale.id}`,
+            type: 'entrada',
+            purchaseDate: newSale.paymentDate || newSale.saleDate,
+            description: `Venda p/ ${patient.fullName}`,
+            amount: total,
+            status: 'pago',
+            paymentMethod: 'pix', // Defaulting, can be improved
+        };
+        cashFlowEntries.push(newCashFlowEntry);
+    }
 
 
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -309,7 +326,7 @@ export const deleteSale = async (id: string): Promise<void> => {
     if (saleIndex !== -1) {
         sales.splice(saleIndex, 1);
     } else {
-        throw new Error("Sale not found");
+        throw new Error("Venda não encontrada");
     }
 
     const cashFlowEntryId = `sale-${id}`;
@@ -341,29 +358,46 @@ export const deleteCashFlowEntry = async (id: string): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 500));
 
     if (id.startsWith('sale-')) {
-       throw new Error("Lançamentos de vendas não podem ser excluídos por aqui. Exclua a venda em 'Controle de Vendas'.");
+       // Allow deleting sale entries now, but might want to add a warning later
     }
     
     const index = cashFlowEntries.findIndex(e => e.id === id);
     if (index !== -1) {
         cashFlowEntries.splice(index, 1);
     } else {
-        throw new Error("Cash flow entry not found");
+        throw new Error("Lançamento não encontrado no fluxo de caixa");
     }
 };
 
-export const getStockLevels = async (): Promise<Stock[]> => {
+export const getVials = async (): Promise<Vial[]> => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    return [...stock].sort((a,b) => parseFloat(a.dose) - parseFloat(b.dose));
+    return [...vials].sort((a,b) => a.purchaseDate.getTime() - b.purchaseDate.getTime());
 }
 
-export const updateStockLevel = async (dose: string, newQuantity: number): Promise<Stock> => {
+export const addVial = async (vialData: NewVialData): Promise<Vial> => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    const stockItem = stock.find(s => s.dose === dose);
-    if (stockItem) {
-        stockItem.quantity = newQuantity;
-        return stockItem;
-    } else {
-        throw new Error("Dose not found in stock");
-    }
+
+    const newId = `vial-${Date.now()}`;
+    const newVial: Vial = {
+        id: newId,
+        ...vialData,
+        remainingMg: vialData.totalMg,
+        soldMg: 0,
+    };
+
+    vials.push(newVial);
+    
+    // Also add to cash flow as an expense
+    const cashFlowEntry: NewCashFlowData = {
+        type: 'saida',
+        purchaseDate: vialData.purchaseDate,
+        description: `Compra frasco ${vialData.totalMg}mg`,
+        amount: vialData.cost,
+        status: 'pago',
+        paymentMethod: 'pix' // Defaulting, can be improved
+    };
+    await addCashFlowEntry(cashFlowEntry);
+
+
+    return newVial;
 }
