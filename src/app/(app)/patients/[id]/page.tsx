@@ -38,6 +38,8 @@ import {
     Stethoscope,
     CircleSlash,
     Loader2,
+    BookPlus,
+    Camera,
 } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { summarizeHealthData } from '@/ai/flows/summarize-health-data';
@@ -46,6 +48,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const doseManagementSchema = z.object({
@@ -222,6 +225,32 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
                         })}
                     </div>
                 </div>
+            </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+            <CardTitle>Evolução de Desempenho</CardTitle>
+            <CardDescription>Adicione e visualize a evolução do paciente ao longo do tempo.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <form className="space-y-4 mb-6">
+                <Textarea placeholder="Descreva a evolução do paciente..." rows={3} />
+                <div className="flex justify-between items-center">
+                    <Button type="button" variant="outline" size="sm">
+                        <Camera className="mr-2 h-4 w-4" />
+                        Adicionar Foto
+                    </Button>
+                    <Button type="submit">
+                        <BookPlus className="mr-2 h-4 w-4" />
+                        Salvar Evolução
+                    </Button>
+                </div>
+            </form>
+            <div className="space-y-4">
+                {/* As evoluções salvas serão listadas aqui */}
+                <p className="text-sm text-center text-muted-foreground">Nenhuma evolução registrada ainda.</p>
             </div>
         </CardContent>
       </Card>
@@ -491,3 +520,4 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
         </Dialog>
     );
 }
+    

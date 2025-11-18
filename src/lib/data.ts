@@ -21,6 +21,7 @@ export type Patient = {
   healthContraindications: string;
   avatarUrl: string;
   doses: Dose[];
+  evolutions: Evolution[];
   dailyMedications?: string;
   oralContraceptive?: 'yes' | 'no';
   usedMonjauro?: 'yes' | 'no';
@@ -28,7 +29,7 @@ export type Patient = {
   monjauroTime?: string;
 };
 
-export type NewPatientData = Omit<Patient, 'id' | 'avatarUrl' | 'doses'>;
+export type NewPatientData = Omit<Patient, 'id' | 'avatarUrl' | 'doses' | 'evolutions'>;
 
 export type Dose = {
   id: number;
@@ -42,6 +43,13 @@ export type Dose = {
     installments?: number;
   };
   status: 'administered' | 'pending';
+};
+
+export type Evolution = {
+    id: string;
+    date: Date;
+    notes: string;
+    photoUrl?: string;
 };
 
 export type Sale = {
@@ -115,7 +123,8 @@ if (!globalWithMockData.mockPatients) {
                 payment: { method: 'pix' as 'pix' }
             })),
             ...generateDoseSchedule(new Date("2024-05-10")).slice(4)
-        ]
+        ],
+        evolutions: [],
       },
       {
         id: "2",
@@ -136,6 +145,7 @@ if (!globalWithMockData.mockPatients) {
         healthContraindications: "Hipertensão controlada.",
         avatarUrl: placeholderImages.find(p => p.id === "man-posing-1")?.imageUrl ?? "/placeholder.jpg",
         doses: generateDoseSchedule(new Date("2024-06-01")),
+        evolutions: [],
       },
       {
         id: "3",
@@ -160,6 +170,7 @@ if (!globalWithMockData.mockPatients) {
           { id: 2, doseNumber: 2, date: new Date(new Date().setDate(new Date().getDate() - 14)), status: 'administered', weight: 70.5, bmi: calculateBmi(70.5, 1.72), administeredDose: 2.5, payment: { method: 'credit', installments: 2 } },
           ...generateDoseSchedule(new Date(new Date().setDate(new Date().getDate() - 21))).slice(2)
         ],
+        evolutions: [],
       },
     ];
 }
@@ -227,6 +238,7 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         healthContraindications: patientData.healthContraindications ?? "Nenhuma observação.",
         avatarUrl: `https://i.pravatar.cc/150?u=${newId}`,
         doses: doses,
+        evolutions: [],
         dailyMedications: patientData.dailyMedications,
         oralContraceptive: patientData.oralContraceptive,
         usedMonjauro: patientData.usedMonjauro,
@@ -242,6 +254,18 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
     await new Promise(resolve => setTimeout(resolve, 500));
     
     return newPatient;
+};
+
+export const deletePatient = async (id: string): Promise<void> => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    if (globalWithMockData.mockPatients) {
+        const index = globalWithMockData.mockPatients.findIndex(p => p.id === id);
+        if (index !== -1) {
+            globalWithMockData.mockPatients.splice(index, 1);
+        } else {
+            throw new Error("Patient not found");
+        }
+    }
 };
 
 export type DoseUpdateData = Partial<Omit<Dose, 'id' | 'doseNumber' | 'date'>>;
@@ -311,3 +335,4 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
 
     return newSale;
 };
+    
