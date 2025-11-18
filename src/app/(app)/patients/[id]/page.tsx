@@ -3,18 +3,21 @@
 
 import { useState, useEffect } from 'react';
 import { notFound, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   getPatientById,
   updateDose,
+  addPatientEvolution,
   type Patient,
   type Dose,
+  type Evolution,
 } from '@/lib/data';
 import {
   calculateBmi,
   formatDate,
   getDoseStatus,
 } from '@/lib/utils';
-import { useForm } from 'react-hook-form';
+import { useForm, useForm as useEvolutionForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
@@ -41,6 +44,7 @@ import {
     Loader2,
     BookPlus,
     Camera,
+    Upload,
 } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { summarizeHealthData } from '@/ai/flows/summarize-health-data';
@@ -123,7 +127,10 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
   
   const onDoseUpdate = (updatedPatient: Patient) => {
     setPatient(updatedPatient);
-    // No need to call router.refresh() as we are updating the state locally
+  }
+
+  const onEvolutionAdded = (updatedPatient: Patient) => {
+    setPatient(updatedPatient);
   }
 
   if (loading || !patient) {
@@ -237,31 +244,7 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
         </CardContent>
       </Card>
       
-      <Card>
-        <CardHeader>
-            <CardTitle>Evolução de Desempenho</CardTitle>
-            <CardDescription>Adicione e visualize a evolução do paciente ao longo do tempo.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <form className="space-y-4 mb-6">
-                <Textarea placeholder="Descreva a evolução do paciente..." rows={3} />
-                <div className="flex justify-between items-center">
-                    <Button type="button" variant="outline" size="sm">
-                        <Camera className="mr-2 h-4 w-4" />
-                        Adicionar Foto
-                    </Button>
-                    <Button type="submit">
-                        <BookPlus className="mr-2 h-4 w-4" />
-                        Salvar Evolução
-                    </Button>
-                </div>
-            </form>
-            <div className="space-y-4">
-                {/* As evoluções salvas serão listadas aqui */}
-                <p className="text-sm text-center text-muted-foreground">Nenhuma evolução registrada ainda.</p>
-            </div>
-        </CardContent>
-      </Card>
+      <EvolutionSection patient={patient} onEvolutionAdded={onEvolutionAdded} />
 
       <Card>
         <CardHeader>
@@ -526,6 +509,157 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                 </Form>
             </DialogContent>
         </Dialog>
+    );
+}
+
+const evolutionFormSchema = z.object({
+    notes: z.string().min(1, "As anotações são obrigatórias."),
+    photoUrl: z.string().optional(),
+});
+
+type EvolutionFormValues = z.infer<typeof evolutionFormSchema>;
+
+interface EvolutionSectionProps {
+    patient: Patient;
+    onEvolutionAdded: (patient: Patient) => void;
+}
+
+function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) {
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+    const form = useEvolutionForm<EvolutionFormValues>({
+        resolver: zodResolver(evolutionFormSchema),
+        defaultValues: {
+            notes: "",
+            photoUrl: "",
+        },
+    });
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const dataUrl = reader.result as string;
+                setImagePreview(dataUrl);
+                form.setValue("photoUrl", dataUrl);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    async function onSubmit(data: EvolutionFormValues) {
+        setIsSubmitting(true);
+        try {
+            const updatedPatient = await addPatientEvolution(patient.id, data);
+            toast({
+                title: "Evolução Adicionada!",
+                description: "O registro de evolução foi salvo com sucesso.",
+            });
+            onEvolutionAdded(updatedPatient);
+            form.reset();
+            setImagePreview(null);
+        } catch (error) {
+            console.error("Failed to add evolution", error);
+            toast({
+                variant: "destructive",
+                title: "Erro ao salvar",
+                description: "Não foi possível salvar a evolução.",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Evolução de Desempenho</CardTitle>
+                <CardDescription>Adicione e visualize a evolução do paciente ao longo do tempo.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mb-6">
+                        <FormField
+                            control={form.control}
+                            name="notes"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Anotações da Evolução</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="Descreva a evolução do paciente, observações, etc." rows={3} {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="photoUrl"
+                            render={({ field }) => (
+                                <FormItem>
+                                     <FormLabel>Foto da Evolução (Opcional)</FormLabel>
+                                     <div className="flex items-center gap-4">
+                                        {imagePreview && (
+                                            <div className="relative w-24 h-24 rounded-md border">
+                                                <Image src={imagePreview} alt="Preview" layout="fill" className="object-cover rounded-md" />
+                                            </div>
+                                        )}
+                                        <FormControl>
+                                            <>
+                                                <input
+                                                    id="evolution-photo"
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={handleImageChange}
+                                                />
+                                                <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('evolution-photo')?.click()}>
+                                                    <Camera className="mr-2 h-4 w-4" />
+                                                    {imagePreview ? 'Trocar Foto' : 'Adicionar Foto'}
+                                                </Button>
+                                            </>
+                                        </FormControl>
+                                     </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <div className="flex justify-end">
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : <><BookPlus className="mr-2 h-4 w-4" /> Salvar Evolução</>}
+                            </Button>
+                        </div>
+                    </form>
+                </Form>
+                <div className="space-y-4 pt-6 border-t">
+                    <h4 className="font-semibold text-md">Histórico de Evolução</h4>
+                     {patient.evolutions && patient.evolutions.length > 0 ? (
+                        <div className="grid gap-6">
+                            {patient.evolutions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(evo => (
+                                <Card key={evo.id} className="bg-muted/50">
+                                    <CardHeader className="p-4 flex-row justify-between items-center">
+                                        <CardTitle className="text-base">{formatDate(evo.date)}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-0 grid md:grid-cols-3 gap-4">
+                                        <p className="text-sm text-muted-foreground col-span-3 md:col-span-2">{evo.notes}</p>
+                                        {evo.photoUrl && (
+                                            <div className="relative w-full aspect-square rounded-md border overflow-hidden">
+                                                <Image src={evo.photoUrl} alt={`Evolução em ${formatDate(evo.date)}`} layout="fill" className="object-cover"/>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                     ) : (
+                        <p className="text-sm text-center text-muted-foreground py-8">Nenhuma evolução registrada ainda.</p>
+                     )}
+                </div>
+            </CardContent>
+        </Card>
     );
 }
     

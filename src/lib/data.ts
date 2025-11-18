@@ -68,6 +68,8 @@ export type Evolution = {
     notes: string;
     photoUrl?: string;
 };
+export type NewEvolutionData = Omit<Evolution, 'id' | 'date'>;
+
 
 export type Sale = {
   id: string;
@@ -254,6 +256,28 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     return patient;
 };
 
+export const addPatientEvolution = async (patientId: string, evolutionData: NewEvolutionData): Promise<Patient> => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+    if (patientIndex === -1) {
+        throw new Error("Patient not found");
+    }
+
+    const patient = patients[patientIndex];
+    const newEvolution: Evolution = {
+        id: `evo-${Date.now()}`,
+        date: new Date(),
+        notes: evolutionData.notes,
+        photoUrl: evolutionData.photoUrl,
+    };
+
+    patient.evolutions.push(newEvolution);
+    patients[patientIndex] = patient;
+
+    return patient;
+};
+
 
 export const getSales = async (): Promise<Sale[]> => {
   await new Promise(resolve => setTimeout(resolve, 500));
@@ -359,10 +383,6 @@ export const addCashFlowEntry = async (entryData: NewCashFlowData): Promise<Cash
 export const deleteCashFlowEntry = async (id: string): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    if (id.startsWith('sale-')) {
-       // Allow deleting sale entries now, but might want to add a warning later
-    }
-    
     const index = cashFlowEntries.findIndex(e => e.id === id);
     if (index !== -1) {
         cashFlowEntries.splice(index, 1);
@@ -408,3 +428,4 @@ export const addVial = async (vialData: NewVialData): Promise<Vial[]> => {
 
     return newVials;
 }
+
