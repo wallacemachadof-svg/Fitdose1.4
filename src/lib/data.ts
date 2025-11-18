@@ -241,6 +241,42 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
     return newPatient;
 };
 
+export type DoseUpdateData = Partial<Omit<Dose, 'id' | 'doseNumber' | 'date'>>;
+
+export const updateDose = async (patientId: string, doseId: number, doseData: DoseUpdateData): Promise<Patient | null> => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const patients = globalWithMockData.mockPatients || [];
+    const patientIndex = patients.findIndex(p => p.id === patientId);
+
+    if (patientIndex === -1) {
+        return null;
+    }
+
+    const patient = patients[patientIndex];
+    const doseIndex = patient.doses.findIndex(d => d.id === doseId);
+
+    if (doseIndex === -1) {
+        return null;
+    }
+
+    const originalDose = patient.doses[doseIndex];
+    const updatedDose: Dose = {
+        ...originalDose,
+        ...doseData,
+    };
+    
+    if (updatedDose.status === 'administered' && updatedDose.weight) {
+        updatedDose.bmi = calculateBmi(updatedDose.weight, patient.height / 100);
+    }
+
+    patient.doses[doseIndex] = updatedDose;
+    globalWithMockData.mockPatients![patientIndex] = patient;
+
+    return patient;
+};
+
+
 export const getSales = async (): Promise<Sale[]> => {
   await new Promise(resolve => setTimeout(resolve, 500));
   return [...(globalWithMockData.mockSales || [])].sort((a, b) => b.saleDate.getTime() - a.saleDate.getTime());
