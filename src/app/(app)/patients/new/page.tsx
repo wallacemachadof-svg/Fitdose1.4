@@ -549,7 +549,7 @@ export default function NewPatientPage() {
                                                 </FormControl>
                                                 <FormLabel className="font-normal">Não</FormLabel>
                                             </FormItem>
-                                            </Group>
+                                            </RadioGroup>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
