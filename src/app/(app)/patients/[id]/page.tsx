@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -79,6 +80,7 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
   const [isDoseModalOpen, setIsDoseModalOpen] = useState(false);
   
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchPatient = async () => {
@@ -102,6 +104,11 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
         setSummary(result.summary);
     } catch (error) {
         console.error('Error summarizing health data:', error);
+        toast({
+            variant: "destructive",
+            title: "Erro ao resumir",
+            description: "Ocorreu um erro ao gerar o resumo.",
+        });
         setSummary('Ocorreu um erro ao gerar o resumo.');
     } finally {
         setSummaryLoading(false);
@@ -115,7 +122,7 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
   
   const onDoseUpdate = (updatedPatient: Patient) => {
     setPatient(updatedPatient);
-    router.refresh();
+    // No need to call router.refresh() as we are updating the state locally
   }
 
   if (loading || !patient) {
@@ -159,7 +166,7 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
           </CardContent>
         </Card>
         <div className="w-full md:w-2/3 grid grid-cols-2 lg:grid-cols-3 gap-4">
-            <InfoCard icon={Weight} label="Peso Atual" value={`${currentWeight} kg`} />
+            <InfoCard icon={Weight} label="Peso Atual" value={`${currentWeight.toFixed(1)} kg`} />
             <InfoCard icon={Activity} label="IMC Atual" value={currentBmi} />
             <InfoCard icon={Ruler} label="Altura" value={`${patient.height} cm`} />
             <InfoCard icon={Target} label="Meta de Peso" value={`${patient.desiredWeight} kg`} />
@@ -280,8 +287,8 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
                   <TableRow key={dose.id}>
                     <TableCell className="font-semibold">{dose.doseNumber}</TableCell>
                     <TableCell>{formatDate(dose.date)}</TableCell>
-                    <TableCell>{dose.weight ? `${dose.weight} kg` : '-'}</TableCell>
-                    <TableCell>{dose.bmi ?? '-'}</TableCell>
+                    <TableCell>{dose.weight ? `${dose.weight.toFixed(1)} kg` : '-'}</TableCell>
+                    <TableCell>{dose.bmi ? dose.bmi.toFixed(2) : '-'}</TableCell>
                     <TableCell>{dose.administeredDose ? `${dose.administeredDose} mg` : '-'}</TableCell>
                     <TableCell>
                       <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
@@ -511,7 +518,7 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                                 <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
                             </DialogClose>
                             <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? <><Loader2 className="animate-spin" /> Salvando...</> : 'Salvar'}
+                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : 'Salvar'}
                             </Button>
                         </DialogFooter>
                     </form>

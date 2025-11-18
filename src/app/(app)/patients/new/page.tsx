@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -100,6 +101,8 @@ export default function NewPatientPage() {
         defaultValues: {
             healthConditions: [],
             contraindications: [],
+            otherHealthIssues: "",
+            dailyMedications: "",
         }
     });
 
@@ -144,9 +147,13 @@ export default function NewPatientPage() {
                 }
             }
         };
-        if (watchZip) {
-            fetchAddress();
-        }
+        const timeoutId = setTimeout(() => {
+             if (watchZip) {
+                fetchAddress();
+            }
+        }, 500); // Debounce API call
+       
+        return () => clearTimeout(timeoutId);
     }, [watchZip, form, toast]);
 
 
@@ -173,9 +180,7 @@ export default function NewPatientPage() {
                 healthContraindications: fullContraindications || 'Nenhuma observação.',
             };
             
-            // Remove the temporary field
             const { otherHealthIssues, ...finalPatientData } = patientDataForApi;
-
 
             await addPatient(finalPatientData);
             toast({
@@ -184,7 +189,6 @@ export default function NewPatientPage() {
                 variant: "default",
             });
             router.push("/patients");
-            router.refresh();
         } catch (error) {
             console.error("Failed to add patient", error);
              toast({
@@ -259,7 +263,7 @@ export default function NewPatientPage() {
                                 )}/>
                                 <div className="p-2 border rounded-md bg-muted/30 h-10 flex items-center justify-between">
                                     <label className="text-sm font-medium text-muted-foreground">IMC</label>
-                                    <p className="text-lg font-bold">{bmi ?? '-'}</p>
+                                    <p className="text-lg font-bold">{bmi ? bmi.toFixed(2) : '-'}</p>
                                 </div>
                             </div>
                             

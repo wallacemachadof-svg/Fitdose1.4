@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -128,7 +129,7 @@ export default function PatientsPage() {
                       <TableCell className="hidden md:table-cell">{patient.age}</TableCell>
                       <TableCell className="hidden lg:table-cell">{formatDate(patient.firstDoseDate)}</TableCell>
                       <TableCell className="hidden md:table-cell">
-                        <Badge variant="secondary">{initialBmi}</Badge>
+                        <Badge variant="secondary">{initialBmi ? initialBmi.toFixed(2) : '-'}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>

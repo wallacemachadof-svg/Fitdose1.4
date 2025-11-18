@@ -1,3 +1,4 @@
+
 import { placeholderImages } from "@/lib/placeholder-images";
 import { calculateBmi } from "./utils";
 
@@ -105,7 +106,7 @@ const generateDoseSchedule = (startDate: Date): Dose[] => {
   return doses;
 };
 
-if (!globalWithMockData.mockPatients) {
+if (globalWithMockData.mockPatients === undefined) {
     globalWithMockData.mockPatients = [
       {
         id: "1",
@@ -187,7 +188,7 @@ if (!globalWithMockData.mockPatients) {
     ];
 }
 
-if (!globalWithMockData.mockSales) {
+if (globalWithMockData.mockSales === undefined) {
   globalWithMockData.mockSales = [
     { id: '1', saleDate: new Date('2024-07-20'), soldDose: '2.5', price: 220, discount: 0, total: 220, patientId: '1', patientName: 'Ana Silva', paymentDate: new Date('2024-07-20'), paymentStatus: 'pago', deliveryStatus: 'entregue', observations: 'Primeira compra.', deliveryDate: new Date('2024-07-21') },
     { id: '2', saleDate: new Date('2024-07-21'), soldDose: '3.75', price: 330, discount: 10, total: 320, patientId: '2', patientName: 'Bruno Costa', paymentStatus: 'pendente', deliveryStatus: 'em processamento' },
@@ -196,7 +197,7 @@ if (!globalWithMockData.mockSales) {
   ];
 }
 
-if (!globalWithMockData.mockCashFlowEntries) {
+if (globalWithMockData.mockCashFlowEntries === undefined) {
   globalWithMockData.mockCashFlowEntries = [
     { id: 'sale-1', type: 'entrada', purchaseDate: new Date('2024-07-20'), description: 'Venda dose Ana Silva', status: 'pago', amount: 220, paymentMethod: 'pix' },
     { id: 'manual-1', type: 'saida', purchaseDate: new Date('2024-07-19'), description: 'Compra de material', status: 'pago', amount: 80, paymentMethod: 'debito' },
@@ -205,24 +206,22 @@ if (!globalWithMockData.mockCashFlowEntries) {
   ];
 }
 
+const patients = globalWithMockData.mockPatients!;
+const sales = globalWithMockData.mockSales!;
+const cashFlowEntries = globalWithMockData.mockCashFlowEntries!;
+
+
 export const getPatients = async (): Promise<Patient[]> => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    const patients = globalWithMockData.mockPatients ?? [];
     return [...patients].sort((a,b) => a.fullName.localeCompare(b.fullName));
 }
 
 export const getPatientById = async (id: string): Promise<Patient | null> => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    const patients = globalWithMockData.mockPatients ?? [];
     return patients.find(p => p.id === id) ?? null;
 }
 
 export const addPatient = async (patientData: NewPatientData): Promise<Patient> => {
-    
-    if (!globalWithMockData.mockPatients) {
-        globalWithMockData.mockPatients = [];
-    }
-    const patients = globalWithMockData.mockPatients;
     
     const newId = (patients.length > 0 ? Math.max(...patients.map(p => parseInt(p.id, 10))) : 0) + 1;
     
@@ -282,7 +281,6 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
 
 export const deletePatient = async (id: string): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    const patients = globalWithMockData.mockPatients ?? [];
     const index = patients.findIndex(p => p.id === id);
     if (index !== -1) {
         patients.splice(index, 1);
@@ -296,7 +294,6 @@ export type DoseUpdateData = Partial<Omit<Dose, 'id' | 'doseNumber' | 'date'>>;
 export const updateDose = async (patientId: string, doseId: number, doseData: DoseUpdateData): Promise<Patient | null> => {
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    const patients = globalWithMockData.mockPatients || [];
     const patientIndex = patients.findIndex(p => p.id === patientId);
 
     if (patientIndex === -1) {
@@ -321,7 +318,7 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     }
 
     patient.doses[doseIndex] = updatedDose;
-    globalWithMockData.mockPatients![patientIndex] = patient;
+    patients[patientIndex] = patient;
 
     return patient;
 };
@@ -329,23 +326,16 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
 
 export const getSales = async (): Promise<Sale[]> => {
   await new Promise(resolve => setTimeout(resolve, 500));
-  const sales = globalWithMockData.mockSales || [];
   return [...sales].sort((a, b) => b.saleDate.getTime() - a.saleDate.getTime());
 };
 
 export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
-    const patients = globalWithMockData.mockPatients || [];
     const patient = patients.find(p => p.id === saleData.patientId);
 
     if (!patient) {
         throw new Error("Patient not found");
     }
     
-    if (!globalWithMockData.mockSales) {
-      globalWithMockData.mockSales = [];
-    }
-    const sales = globalWithMockData.mockSales;
-
     const newId = (sales.length > 0 ? Math.max(...sales.map(s => parseInt(s.id, 10))) : 0) + 1;
     const total = saleData.price - (saleData.discount || 0);
     
@@ -359,11 +349,6 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     sales.push(newSale);
 
     // Now, add to cash flow
-    if (!globalWithMockData.mockCashFlowEntries) {
-        globalWithMockData.mockCashFlowEntries = [];
-    }
-    const cashFlowEntries = globalWithMockData.mockCashFlowEntries;
-    
     const newCashFlowEntry: CashFlowEntry = {
         id: `sale-${newSale.id}`,
         type: 'entrada',
@@ -384,6 +369,5 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     
 export const getCashFlowEntries = async (): Promise<CashFlowEntry[]> => {
   await new Promise(resolve => setTimeout(resolve, 500));
-  const entries = globalWithMockData.mockCashFlowEntries || [];
-  return [...entries].sort((a, b) => b.purchaseDate.getTime() - a.purchaseDate.getTime());
+  return [...cashFlowEntries].sort((a, b) => b.purchaseDate.getTime() - a.purchaseDate.getTime());
 }
