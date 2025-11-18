@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -71,9 +72,14 @@ export default function NewSalePage() {
     const form = useForm<SaleFormValues>({
         resolver: zodResolver(saleFormSchema),
         defaultValues: {
+            patientId: '',
+            soldDose: '',
+            price: 0,
+            discount: 0,
+            total: 0,
             paymentStatus: "pendente",
             deliveryStatus: "em processamento",
-            discount: 0,
+            observations: "",
         },
     });
 
@@ -340,3 +346,5 @@ export default function NewSalePage() {
         </>
     )
 }
+
+    
