@@ -81,10 +81,11 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
   
   const router = useRouter();
   const { toast } = useToast();
+  const patientId = params.id;
 
   useEffect(() => {
     const fetchPatient = async () => {
-      const fetchedPatient = await getPatientById(params.id);
+      const fetchedPatient = await getPatientById(patientId);
       if (!fetchedPatient) {
         notFound();
       }
@@ -93,7 +94,7 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
     };
 
     fetchPatient();
-  }, [params.id]);
+  }, [patientId]);
 
   const handleSummarize = async () => {
     if (!patient?.healthContraindications) return;
