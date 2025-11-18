@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 import {
   DollarSign,
   FlaskConical,
@@ -10,7 +11,6 @@ import {
   Users,
   Warehouse,
 } from 'lucide-react';
-import { FitDoseLogo } from '@/components/icons';
 import {
   SidebarProvider,
   Sidebar,
@@ -35,7 +35,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center justify-center p-4">
-             <FitDoseLogo className="h-8 text-primary" />
+             <Image src="https://i.ibb.co/dDzrTjM/logo-fit-dose.png" alt="FitDose Logo" width={130} height={32} />
           </div>
         </SidebarHeader>
         <SidebarContent>
