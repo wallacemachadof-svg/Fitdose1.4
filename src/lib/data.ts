@@ -390,5 +390,21 @@ export const getCashFlowEntries = async (): Promise<CashFlowEntry[]> => {
   return [...cashFlowEntries].sort((a, b) => b.purchaseDate.getTime() - a.purchaseDate.getTime());
 }
 
+export const deleteCashFlowEntry = async (id: string): Promise<void> => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Prevent deleting entries linked to sales
+    if (id.startsWith('sale-')) {
+        throw new Error("Cannot delete cash flow entries that are linked to a sale. Please delete the sale instead.");
+    }
+    
+    const index = cashFlowEntries.findIndex(e => e.id === id);
+    if (index !== -1) {
+        cashFlowEntries.splice(index, 1);
+    } else {
+        throw new Error("Cash flow entry not found");
+    }
+};
 
     
+
