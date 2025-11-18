@@ -1,8 +1,8 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { format, differenceInDays } from "date-fns";
-import type { Dose, Sale, CashFlowEntry, Patient } from "@/lib/data";
+import { format, differenceInDays, parseISO } from "date-fns";
+import type { Dose, Sale, CashFlowEntry, Patient } from "@/lib/actions";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -117,5 +117,26 @@ export function generateWhatsAppLink(patient: Patient, dose: Dose): string {
     return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
 }
 
-
+export function generateGoogleCalendarLink(patientName: string, dose: Dose): string {
+    const title = `Aplicação de dose - ${patientName}`;
     
+    const doseDate = new Date(dose.date);
+    const [hours, minutes] = dose.time ? dose.time.split(':').map(Number) : [12, 0];
+    
+    doseDate.setHours(hours, minutes, 0, 0);
+    const startTime = doseDate.toISOString().replace(/-|:|\.\d\d\d/g, '');
+    
+    doseDate.setHours(hours + 1); // Assume 1 hour duration
+    const endTime = doseDate.toISOString().replace(/-|:|\.\d\d\d/g, '');
+
+    const details = `Aplicação da dose de número ${dose.doseNumber} para o(a) paciente ${patientName}.`;
+    
+    const url = new URL('https://www.google.com/calendar/render');
+    url.searchParams.append('action', 'TEMPLATE');
+    url.searchParams.append('text', title);
+    url.searchParams.append('dates', `${startTime}/${endTime}`);
+    url.searchParams.append('details', details);
+    
+    return url.toString();
+}
+

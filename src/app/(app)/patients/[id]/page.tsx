@@ -74,6 +74,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 
 const doseManagementSchema = z.object({
   date: z.date({ required_error: "A data é obrigatória." }),
+  time: z.string().optional(),
   status: z.enum(['administered', 'pending']),
   weight: z.coerce.number().optional(),
   administeredDose: z.coerce.number().optional(),
@@ -332,8 +333,8 @@ export default function PatientDetailPage() {
               <TableRow>
                 <TableHead>Dose</TableHead>
                 <TableHead>Data</TableHead>
+                <TableHead>Horário</TableHead>
                 <TableHead>Peso</TableHead>
-                <TableHead>IMC</TableHead>
                 <TableHead>Dose Aplicada</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Ação</TableHead>
@@ -346,8 +347,8 @@ export default function PatientDetailPage() {
                   <TableRow key={dose.id}>
                     <TableCell className="font-semibold">{dose.doseNumber}</TableCell>
                     <TableCell>{formatDate(dose.date)}</TableCell>
+                    <TableCell>{dose.time || '-'}</TableCell>
                     <TableCell>{dose.weight ? `${dose.weight.toFixed(1)} kg` : '-'}</TableCell>
-                    <TableCell>{dose.bmi ? dose.bmi.toFixed(2) : '-'}</TableCell>
                     <TableCell>{dose.administeredDose ? `${dose.administeredDose} mg` : '-'}</TableCell>
                     <TableCell>
                       <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
@@ -462,6 +463,7 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
         resolver: zodResolver(doseManagementSchema),
         defaultValues: {
             date: new Date(dose.date),
+            time: dose.time || '',
             status: dose.status,
             weight: dose.weight || undefined,
             administeredDose: dose.administeredDose || undefined,
@@ -473,6 +475,7 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
     useEffect(() => {
         form.reset({
             date: new Date(dose.date),
+            time: dose.time || '',
             status: dose.status,
             weight: dose.weight || undefined,
             administeredDose: dose.administeredDose || undefined,
@@ -492,6 +495,7 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
 
             const updatedPatient = await updateDose(patientId, dose.id, {
                 date: data.date,
+                time: data.time,
                 status: data.status,
                 weight: data.weight,
                 administeredDose: data.administeredDose,
@@ -536,27 +540,32 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         
-                        <FormField
-                            control={form.control}
-                            name="date"
-                            render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Data da Dose</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                            {field.value ? formatDateFns(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                    </PopoverContent>
-                                </Popover>
-                            <FormMessage />
-                            </FormItem>
-                        )}/>
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="date"
+                                render={({ field }) => (
+                                <FormItem className="flex flex-col"><FormLabel>Data da Dose</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                {field.value ? formatDateFns(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                        </PopoverContent>
+                                    </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}/>
+                             <FormField control={form.control} name="time" render={({ field }) => (
+                                <FormItem><FormLabel>Horário</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                        </div>
                         
                         <FormField
                             control={form.control}
@@ -848,3 +857,4 @@ function BioimpedanceItem({ label, value, unit }: { label: string, value?: numbe
         </div>
     )
 }
+

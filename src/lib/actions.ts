@@ -34,7 +34,11 @@ const readData = (): MockData => {
         patients.forEach((p: Patient) => {
             p.firstDoseDate = new Date(p.firstDoseDate);
             p.doses.forEach(d => d.date = new Date(d.date));
-            p.evolutions.forEach(e => e.date = new Date(e.date));
+            if (p.evolutions) {
+              p.evolutions.forEach(e => e.date = new Date(e.date));
+            } else {
+              p.evolutions = [];
+            }
         });
         sales.forEach((s: Sale) => {
             s.saleDate = new Date(s.saleDate);
@@ -74,6 +78,7 @@ const generateDoseSchedule = (startDate: Date): Dose[] => {
       doseNumber: i,
       date: new Date(currentDate),
       status: 'pending',
+      time: '10:00', // Default time
     });
     currentDate.setDate(currentDate.getDate() + 7);
   }
@@ -119,6 +124,7 @@ export type Dose = {
   id: number;
   doseNumber: number;
   date: Date;
+  time?: string;
   weight?: number;
   bmi?: number;
   administeredDose?: number;
@@ -285,9 +291,11 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     if (doseIndex === -1) return null;
 
     const originalDose = patient.doses[doseIndex];
+    
     const updatedDose: Dose = {
         ...originalDose,
         ...doseData,
+        date: doseData.date ? new Date(doseData.date) : originalDose.date,
     };
     
     if (updatedDose.status === 'administered' && updatedDose.weight) {
@@ -297,7 +305,6 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     if(doseData.payment?.method && updatedDose.payment) {
         updatedDose.payment.amount = originalDose.payment?.amount || 0; // Default or calculate based on dose
     }
-
 
     patient.doses[doseIndex] = updatedDose;
     patient.doses.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -483,3 +490,4 @@ export const addVial = async (vialData: NewVialData): Promise<Vial[]> => {
     await new Promise(resolve => setTimeout(resolve, 100));
     return newVials;
 }
+

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import {
+  CalendarDays,
   DollarSign,
   FlaskConical,
   LayoutDashboard,
@@ -49,6 +50,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link href="/dashboard">
                   <LayoutDashboard />
                   <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive('/schedule')}
+                tooltip="Minha Agenda"
+              >
+                <Link href="/schedule">
+                  <CalendarDays />
+                  <span>Minha Agenda</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
