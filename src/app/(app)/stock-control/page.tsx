@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,7 +17,7 @@ import {
   CardFooter
 } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Warehouse, PlusCircle, CalendarIcon, Loader2 } from "lucide-react";
+import { Warehouse, PlusCircle, CalendarIcon, Loader2, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -70,6 +71,21 @@ export default function StockControlPage() {
                 </div>
             </div>
             
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Frascos Adquiridos</CardTitle>
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{vials.length}</div>
+                        <p className="text-xs text-muted-foreground">
+                            Total de frascos em estoque.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+
             <NewVialForm onVialAdded={onVialAdded}/>
             
             <Card>
@@ -149,7 +165,7 @@ function NewVialForm({ onVialAdded }: NewVialFormProps) {
                 description: `O frasco de ${newVial.totalMg}mg foi adicionado ao estoque.`,
             });
             onVialAdded(newVial);
-            form.reset();
+            form.reset({ cost: 0, purchaseDate: new Date(), totalMg: undefined });
         } catch (error) {
             toast({
                 variant: "destructive",
@@ -193,7 +209,7 @@ function NewVialForm({ onVialAdded }: NewVialFormProps) {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>MG Total do Frasco</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Selecione" />
@@ -270,3 +286,5 @@ function StockControlSkeleton() {
         </div>
     );
 }
+
+    
