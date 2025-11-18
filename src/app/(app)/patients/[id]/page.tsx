@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { notFound, useRouter } from 'next/navigation';
+import { notFound, useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import {
   getPatientById,
@@ -77,7 +77,7 @@ const doseManagementSchema = z.object({
 type DoseManagementFormValues = z.infer<typeof doseManagementSchema>;
 
 
-export default function PatientDetailPage({ params }: { params: { id: string } }) {
+export default function PatientDetailPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState('');
@@ -87,9 +87,11 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
   
   const router = useRouter();
   const { toast } = useToast();
-  const patientId = params.id;
+  const params = useParams();
+  const patientId = params.id as string;
 
   useEffect(() => {
+    if (!patientId) return;
     const fetchPatient = async () => {
       const fetchedPatient = await getPatientById(patientId);
       if (!fetchedPatient) {
