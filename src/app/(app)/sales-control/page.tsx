@@ -8,7 +8,7 @@ import {
   CardDescription
 } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getSales } from "@/lib/data";
+import { getSales, type Sale } from "@/lib/data";
 import { formatDate, formatCurrency, getPaymentStatusVariant, getDeliveryStatusVariant } from "@/lib/utils";
 import { PlusCircle, MoreVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ import {
 
 
 export default async function SalesControlPage() {
-  const sales = await getSales();
+  const sales: Sale[] = await getSales();
 
   return (
     <Card>

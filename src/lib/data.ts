@@ -65,6 +65,7 @@ export type Sale = {
   paymentStatus: 'pago' | 'pendente';
   deliveryStatus: 'em agendamento' | 'entregue' | 'em processamento';
   observations?: string;
+  deliveryDate?: Date;
 };
 
 export type NewSaleData = Omit<Sale, 'id' | 'patientName' | 'total'>;
@@ -76,7 +77,7 @@ export type CashFlowEntry = {
   description: string;
   installments?: string; // e.g., "1/3"
   dueDate?: Date;
-  paymentMethod?: 'pix' | 'dinheiro' | 'debito' | 'credito';
+  paymentMethod?: 'pix' | 'dinheiro' | 'debito' | 'credito' | 'payment_link';
   status: 'pago' | 'pendente' | 'vencido';
   amount: number;
 }
@@ -87,6 +88,21 @@ const globalWithMockData = global as typeof global & {
   mockPatients?: Patient[];
   mockSales?: Sale[];
   mockCashFlowEntries?: CashFlowEntry[];
+};
+
+const generateDoseSchedule = (startDate: Date): Dose[] => {
+  const doses: Dose[] = [];
+  let currentDate = new Date(startDate);
+  for (let i = 1; i <= 12; i++) {
+    doses.push({
+      id: i,
+      doseNumber: i,
+      date: new Date(currentDate),
+      status: 'pending',
+    });
+    currentDate.setDate(currentDate.getDate() + 7);
+  }
+  return doses;
 };
 
 if (!globalWithMockData.mockPatients) {
@@ -173,36 +189,21 @@ if (!globalWithMockData.mockPatients) {
 
 if (!globalWithMockData.mockSales) {
   globalWithMockData.mockSales = [
-    { id: '1', saleDate: new Date('2024-07-20'), soldDose: '2.5', price: 220, discount: 0, total: 220, patientId: '1', patientName: 'Ana Silva', paymentDate: new Date('2024-07-20'), paymentStatus: 'pago', deliveryStatus: 'entregue', observations: 'Primeira compra.' },
+    { id: '1', saleDate: new Date('2024-07-20'), soldDose: '2.5', price: 220, discount: 0, total: 220, patientId: '1', patientName: 'Ana Silva', paymentDate: new Date('2024-07-20'), paymentStatus: 'pago', deliveryStatus: 'entregue', observations: 'Primeira compra.', deliveryDate: new Date('2024-07-21') },
     { id: '2', saleDate: new Date('2024-07-21'), soldDose: '3.75', price: 330, discount: 10, total: 320, patientId: '2', patientName: 'Bruno Costa', paymentStatus: 'pendente', deliveryStatus: 'em processamento' },
-    { id: '3', saleDate: new Date('2024-07-22'), soldDose: '5.0', price: 380, discount: 0, total: 380, patientId: '3', patientName: 'Carla Dias', paymentDate: new Date('2024-07-22'), paymentStatus: 'pago', deliveryStatus: 'entregue' },
+    { id: '3', saleDate: new Date('2024-07-22'), soldDose: '5.0', price: 380, discount: 0, total: 380, patientId: '3', patientName: 'Carla Dias', paymentDate: new Date('2024-07-22'), paymentStatus: 'pago', deliveryStatus: 'entregue', deliveryDate: new Date('2024-07-23') },
     { id: '4', saleDate: new Date('2024-07-23'), soldDose: '2.5', price: 220, discount: 0, total: 220, patientId: '2', patientName: 'Bruno Costa', paymentStatus: 'pendente', deliveryStatus: 'em agendamento', observations: 'Agendar entrega para a parte da manhã.' },
   ];
 }
 
 if (!globalWithMockData.mockCashFlowEntries) {
   globalWithMockData.mockCashFlowEntries = [
-    { id: '1', type: 'entrada', purchaseDate: new Date('2024-07-20'), description: 'Venda dose Ana Silva', status: 'pago', amount: 220, paymentMethod: 'pix' },
-    { id: '2', type: 'saida', purchaseDate: new Date('2024-07-19'), description: 'Compra de material', status: 'pago', amount: 80, paymentMethod: 'debito' },
-    { id: '3', type: 'entrada', purchaseDate: new Date('2024-07-22'), description: 'Venda dose Carla Dias', status: 'pago', amount: 380, paymentMethod: 'credito' },
-    { id: '4', type: 'saida', purchaseDate: new Date('2024-07-25'), description: 'Aluguel do espaço', status: 'pendente', amount: 500, dueDate: new Date('2024-08-05') },
+    { id: 'sale-1', type: 'entrada', purchaseDate: new Date('2024-07-20'), description: 'Venda dose Ana Silva', status: 'pago', amount: 220, paymentMethod: 'pix' },
+    { id: 'manual-1', type: 'saida', purchaseDate: new Date('2024-07-19'), description: 'Compra de material', status: 'pago', amount: 80, paymentMethod: 'debito' },
+    { id: 'sale-3', type: 'entrada', purchaseDate: new Date('2024-07-22'), description: 'Venda dose Carla Dias', status: 'pago', amount: 380, paymentMethod: 'credito' },
+    { id: 'manual-2', type: 'saida', purchaseDate: new Date('2024-07-25'), description: 'Aluguel do espaço', status: 'pendente', amount: 500, dueDate: new Date('2024-08-05') },
   ];
 }
-
-const generateDoseSchedule = (startDate: Date): Dose[] => {
-  const doses: Dose[] = [];
-  let currentDate = new Date(startDate);
-  for (let i = 1; i <= 12; i++) {
-    doses.push({
-      id: i,
-      doseNumber: i,
-      date: new Date(currentDate),
-      status: 'pending',
-    });
-    currentDate.setDate(currentDate.getDate() + 7);
-  }
-  return doses;
-};
 
 export const getPatients = async (): Promise<Patient[]> => {
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -346,15 +347,35 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     const sales = globalWithMockData.mockSales;
 
     const newId = (sales.length > 0 ? Math.max(...sales.map(s => parseInt(s.id, 10))) : 0) + 1;
+    const total = saleData.price - (saleData.discount || 0);
     
     const newSale: Sale = {
         id: String(newId),
         ...saleData,
         patientName: patient.fullName,
-        total: saleData.price - (saleData.discount || 0),
+        total: total,
     };
 
     sales.push(newSale);
+
+    // Now, add to cash flow
+    if (!globalWithMockData.mockCashFlowEntries) {
+        globalWithMockData.mockCashFlowEntries = [];
+    }
+    const cashFlowEntries = globalWithMockData.mockCashFlowEntries;
+    
+    const newCashFlowEntry: CashFlowEntry = {
+        id: `sale-${newSale.id}`,
+        type: 'entrada',
+        purchaseDate: newSale.saleDate,
+        description: `Venda dose ${patient.fullName}`,
+        amount: total,
+        status: newSale.paymentStatus,
+        dueDate: newSale.paymentStatus === 'pendente' ? newSale.paymentDate : undefined,
+    };
+    
+    cashFlowEntries.push(newCashFlowEntry);
+
 
     await new Promise(resolve => setTimeout(resolve, 500));
 
