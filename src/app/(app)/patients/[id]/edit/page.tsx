@@ -111,6 +111,31 @@ export default function EditPatientPage() {
 
     const form = useForm<PatientFormValues>({
         resolver: zodResolver(patientFormSchema),
+        defaultValues: {
+            fullName: "",
+            age: 0,
+            initialWeight: 0,
+            height: 0,
+            desiredWeight: 0,
+            zip: "",
+            street: "",
+            number: "",
+            city: "",
+            state: "",
+            phone: "",
+            healthConditions: [],
+            contraindications: [],
+            otherHealthIssues: "",
+            dailyMedications: "",
+            oralContraceptive: undefined,
+            usedMonjauro: 'no',
+            monjauroDose: "",
+            monjauroTime: "",
+            avatarUrl: "",
+            indicationType: "nao_se_aplica",
+            indicationName: "",
+            indicationPatientId: "",
+        },
     });
 
     useEffect(() => {
@@ -133,37 +158,55 @@ export default function EditPatientPage() {
                 setPatient(patientData);
                 setAllPatients(allPatientsData);
                 
-                const healthConditionsIds = patientData.healthContraindications
-                    .split(', ')
+                const allIssues = patientData.healthContraindications?.split(', ').filter(Boolean) || [];
+                
+                const healthConditionsIds = allIssues
                     .map(label => healthConditions.find(hc => hc.label === label)?.id)
                     .filter((id): id is string => !!id);
-                
-                const contraindicationsIds = patientData.healthContraindications
-                    .split(', ')
-                    .filter(label => label.startsWith('[CONTRAINDICADO]'))
-                    .map(label => contraindicationsList.find(c => `[CONTRAINDICADO] ${c.label}` === label)?.id)
-                    .filter((id): id is string => !!id);
 
-                const otherIssues = patientData.healthContraindications
-                    .split(', ')
-                    .filter(label => !healthConditions.some(hc => hc.label === label) && !contraindicationsList.some(c => `[CONTRAINDICADO] ${c.label}` === label))
+                const contraindicationsIds = allIssues
+                    .filter(label => label.startsWith('[CONTRAINDICADO]'))
+                    .map(label => {
+                        const originalLabel = label.replace('[CONTRAINDICADO] ', '');
+                        return contraindicationsList.find(c => c.label === originalLabel)?.id;
+                    })
+                    .filter((id): id is string => !!id);
+                
+                const otherIssues = allIssues
+                    .filter(label => 
+                        !healthConditions.some(hc => hc.label === label) && 
+                        !contraindicationsList.some(c => `[CONTRAINDICADO] ${c.label}` === label)
+                    )
                     .join(', ');
 
                 form.reset({
-                    ...patientData,
-                    zip: patientData.address.zip,
-                    street: patientData.address.street,
-                    number: patientData.address.number,
-                    city: patientData.address.city,
-                    state: patientData.address.state,
+                    fullName: patientData.fullName,
+                    age: patientData.age,
+                    initialWeight: patientData.initialWeight,
+                    height: patientData.height,
+                    desiredWeight: patientData.desiredWeight,
+                    firstDoseDate: new Date(patientData.firstDoseDate),
+                    zip: patientData.address?.zip || '',
+                    street: patientData.address?.street || '',
+                    number: patientData.address?.number || '',
+                    city: patientData.address?.city || '',
+                    state: patientData.address?.state || '',
+                    phone: patientData.phone,
                     healthConditions: healthConditionsIds,
                     contraindications: contraindicationsIds,
                     otherHealthIssues: otherIssues,
-                    indicationType: patientData.indication?.type,
-                    indicationName: patientData.indication?.name,
-                    indicationPatientId: patientData.indication?.patientId,
+                    dailyMedications: patientData.dailyMedications || '',
+                    oralContraceptive: patientData.oralContraceptive,
+                    usedMonjauro: patientData.usedMonjauro,
+                    monjauroDose: patientData.monjauroDose || '',
+                    monjauroTime: patientData.monjauroTime || '',
+                    avatarUrl: patientData.avatarUrl,
+                    indicationType: patientData.indication?.type || 'nao_se_aplica',
+                    indicationName: patientData.indication?.name || '',
+                    indicationPatientId: patientData.indication?.patientId || '',
                 });
                 setImagePreview(patientData.avatarUrl);
+
             } catch (error) {
                 toast({ title: "Erro ao carregar dados", description: "Não foi possível buscar as informações do paciente.", variant: "destructive" });
                 router.push('/patients');
@@ -529,7 +572,7 @@ export default function EditPatientPage() {
                                         <FormControl>
                                             <RadioGroup
                                             onValueChange={field.onChange}
-                                            defaultValue={field.value}
+                                            value={field.value}
                                             className="flex items-center gap-6"
                                             >
                                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -556,7 +599,7 @@ export default function EditPatientPage() {
                                         <FormControl>
                                             <RadioGroup
                                             onValueChange={field.onChange}
-                                            defaultValue={field.value}
+                                            value={field.value}
                                             className="flex items-center gap-6"
                                             >
                                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -608,7 +651,7 @@ export default function EditPatientPage() {
                                             <FormControl>
                                                 <RadioGroup
                                                     onValueChange={(value) => {
-                                                        const newValue = field.value === value ? undefined : (value as 'indicado' | 'indicador' | 'nao_se_aplica');
+                                                        const newValue = value as 'indicado' | 'indicador' | 'nao_se_aplica' | undefined;
                                                         field.onChange(newValue);
                                                     }}
                                                     value={field.value}
@@ -671,3 +714,5 @@ export default function EditPatientPage() {
         </>
     )
 }
+
+    
