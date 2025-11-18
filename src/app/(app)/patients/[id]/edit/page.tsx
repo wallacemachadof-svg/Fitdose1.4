@@ -233,6 +233,43 @@ export default function EditPatientPage() {
             setBmi(null);
         }
     }, [watchWeight, watchHeight]);
+
+    useEffect(() => {
+        const fetchAddress = async () => {
+            const zipCode = watchZip?.replace(/\D/g, '');
+            if (zipCode && zipCode.length === 8) {
+                try {
+                    const response = await fetch(`https://viacep.com.br/ws/${zipCode}/json/`);
+                    const data = await response.json();
+                    if (!data.erro) {
+                        form.setValue("street", data.logradouro);
+                        form.setValue("city", data.localidade);
+                        form.setValue("state", data.uf);
+                    } else {
+                        toast({
+                            variant: "destructive",
+                            title: "CEP não encontrado",
+                            description: "Verifique o CEP e tente novamente.",
+                        });
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch address", error);
+                    toast({
+                        variant: "destructive",
+                        title: "Erro ao buscar CEP",
+                        description: "Não foi possível buscar o endereço. Tente novamente.",
+                    });
+                }
+            }
+        };
+        const timeoutId = setTimeout(() => {
+             if (watchZip) {
+                fetchAddress();
+            }
+        }, 500); // Debounce API call
+       
+        return () => clearTimeout(timeoutId);
+    }, [watchZip, form, toast]);
     
     async function onSubmit(data: PatientFormValues) {
         setIsSubmitting(true);
@@ -714,5 +751,3 @@ export default function EditPatientPage() {
         </>
     )
 }
-
-    
