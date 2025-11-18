@@ -3,6 +3,21 @@
 import { placeholderImages } from "@/lib/placeholder-images";
 import { calculateBmi } from "./utils";
 
+const generateDoseSchedule = (startDate: Date): Dose[] => {
+  const doses: Dose[] = [];
+  let currentDate = new Date(startDate);
+  for (let i = 1; i <= 12; i++) {
+    doses.push({
+      id: i,
+      doseNumber: i,
+      date: new Date(currentDate),
+      status: 'pending',
+    });
+    currentDate.setDate(currentDate.getDate() + 7);
+  }
+  return doses;
+};
+
 export type Patient = {
   id: string;
   fullName: string;
@@ -83,6 +98,7 @@ export type CashFlowEntry = {
   status: 'pago' | 'pendente' | 'vencido';
   amount: number;
 }
+export type NewCashFlowData = Omit<CashFlowEntry, 'id'>;
 
 // We use a global variable to simulate a database in a development environment.
 // This is not suitable for production.
@@ -91,22 +107,6 @@ const globalWithMockData = global as typeof global & {
   mockSales?: Sale[];
   mockCashFlowEntries?: CashFlowEntry[];
 };
-
-const generateDoseSchedule = (startDate: Date): Dose[] => {
-  const doses: Dose[] = [];
-  let currentDate = new Date(startDate);
-  for (let i = 1; i <= 12; i++) {
-    doses.push({
-      id: i,
-      doseNumber: i,
-      date: new Date(currentDate),
-      status: 'pending',
-    });
-    currentDate.setDate(currentDate.getDate() + 7);
-  }
-  return doses;
-};
-
 
 if (globalWithMockData.mockPatients === undefined) {
     globalWithMockData.mockPatients = [
@@ -391,14 +391,24 @@ export const getCashFlowEntries = async (): Promise<CashFlowEntry[]> => {
   return [...cashFlowEntries].sort((a, b) => b.purchaseDate.getTime() - a.purchaseDate.getTime());
 }
 
+export const addCashFlowEntry = async (entryData: NewCashFlowData): Promise<CashFlowEntry> => {
+    const newId = `manual-${(cashFlowEntries.filter(e => e.id.startsWith('manual-')).length > 0 ? Math.max(...cashFlowEntries.filter(e => e.id.startsWith('manual-')).map(e => parseInt(e.id.replace('manual-',''), 10))) : 0) + 1}`;
+
+    const newEntry: CashFlowEntry = {
+        id: newId,
+        ...entryData,
+    };
+
+    cashFlowEntries.push(newEntry);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return newEntry;
+}
+
 export const deleteCashFlowEntry = async (id: string): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // If the entry is linked to a sale, delete the sale as well
     if (id.startsWith('sale-')) {
-        const saleId = id.substring(5); // remove 'sale-' prefix
-        await deleteSale(saleId); // This will also remove the cash flow entry
-        return;
+       throw new Error("Lançamentos de vendas não podem ser excluídos por aqui. Exclua a venda em 'Controle de Vendas'.");
     }
     
     const index = cashFlowEntries.findIndex(e => e.id === id);
@@ -408,7 +418,4 @@ export const deleteCashFlowEntry = async (id: string): Promise<void> => {
         throw new Error("Cash flow entry not found");
     }
 };
-
     
-
-

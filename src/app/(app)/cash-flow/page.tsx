@@ -146,13 +146,17 @@ export default function CashFlowPage() {
 
             <Card>
                 <CardContent className="p-0">
-                    <Tabs defaultValue="income">
+                    <Tabs defaultValue="all">
                         <div className="p-6">
                             <TabsList>
+                                <TabsTrigger value="all">Todos</TabsTrigger>
                                 <TabsTrigger value="income">Entradas</TabsTrigger>
                                 <TabsTrigger value="expenses">Saídas</TabsTrigger>
                             </TabsList>
                         </div>
+                         <TabsContent value="all" className="mt-0">
+                            <EntriesTable entries={entries} onEdit={handleEditClick} onDelete={handleDeleteClick} />
+                        </TabsContent>
                         <TabsContent value="income" className="mt-0">
                             <EntriesTable entries={income} onEdit={handleEditClick} onDelete={handleDeleteClick} />
                         </TabsContent>
@@ -212,7 +216,7 @@ function EntriesTable({ entries, onEdit, onDelete }: EntriesTableProps) {
                                 <TableCell>{formatDate(entry.purchaseDate)}</TableCell>
                                 <TableCell className="font-medium">{entry.description}</TableCell>
                                 <TableCell className={`font-semibold ${entry.type === 'entrada' ? 'text-green-600' : 'text-red-600'}`}>
-                                    {formatCurrency(entry.amount)}
+                                    {entry.type === 'saida' && '- '}{formatCurrency(entry.amount)}
                                 </TableCell>
                                 <TableCell>{entry.paymentMethod ?? '-'}</TableCell>
                                 <TableCell>{formatDate(entry.dueDate)}</TableCell>
