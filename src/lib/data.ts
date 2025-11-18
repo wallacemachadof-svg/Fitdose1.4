@@ -109,101 +109,15 @@ const globalWithMockData = global as typeof global & {
 };
 
 if (globalWithMockData.mockPatients === undefined) {
-    globalWithMockData.mockPatients = [
-      {
-        id: "1",
-        fullName: "Ana Silva",
-        age: 34,
-        initialWeight: 85,
-        height: 165,
-        desiredWeight: 65,
-        firstDoseDate: new Date("2024-05-10"),
-        address: {
-          zip: "01001-000",
-          street: "Praça da Sé",
-          number: "100",
-          city: "São Paulo",
-          state: "SP",
-        },
-        phone: "5511987654321",
-        healthContraindications: "Nenhuma observação.",
-        avatarUrl: placeholderImages.find(p => p.id === "woman-smiling-1")?.imageUrl ?? "/placeholder.jpg",
-        doses: [
-            ...generateDoseSchedule(new Date("2024-05-10")).slice(0, 4).map((dose, index) => ({
-                ...dose,
-                status: 'administered' as 'administered',
-                weight: 85 - (index * 1.2),
-                bmi: calculateBmi(85 - (index * 1.2), 1.65),
-                administeredDose: 2.5,
-                payment: { method: 'pix' as 'pix' }
-            })),
-            ...generateDoseSchedule(new Date("2024-05-10")).slice(4)
-        ],
-        evolutions: [],
-      },
-      {
-        id: "2",
-        fullName: "Bruno Costa",
-        age: 42,
-        initialWeight: 102,
-        height: 180,
-        desiredWeight: 88,
-        firstDoseDate: new Date("2024-06-01"),
-        address: {
-          zip: "20031-050",
-          street: "Rua México",
-          number: "123",
-          city: "Rio de Janeiro",
-          state: "RJ",
-        },
-        phone: "5521912345678",
-        healthContraindications: "Hipertensão controlada.",
-        avatarUrl: placeholderImages.find(p => p.id === "man-posing-1")?.imageUrl ?? "/placeholder.jpg",
-        doses: generateDoseSchedule(new Date("2024-06-01")),
-        evolutions: [],
-      },
-      {
-        id: "3",
-        fullName: "Carla Dias",
-        age: 28,
-        initialWeight: 72,
-        height: 172,
-        desiredWeight: 60,
-        firstDoseDate: new Date(new Date().setDate(new Date().getDate() - 21)),
-        address: {
-          zip: "30110-044",
-          street: "Avenida do Contorno",
-          number: "456",
-          city: "Belo Horizonte",
-          state: "MG",
-        },
-        phone: "5531999998888",
-        healthContraindications: "Alergia a amendoim.",
-        avatarUrl: placeholderImages.find(p => p.id === "woman-outdoors-1")?.imageUrl ?? "/placeholder.jpg",
-        doses: [
-          { id: 1, doseNumber: 1, date: new Date(new Date().setDate(new Date().getDate() - 21)), status: 'administered', weight: 72, bmi: calculateBmi(72, 1.72), administeredDose: 2.5, payment: { method: 'credit', installments: 2 } },
-          { id: 2, doseNumber: 2, date: new Date(new Date().setDate(new Date().getDate() - 14)), status: 'administered', weight: 70.5, bmi: calculateBmi(70.5, 1.72), administeredDose: 2.5, payment: { method: 'credit', installments: 2 } },
-          ...generateDoseSchedule(new Date(new Date().setDate(new Date().getDate() - 21))).slice(2)
-        ],
-        evolutions: [],
-      },
-    ];
+    globalWithMockData.mockPatients = [];
 }
 
 if (globalWithMockData.mockSales === undefined) {
-  globalWithMockData.mockSales = [
-    { id: '1', saleDate: new Date('2024-07-20'), soldDose: '2.5', price: 220, discount: 0, total: 220, patientId: '1', patientName: 'Ana Silva', paymentDate: new Date('2024-07-20'), paymentStatus: 'pago', deliveryStatus: 'entregue', observations: 'Primeira compra.', deliveryDate: new Date('2024-07-21') },
-    { id: '2', saleDate: new Date('2024-07-21'), soldDose: '3.75', price: 330, discount: 10, total: 320, patientId: '2', patientName: 'Bruno Costa', paymentStatus: 'pendente', deliveryStatus: 'em processamento' },
-    { id: '4', saleDate: new Date('2024-07-23'), soldDose: '2.5', price: 220, discount: 0, total: 220, patientId: '2', patientName: 'Bruno Costa', paymentStatus: 'pendente', deliveryStatus: 'em agendamento', observations: 'Agendar entrega para a parte da manhã.' },
-  ];
+  globalWithMockData.mockSales = [];
 }
 
 if (globalWithMockData.mockCashFlowEntries === undefined) {
-  globalWithMockData.mockCashFlowEntries = [
-    { id: 'sale-1', type: 'entrada', purchaseDate: new Date('2024-07-20'), description: 'Venda dose Ana Silva', status: 'pago', amount: 220, paymentMethod: 'pix' },
-    { id: 'manual-1', type: 'saida', purchaseDate: new Date('2024-07-19'), description: 'Compra de material', status: 'pago', amount: 80, paymentMethod: 'debito' },
-    { id: 'manual-2', type: 'saida', purchaseDate: new Date('2024-07-25'), description: 'Aluguel do espaço', status: 'pendente', amount: 500, dueDate: new Date('2024-08-05') },
-  ];
+  globalWithMockData.mockCashFlowEntries = [];
 }
 
 const patients = globalWithMockData.mockPatients!;
@@ -337,7 +251,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     }
     
     const newId = (sales.length > 0 ? Math.max(...sales.map(s => parseInt(s.id, 10))) : 0) + 1;
-    const total = saleData.price - (saleData.discount || 0);
+    const total = (saleData.price || 0) - (saleData.discount || 0);
     
     const newSale: Sale = {
         id: String(newId),
