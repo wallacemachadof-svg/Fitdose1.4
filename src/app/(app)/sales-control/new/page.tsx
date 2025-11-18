@@ -39,13 +39,16 @@ const doseOptions = [
 ];
 
 const saleFormSchema = z.object({
-  patientId: z.string({ required_error: "Selecione um paciente." }),
+  patientId: z.string({ required_error: "Selecione um cliente." }),
   saleDate: z.date({ required_error: "A data da venda é obrigatória." }),
   soldDose: z.string({ required_error: "Selecione uma dose." }),
   price: z.coerce.number().min(0, "O preço não pode ser negativo."),
+  discount: z.coerce.number().min(0, "O desconto não pode ser negativo.").optional(),
+  total: z.coerce.number(),
   paymentStatus: z.enum(["pago", "pendente"], { required_error: "Selecione o status do pagamento." }),
   paymentDate: z.date().optional(),
-  deliveryStatus: z.enum(["em agendamento", "entregue", "em preparo"], { required_error: "Selecione o status da entrega." }),
+  deliveryStatus: z.enum(["em agendamento", "entregue", "em processamento"], { required_error: "Selecione o status da entrega." }),
+  deliveryDate: z.date().optional(),
   observations: z.string().optional(),
 });
 
@@ -69,11 +72,15 @@ export default function NewSalePage() {
         resolver: zodResolver(saleFormSchema),
         defaultValues: {
             paymentStatus: "pendente",
-            deliveryStatus: "em preparo",
+            deliveryStatus: "em processamento",
+            discount: 0,
         },
     });
 
     const watchSoldDose = form.watch("soldDose");
+    const watchPrice = form.watch("price");
+    const watchDiscount = form.watch("discount");
+
 
     useEffect(() => {
         const dose = doseOptions.find(d => d.value === watchSoldDose);
@@ -81,6 +88,11 @@ export default function NewSalePage() {
             form.setValue("price", dose.price);
         }
     }, [watchSoldDose, form]);
+
+    useEffect(() => {
+        const total = (watchPrice || 0) - (watchDiscount || 0);
+        form.setValue("total", total);
+    }, [watchPrice, watchDiscount, form]);
 
     async function onSubmit(data: SaleFormValues) {
         setIsSubmitting(true);
@@ -165,23 +177,23 @@ export default function NewSalePage() {
                                 )}/>
                             </div>
 
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                                 <FormField
                                     control={form.control}
                                     name="soldDose"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Dose Vendida</FormLabel>
+                                            <FormLabel>Dose Vendida (mg)</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Selecione a dose" />
+                                                        <SelectValue placeholder="Selecione" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
                                                     {doseOptions.map(dose => (
                                                         <SelectItem key={dose.value} value={dose.value}>
-                                                            {dose.label} ({formatCurrency(dose.price)})
+                                                            {dose.label}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
@@ -193,6 +205,24 @@ export default function NewSalePage() {
                                 <FormField control={form.control} name="price" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Valor (R$)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" {...field} disabled />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}/>
+                                 <FormField control={form.control} name="discount" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Desconto (R$)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}/>
+                                 <FormField control={form.control} name="total" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Valor Total (R$)</FormLabel>
                                         <FormControl>
                                             <Input type="number" step="0.01" {...field} disabled />
                                         </FormControl>
@@ -224,8 +254,28 @@ export default function NewSalePage() {
                                         <FormMessage />
                                     </FormItem>
                                 )}/>
-                                
-                                <FormField
+                                <FormField control={form.control} name="paymentDate" render={({ field }) => (
+                                    <FormItem className="flex flex-col"><FormLabel>Data do Pagamento</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                    {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                            </PopoverContent>
+                                        </Popover>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}/>
+                            </div>
+
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                                 <FormField
                                     control={form.control}
                                     name="deliveryStatus"
                                     render={({ field }) => (
@@ -238,7 +288,7 @@ export default function NewSalePage() {
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="em preparo">Em Preparo</SelectItem>
+                                                    <SelectItem value="em processamento">Em Processamento</SelectItem>
                                                     <SelectItem value="em agendamento">Em Agendamento</SelectItem>
                                                     <SelectItem value="entregue">Entregue</SelectItem>
                                                 </SelectContent>
@@ -247,6 +297,24 @@ export default function NewSalePage() {
                                         </FormItem>
                                     )}
                                 />
+                                <FormField control={form.control} name="deliveryDate" render={({ field }) => (
+                                    <FormItem className="flex flex-col"><FormLabel>Data da Entrega</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                    {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                            </PopoverContent>
+                                        </Popover>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}/>
                             </div>
 
                             <FormField control={form.control} name="observations" render={({ field }) => (

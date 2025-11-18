@@ -49,15 +49,18 @@ export type Sale = {
   saleDate: Date;
   soldDose: string;
   price: number;
+  discount?: number;
+  total: number;
   patientId: string;
   patientName: string;
   paymentDate?: Date;
   paymentStatus: 'pago' | 'pendente';
-  deliveryStatus: 'em agendamento' | 'entregue' | 'em preparo';
+  deliveryDate?: Date;
+  deliveryStatus: 'em agendamento' | 'entregue' | 'em processamento';
   observations?: string;
 };
 
-export type NewSaleData = Omit<Sale, 'id' | 'patientName'>;
+export type NewSaleData = Omit<Sale, 'id' | 'patientName' | 'total'>;
 
 
 const generateDoseSchedule = (startDate: Date): Dose[] => {
@@ -163,10 +166,10 @@ if (!globalWithMockData.mockPatients) {
 
 if (!globalWithMockData.mockSales) {
   globalWithMockData.mockSales = [
-    { id: '1', saleDate: new Date('2024-07-20'), soldDose: '2.5', price: 220, patientId: '1', patientName: 'Ana Silva', paymentDate: new Date('2024-07-20'), paymentStatus: 'pago', deliveryStatus: 'entregue', observations: 'Primeira compra.' },
-    { id: '2', saleDate: new Date('2024-07-21'), soldDose: '3.75', price: 330, patientId: '2', patientName: 'Bruno Costa', paymentStatus: 'pendente', deliveryStatus: 'em preparo' },
-    { id: '3', saleDate: new Date('2024-07-22'), soldDose: '5.0', price: 380, patientId: '3', patientName: 'Carla Dias', paymentDate: new Date('2024-07-22'), paymentStatus: 'pago', deliveryStatus: 'entregue' },
-    { id: '4', saleDate: new Date('2024-07-23'), soldDose: '2.5', price: 220, patientId: '2', patientName: 'Bruno Costa', paymentStatus: 'pendente', deliveryStatus: 'em agendamento', observations: 'Agendar entrega para a parte da manhã.' },
+    { id: '1', saleDate: new Date('2024-07-20'), soldDose: '2.5', price: 220, discount: 0, total: 220, patientId: '1', patientName: 'Ana Silva', paymentDate: new Date('2024-07-20'), paymentStatus: 'pago', deliveryStatus: 'entregue', observations: 'Primeira compra.' },
+    { id: '2', saleDate: new Date('2024-07-21'), soldDose: '3.75', price: 330, discount: 10, total: 320, patientId: '2', patientName: 'Bruno Costa', paymentStatus: 'pendente', deliveryStatus: 'em processamento' },
+    { id: '3', saleDate: new Date('2024-07-22'), soldDose: '5.0', price: 380, discount: 0, total: 380, patientId: '3', patientName: 'Carla Dias', paymentDate: new Date('2024-07-22'), paymentStatus: 'pago', deliveryStatus: 'entregue' },
+    { id: '4', saleDate: new Date('2024-07-23'), soldDose: '2.5', price: 220, discount: 0, total: 220, patientId: '2', patientName: 'Bruno Costa', paymentStatus: 'pendente', deliveryStatus: 'em agendamento', observations: 'Agendar entrega para a parte da manhã.' },
   ];
 }
 
@@ -296,6 +299,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         id: String(newId),
         ...saleData,
         patientName: patient.fullName,
+        total: saleData.price - (saleData.discount || 0),
     };
 
     if (!globalWithMockData.mockSales) {

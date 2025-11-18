@@ -65,8 +65,8 @@ export function getDeliveryStatusVariant(status: Sale['deliveryStatus']) {
     switch (status) {
         case 'entregue':
             return { label: "Entregue", color: "bg-accent/80", textColor: "text-accent-foreground" };
-        case 'em preparo':
-            return { label: "Em Preparo", color: "bg-blue-500", textColor: "text-white" };
+        case 'em processamento':
+            return { label: "Em Processamento", color: "bg-blue-500", textColor: "text-white" };
         case 'em agendamento':
             return { label: "Em Agendamento", color: "bg-orange-400", textColor: "text-white" };
         default:
