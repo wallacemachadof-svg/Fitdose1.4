@@ -2,14 +2,14 @@
 import { FcGoogle } from 'react-icons/fc';
 import { Button } from '@/components/ui/button';
 import { FitDoseLogo, StethoscopeIcon } from '@/components/icons';
-import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { app } from '@/firebase/config';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
 import { useEffect } from 'react';
+import { useFirebase } from '@/firebase/provider';
 
 export default function LoginPage() {
-    const auth = getAuth(app);
+    const { auth } = useFirebase();
     const router = useRouter();
     const { user, isLoading } = useUser();
 
