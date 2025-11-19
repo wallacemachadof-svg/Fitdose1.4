@@ -367,7 +367,7 @@ export default function PatientDetailPage() {
             <TableBody>
               {patient.doses.map((dose) => {
                 const status = getDoseStatus(dose);
-                const paymentStatus = getPaymentStatusVariant(dose.payment.status);
+                const paymentStatus = getPaymentStatusVariant(dose.payment?.status ?? 'pendente');
                 return (
                   <TableRow key={dose.id}>
                     <TableCell className="font-semibold">{dose.doseNumber}</TableCell>
