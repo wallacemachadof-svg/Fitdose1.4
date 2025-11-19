@@ -1,77 +1,22 @@
 
 'use client';
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowRight, User, Shield } from "lucide-react";
-import Image from 'next/image';
-import Link from "next/link";
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 export default function RootPage() {
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    const storedLogo = localStorage.getItem('customLogo');
-    if (storedLogo) {
-      setLogoUrl(storedLogo);
-    }
-     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'customLogo') {
-        setLogoUrl(event.newValue);
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
-
+    router.replace('/dashboard');
+  }, [router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
-        <div className="text-center mb-12">
-            {logoUrl ? (
-              <Image src={logoUrl} alt="FitDose Logo" width={180} height={70} className="object-contain h-16 mx-auto mb-6"/>
-            ) : (
-              <h1 className="text-4xl font-bold text-primary mb-6">FitDose</h1>
-            )}
-             <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-                Bem-vindo(a) à FitDose
-             </h2>
-             <p className="mt-2 text-md md:text-lg text-muted-foreground max-w-xl mx-auto">
-                Aqui começa sua experiência com a saúde e bem-estar. Acesse o portal ou cadastre-se para começar.
-             </p>
-        </div>
-        <div className="grid md:grid-cols-2 gap-8 w-full max-w-4xl">
-            <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><User /> Sou Paciente</CardTitle>
-                    <CardDescription>Novo por aqui? Faça seu cadastro para iniciar o acompanhamento personalizado.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button asChild className="w-full">
-                        <Link href="/cadastro">
-                            Fazer meu Cadastro
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                    </Button>
-                </CardContent>
-            </Card>
-            <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                    <CardTitle  className="flex items-center gap-2"><Shield /> Acesso Restrito</CardTitle>
-                    <CardDescription>Área exclusiva para gerenciamento do sistema e pacientes.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                     <Button asChild className="w-full" variant="secondary">
-                        <Link href="/dashboard">
-                            Acessar Painel
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                    </Button>
-                </CardContent>
-            </Card>
+        <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <p>Carregando painel...</p>
         </div>
     </div>
   );
