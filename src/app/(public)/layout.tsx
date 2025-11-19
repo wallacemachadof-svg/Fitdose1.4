@@ -10,7 +10,7 @@ export const metadata: Metadata = {
         description: "Faça seu cadastro para iniciar o acompanhamento.",
         images: [
             {
-                url: 'https://i.ibb.co/dDzrTjM/logo-fit-dose.png',
+                url: '/logo-fit-dose.png',
                 width: 1200,
                 height: 630,
                 alt: 'Logo FitDose',
@@ -28,7 +28,7 @@ export default function PublicLayout({
   return (
     <div className="min-h-screen bg-muted/40">
         <header className="flex items-center justify-center p-6 border-b bg-background">
-            <Image src="https://i.ibb.co/dDzrTjM/logo-fit-dose.png" alt="FitDose Logo" width={150} height={37} />
+            <Image src="/logo-fit-dose.png" alt="FitDose Logo" width={150} height={37} />
         </header>
         <main className="p-4 md:p-8 flex items-center justify-center">
             {children}
