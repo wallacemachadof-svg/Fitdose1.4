@@ -1,21 +1,27 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowRight, UserPlus } from "lucide-react";
+import { ArrowRight, User, Shield } from "lucide-react";
 import Image from 'next/image';
 import Link from "next/link";
 
 export default function RootPage() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-muted/40 p-4">
-        <div className="mb-8">
-             <Image src="https://i.ibb.co/dDzrTjM/logo-fit-dose.png" alt="FitDose Logo" width={200} height={50} />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+        <div className="text-center mb-12">
+             <Image src="https://i.ibb.co/dDzrTjM/logo-fit-dose.png" alt="FitDose Logo" width={240} height={60} className="mx-auto mb-6" />
+             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                Bem-vindo(a) à FitDose
+             </h1>
+             <p className="mt-2 text-md md:text-lg text-muted-foreground max-w-xl mx-auto">
+                Aqui começa sua experiência com a saúde e bem-estar. Acesse o portal ou cadastre-se para começar.
+             </p>
         </div>
         <div className="grid md:grid-cols-2 gap-8 w-full max-w-4xl">
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><UserPlus /> Sou Paciente</CardTitle>
-                    <CardDescription>Novo por aqui? Faça seu cadastro para iniciar o acompanhamento.</CardDescription>
+                    <CardTitle className="flex items-center gap-2"><User /> Sou Paciente</CardTitle>
+                    <CardDescription>Novo por aqui? Faça seu cadastro para iniciar o acompanhamento personalizado.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Button asChild className="w-full">
@@ -26,13 +32,13 @@ export default function RootPage() {
                     </Button>
                 </CardContent>
             </Card>
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader>
-                    <CardTitle>Acesso Restrito</CardTitle>
+                    <CardTitle  className="flex items-center gap-2"><Shield /> Acesso Restrito</CardTitle>
                     <CardDescription>Área exclusiva para gerenciamento do sistema e pacientes.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                     <Button asChild className="w-full" variant="outline">
+                     <Button asChild className="w-full" variant="secondary">
                         <Link href="/dashboard">
                             Acessar Painel
                             <ArrowRight className="ml-2 h-4 w-4" />
@@ -41,9 +47,6 @@ export default function RootPage() {
                 </CardContent>
             </Card>
         </div>
-         <p className="mt-8 text-xs text-muted-foreground">
-            Você está vendo esta página porque a rota raiz foi configurada como um portal.
-        </p>
     </div>
   );
 }
