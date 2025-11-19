@@ -6,12 +6,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getPatients, getSales, type Dose, type Sale } from "@/lib/actions";
 import { getDoseStatus, formatDate, formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Syringe, User, BellDot, BarChart3, PieChart, TrendingUp, DollarSign } from "lucide-react";
+import { Syringe, User, BellDot, BarChart3, PieChart, TrendingUp, DollarSign, Link as LinkIcon, Copy, Check } from "lucide-react";
 import Link from 'next/link';
 import { differenceInDays, subDays, format as formatDateFns } from "date-fns";
 import { ptBR } from 'date-fns/locale';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Pie, PieChart as RechartsPieChart, Cell, Legend } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
 
 type UpcomingDose = Dose & {
   patientId: string;
@@ -24,6 +27,8 @@ export default function DashboardPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const [registrationLink, setRegistrationLink] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,10 +39,19 @@ export default function DashboardPage() {
       ]);
       setPatients(patientData);
       setSales(salesData);
+      setRegistrationLink(`${window.location.origin}/cadastro`);
       setLoading(false);
     };
     fetchData();
   }, []);
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(registrationLink);
+    toast({
+      title: "Link Copiado!",
+      description: "O link de cadastro foi copiado para a área de transferência.",
+    });
+  };
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -94,7 +108,26 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center justify-between">
+              Link de Cadastro
+              <LinkIcon className="h-4 w-4 text-muted-foreground" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+             <p className="text-xs text-muted-foreground">
+                Envie este link para seus novos pacientes.
+            </p>
+             <div className="flex items-center space-x-2">
+                <Input value={registrationLink} readOnly className="h-9"/>
+                <Button variant="outline" size="icon" className="h-9 w-9" onClick={copyToClipboard}>
+                    <Copy className="h-4 w-4" />
+                </Button>
+            </div>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -265,5 +298,3 @@ function DashboardSkeleton() {
     </div>
   );
 }
-
-    

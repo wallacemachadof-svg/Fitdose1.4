@@ -15,7 +15,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getPatients, deletePatient, type Patient } from "@/lib/actions";
 import { calculateBmi, formatDate } from "@/lib/utils";
-import { PlusCircle, ArrowRight, MoreVertical, Trash2 } from "lucide-react";
+import { PlusCircle, ArrowRight, MoreVertical, Trash2, UserPlus, Link as LinkIcon, Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -34,14 +34,17 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 
 export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [registrationLink, setRegistrationLink] = useState('');
   const { toast } = useToast();
   const router = useRouter();
 
@@ -49,10 +52,19 @@ export default function PatientsPage() {
     const fetchPatients = async () => {
         const data = await getPatients();
         setPatients(data);
+        setRegistrationLink(`${window.location.origin}/cadastro`);
         setLoading(false);
     };
     fetchPatients();
   }, []);
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(registrationLink);
+    toast({
+      title: "Link Copiado!",
+      description: "O link de cadastro foi copiado para a área de transferência.",
+    });
+  };
 
   const handleDeleteClick = (patient: Patient) => {
     setPatientToDelete(patient);
@@ -92,12 +104,54 @@ export default function PatientsPage() {
             <CardTitle>Pacientes</CardTitle>
             <CardDescription>Visualize e gerencie seus pacientes.</CardDescription>
           </div>
-          <Button asChild>
-            <Link href="/patients/new">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Novo Paciente
-            </Link>
-          </Button>
+          <div className='flex items-center gap-2'>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Convidar Paciente
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Convidar Novo Paciente</DialogTitle>
+                  <DialogDescription>
+                    Copie e envie o link abaixo para que o paciente realize o seu próprio cadastro.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex items-center space-x-2">
+                  <div className="grid flex-1 gap-2">
+                    <label htmlFor="link" className="sr-only">
+                      Link
+                    </label>
+                    <Input
+                      id="link"
+                      defaultValue={registrationLink}
+                      readOnly
+                    />
+                  </div>
+                  <Button type="button" size="sm" className="px-3" onClick={copyToClipboard}>
+                    <span className="sr-only">Copiar</span>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <DialogFooter className="sm:justify-start">
+                    <Button type="button" asChild>
+                      <a href={`mailto:?subject=Cadastro FitDose&body=Olá! Faça seu cadastro em nosso sistema através do link: ${registrationLink}`} >
+                        Enviar por E-mail
+                      </a>
+                    </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Button asChild>
+              <Link href="/patients/new">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Novo Paciente
+              </Link>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -194,7 +248,10 @@ function PatientsPageSkeleton() {
                     <Skeleton className="h-6 w-32" />
                     <Skeleton className="h-4 w-48 mt-2" />
                 </div>
-                <Skeleton className="h-10 w-36" />
+                <div className="flex items-center gap-2">
+                    <Skeleton className="h-10 w-36" />
+                    <Skeleton className="h-10 w-36" />
+                </div>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -228,6 +285,4 @@ function PatientsPageSkeleton() {
         </Card>
     );
 }
-    
-
     
