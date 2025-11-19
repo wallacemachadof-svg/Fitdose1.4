@@ -5,16 +5,6 @@ import Image from 'next/image';
 import type { Metadata } from 'next';
 import { useState, useEffect } from 'react';
 
-// export const metadata: Metadata = {
-//     title: "Cadastro FitDose",
-//     description: "Faça seu cadastro para iniciar o acompanhamento.",
-//     openGraph: {
-//         title: "Cadastro FitDose",
-//         description: "Faça seu cadastro para iniciar o acompanhamento.",
-//     },
-// };
-
-
 export default function PublicLayout({
   children,
 }: {
@@ -40,9 +30,9 @@ export default function PublicLayout({
 
   return (
     <div className="min-h-screen bg-muted/40">
-        <header className="flex items-center justify-center p-6 border-b bg-background">
+        <header className="flex items-center justify-center p-6 border-b bg-background h-24">
             {logoUrl ? (
-              <Image src={logoUrl} alt="FitDose Logo" width={120} height={50} className="object-contain h-12"/>
+              <Image src={logoUrl} alt="FitDose Logo" width={150} height={60} className="object-contain h-16"/>
             ) : (
               <h1 className="text-3xl font-bold text-primary">FitDose</h1>
             )}

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -102,9 +103,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center justify-center p-4">
+          <div className="flex items-center justify-center p-4 h-20">
             {logoUrl ? (
-              <Image src={logoUrl} alt="FitDose Logo" width={100} height={40} className="object-contain h-10"/>
+              <Image src={logoUrl} alt="FitDose Logo" width={120} height={50} className="object-contain h-12"/>
             ) : (
               <h1 className="text-2xl font-bold text-primary">FitDose</h1>
             )}
