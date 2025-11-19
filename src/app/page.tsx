@@ -1,15 +1,41 @@
 
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ArrowRight, User, Shield } from "lucide-react";
 import Image from 'next/image';
 import Link from "next/link";
+import { useState, useEffect } from 'react';
 
 export default function RootPage() {
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedLogo = localStorage.getItem('customLogo');
+    if (storedLogo) {
+      setLogoUrl(storedLogo);
+    }
+     const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'customLogo') {
+        setLogoUrl(event.newValue);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
         <div className="text-center mb-12">
-             <h1 className="text-4xl font-bold text-primary mb-6">FitDose</h1>
+            {logoUrl ? (
+              <Image src={logoUrl} alt="FitDose Logo" width={180} height={70} className="object-contain h-16 mx-auto mb-6"/>
+            ) : (
+              <h1 className="text-4xl font-bold text-primary mb-6">FitDose</h1>
+            )}
              <h2 className="text-2xl md:text-3xl font-bold text-foreground">
                 Bem-vindo(a) à FitDose
              </h2>

@@ -14,6 +14,7 @@ import {
   Warehouse,
   Eraser,
   Trash2,
+  User as UserIcon,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -28,7 +29,7 @@ import {
   SidebarTrigger,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -49,6 +50,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { toast } = useToast();
   const router = useRouter();
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Ensure this runs only on the client
+    const storedLogo = localStorage.getItem('customLogo');
+    if (storedLogo) {
+      setLogoUrl(storedLogo);
+    }
+     // Listen for logo changes from other tabs/windows
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'customLogo') {
+        setLogoUrl(event.newValue);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
 
   const isActive = (path: string) => {
     // Exact match for dashboard, prefix match for others
@@ -82,7 +103,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center justify-center p-4">
-             <h1 className="text-2xl font-bold text-primary">FitDose</h1>
+            {logoUrl ? (
+              <Image src={logoUrl} alt="FitDose Logo" width={100} height={40} className="object-contain h-10"/>
+            ) : (
+              <h1 className="text-2xl font-bold text-primary">FitDose</h1>
+            )}
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -96,6 +121,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link href="/dashboard">
                   <LayoutDashboard />
                   <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive('/profile')}
+                tooltip="Perfil"
+              >
+                <Link href="/profile">
+                  <UserIcon />
+                  <span>Perfil</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
