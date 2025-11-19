@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { User as UserIcon, Upload, Loader2 } from "lucide-react";
+import { User as UserIcon, Upload, Loader2, ArrowRight } from "lucide-react";
 import { cn, calculateBmi } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -104,6 +104,8 @@ export default function PatientRegistrationPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [bmi, setBmi] = useState<number | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [showForm, setShowForm] = useState(false);
+
 
     const form = useForm<PatientFormValues>({
         resolver: zodResolver(patientFormSchema),
@@ -245,6 +247,25 @@ Reconheço que a aquisição da medicação é de minha livre escolha junto à f
 
 Após receber todas as informações necessárias de forma clara, ética e técnica, declaro ter tido oportunidade de esclarecer dúvidas e compreendo plenamente os objetivos, riscos, limitações, responsabilidades e características do tratamento. Assim, manifesto meu consentimento livre, consciente e informado para uso da Tirzepatida manipulada e para início ou continuidade do acompanhamento clínico conforme indicação profissional, ciente de que posso solicitar sua interrupção a qualquer momento mediante comunicação ao profissional responsável.
     `;
+
+    if (!showForm) {
+        return (
+            <Card className="w-full max-w-lg text-center">
+                <CardHeader>
+                    <CardTitle className="mt-4 text-2xl">Seja Bem-vindo(a) à FitDose!</CardTitle>
+                    <CardDescription>
+                       Aqui começa sua experiência com a saúde e bem-estar. Clique abaixo para iniciar seu cadastro.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button size="lg" onClick={() => setShowForm(true)}>
+                        Realizar Cadastro
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
         <Card className="w-full max-w-4xl">
