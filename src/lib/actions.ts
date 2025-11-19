@@ -34,6 +34,7 @@ const readData = (): MockData => {
         // Dates are stored as strings in JSON, so we need to convert them back to Date objects
         patients.forEach((p: Patient) => {
             p.firstDoseDate = new Date(p.firstDoseDate);
+            if (p.consentDate) p.consentDate = new Date(p.consentDate);
             p.doses.forEach(d => {
                 d.date = new Date(d.date);
                 if (d.payment?.date) d.payment.date = new Date(d.payment.date);
@@ -136,10 +137,12 @@ export type Patient = {
   };
   points: number;
   pointHistory: PointTransaction[];
+  consentGiven: boolean;
+  consentDate?: Date;
 };
 
-export type NewPatientData = Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory'>;
-export type UpdatePatientData = Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory'>;
+export type NewPatientData = Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>;
+export type UpdatePatientData = Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>;
 
 
 export type Dose = {
@@ -289,6 +292,8 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         indication: patientData.indication,
         points: 0,
         pointHistory: [],
+        consentGiven: patientData.consentGiven,
+        consentDate: patientData.consentGiven ? new Date() : undefined,
     };
 
     data.patients.push(newPatient);
@@ -326,6 +331,8 @@ export const updatePatient = async (id: string, patientData: UpdatePatientData):
         monjauroDose: patientData.monjauroDose ?? '',
         monjauroTime: patientData.monjauroTime ?? '',
         indication: patientData.indication,
+        consentGiven: patientData.consentGiven || originalPatient.consentGiven,
+        consentDate: patientData.consentGiven && !originalPatient.consentDate ? new Date() : originalPatient.consentDate,
     };
 
     data.patients[patientIndex] = updatedPatient;
@@ -464,7 +471,9 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     };
 
     // --- Handle Points ---
-    const pointsGained = totalSoldMg * 4; // 1mg = 4 UI, 1 UI = 1 point
+    const uiPerMg = 4;
+    const pointsGained = soldMgPerDose * uiPerMg * saleData.quantity;
+    
     patient.points = (patient.points || 0) + pointsGained;
     patient.pointHistory.push({
         date: new Date(),

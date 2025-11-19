@@ -31,6 +31,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Image from "next/image";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const healthConditions = [
     { id: "hypertension", label: "Hipertensão" },
@@ -79,6 +80,9 @@ const patientFormSchema = z.object({
   monjauroDose: z.string().optional(),
   monjauroTime: z.string().optional(),
   avatarUrl: z.string().optional(),
+  consentGiven: z.boolean().refine((val) => val === true, {
+    message: "Você deve ler e concordar com os termos para continuar.",
+  }),
 }).refine(data => {
     if (data.usedMonjauro === 'yes') {
         return !!data.monjauroDose && !!data.monjauroTime;
@@ -108,9 +112,11 @@ export default function PatientRegistrationPage() {
             monjauroDose: "",
             monjauroTime: "",
             avatarUrl: "",
+            consentGiven: false,
         }
     });
 
+    const watchFullName = form.watch("fullName");
     const watchWeight = form.watch("initialWeight");
     const watchHeight = form.watch("height");
     const watchZip = form.watch("zip");
@@ -214,6 +220,24 @@ export default function PatientRegistrationPage() {
         }
     };
 
+
+    const consentText = `
+Eu, ${watchFullName || '______________________'}, declaro, para todos os fins legais, que fui devidamente informado(a) e esclarecido(a) acerca do uso de Tirzepatida manipulada, medicamento prescrito de forma individualizada para fins terapêuticos relacionados ao tratamento de sobrepeso e obesidade, com objetivo de redução ponderal, melhora metabólica e promoção de saúde de acordo com a minha necessidade clínica.
+
+Declaro ter plena ciência de que o produto prescrito trata-se de formulação magistral produzida por farmácia regularizada perante os órgãos competentes, não se caracterizando como Monjauro®, Mounjaro® ou qualquer outro medicamento industrializado de referência, genérico ou similar. Tenho conhecimento de que a manipulação magistral segue parâmetros técnicos permitidos pela legislação sanitária vigente, porém pode apresentar variações inerentes ao processo produtivo, bem como respostas terapêuticas distintas conforme características individuais do paciente.
+
+Fui informado(a) de maneira clara, ética e compreensível sobre o mecanismo de ação da Tirzepatida, agonista dos receptores GIP e GLP-1, o qual atua na modulação da glicemia, saciedade e resposta metabólica, podendo favorecer redução de peso quando associado a acompanhamento clínico, orientação nutricional e mudanças no estilo de vida. Declaro ciência de que a eficácia do tratamento depende não apenas do medicamento, mas também da adesão às recomendações profissionais, retorno às consultas e acompanhamento periódico.
+
+Reconheço que fui devidamente orientado(a) sobre os possíveis riscos e efeitos adversos relacionados ao uso da Tirzepatida manipulada, incluindo náuseas, desconforto abdominal, constipação, diarreia, refluxo, redução do apetite, cefaleia, hipoglicemia (especialmente em pacientes diabéticos em uso concomitante de outras terapias), colelitíase, alteração de enzimas hepáticas e, em casos raros, pancreatite ou complicações gastrointestinais graves. Declaro ter sido orientado(a) sobre a necessidade de comunicar imediatamente ao profissional responsável qualquer alteração inesperada ou evento adverso após o início do tratamento.
+
+Também afirmo ter sido informado(a) sobre as contraindicações formais ao uso do medicamento, incluindo histórico pessoal ou familiar de carcinoma medular de tireoide, Síndrome de Neoplasia Endócrina Múltipla tipo 2 (MEN2), gestação, lactação, pancreatite prévia ou outras condições que representem risco ao paciente. Comprometo-me a comunicar prontamente caso eu me enquadre em qualquer dessas condições agora ou no decorrer do tratamento.
+
+Declaro estar ciente de que o uso da Tirzepatida manipulada ocorre sob prescrição individualizada, adquirida por minha iniciativa junto à farmácia magistral autorizada, não havendo comercialização, revenda ou fornecimento de medicamento industrializado pelo profissional prescritor. Reconheço que não há garantia absoluta de resultados, uma vez que a resposta terapêutica é individual e depende de fatores clínicos, metabólicos e comportamentais específicos.
+
+Após receber todas as explicações necessárias, tive oportunidade para esclarecimento de dúvidas e, consciente dos benefícios, riscos e responsabilidades envolvidos, manifesto meu consentimento livre, claro, voluntário e informado para início e continuidade do tratamento, podendo solicitar sua interrupção a qualquer momento mediante comunicação ao profissional responsável.
+
+Por ser expressão de minha vontade, firmo o presente Termo de Consentimento, para produzir seus efeitos legais.
+    `;
 
     return (
         <Card className="w-full max-w-4xl">
@@ -533,6 +557,39 @@ export default function PatientRegistrationPage() {
                                 </div>
                             )}
                         </div>
+
+                        <div className="space-y-6 border-t pt-6">
+                            <h3 className="text-lg font-semibold">Termo de Consentimento</h3>
+                            <div className="space-y-2">
+                                <FormLabel>Termo de Consentimento para Uso de Tirzepatida Manipulada</FormLabel>
+                                <ScrollArea className="h-60 w-full rounded-md border p-4 text-sm">
+                                    <pre className="whitespace-pre-wrap font-sans">{consentText}</pre>
+                                </ScrollArea>
+                            </div>
+                             <FormField
+                                control={form.control}
+                                name="consentGiven"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
+                                    <FormControl>
+                                        <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                        <FormLabel>
+                                        Li e concordo com os termos.
+                                        </FormLabel>
+                                        <FormDescription>
+                                        Ao marcar esta caixa, você confirma que leu e concorda com o Termo de Consentimento.
+                                        </FormDescription>
+                                         <FormMessage />
+                                    </div>
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
                         
                         <div className="flex justify-end gap-2 pt-4 border-t">
                             <Button type="submit" disabled={isSubmitting} size="lg">
@@ -545,5 +602,3 @@ export default function PatientRegistrationPage() {
         </Card>
     )
 }
-
-    

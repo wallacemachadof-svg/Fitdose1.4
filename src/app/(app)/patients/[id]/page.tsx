@@ -57,7 +57,8 @@ import {
     UserCheck,
     Droplets,
     FileText,
-    ArrowLeft
+    ArrowLeft,
+    CheckSquare
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -317,6 +318,13 @@ export default function PatientDetailPage() {
                             : (patient.usedMonjauro === 'no' ? 'Não' : 'Não informado')
                         } 
                     />
+                    {patient.consentGiven && (
+                         <HealthInfoItem 
+                            icon={CheckSquare}
+                            label="Termo de Consentimento"
+                            value={`Assinado em ${formatDate(patient.consentDate)}`}
+                        />
+                    )}
                 </div>
                 <div className="space-y-4">
                     <h4 className="font-semibold">Condições e Contraindicações</h4>
@@ -876,5 +884,3 @@ function BioimpedanceItem({ label, value, unit }: { label: string, value?: numbe
         </div>
     )
 }
-
-    
