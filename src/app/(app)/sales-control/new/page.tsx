@@ -33,11 +33,11 @@ import { addSale, getPatients, getVials, type Patient, type Vial } from "@/lib/a
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const doseOptions = [
-    { value: '2.5', label: '2.5 mg', price: 220 },
-    { value: '3.75', label: '3.75 mg', price: 330 },
-    { value: '5.0', label: '5.0 mg', price: 380 },
-    { value: '6.25', label: '6.25 mg', price: 430 },
-    { value: '7.5', label: '7.5 mg', price: 520 },
+    { value: '2.5', label: '2.5 mg (10UI)', price: 220 },
+    { value: '3.75', label: '3.75 mg (15UI)', price: 330 },
+    { value: '5.0', label: '5.0 mg (20UI)', price: 430 },
+    { value: '6.25', label: '6.25 mg (25UI)', price: 540 },
+    { value: '7.5', label: '7.5 mg (30UI)', price: 620 },
 ];
 
 const saleFormSchema = z.object({
