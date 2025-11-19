@@ -39,6 +39,11 @@ const readData = (): MockData => {
             } else {
               p.evolutions = [];
             }
+             if (p.pointHistory) {
+                p.pointHistory.forEach(ph => ph.date = new Date(ph.date));
+            } else {
+                p.pointHistory = [];
+            }
         });
         sales.forEach((s: Sale) => {
             s.saleDate = new Date(s.saleDate);
@@ -85,6 +90,12 @@ const generateDoseSchedule = (startDate: Date): Dose[] => {
   return doses;
 };
 
+export type PointTransaction = {
+    date: Date;
+    description: string;
+    points: number;
+}
+
 export type Patient = {
   id: string;
   fullName: string;
@@ -116,10 +127,12 @@ export type Patient = {
     name: string;
     patientId?: string;
   };
+  points: number;
+  pointHistory: PointTransaction[];
 };
 
-export type NewPatientData = Omit<Patient, 'id' | 'doses' | 'evolutions'>;
-export type UpdatePatientData = Omit<Patient, 'id' | 'doses' | 'evolutions'>;
+export type NewPatientData = Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory'>;
+export type UpdatePatientData = Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory'>;
 
 
 export type Dose = {
@@ -258,6 +271,8 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         monjauroDose: patientData.monjauroDose ?? '',
         monjauroTime: patientData.monjauroTime ?? '',
         indication: patientData.indication,
+        points: 0,
+        pointHistory: [],
     };
 
     data.patients.push(newPatient);
@@ -423,6 +438,28 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         patientName: patient.fullName,
         total: total,
     };
+
+    // Check if this is the first sale for the patient
+    const isFirstSale = !data.sales.some(s => s.patientId === saleData.patientId);
+
+    // If it's the first sale and the patient was referred, award points
+    if (isFirstSale && patient.indication?.type === 'indicado' && patient.indication.patientId) {
+        const referrerIndex = data.patients.findIndex(p => p.id === patient.indication!.patientId);
+        if (referrerIndex !== -1) {
+            const referrer = data.patients[referrerIndex];
+            const pointsToAdd = 120; // For now, fixed points for any first sale by referral.
+            referrer.points = (referrer.points || 0) + pointsToAdd;
+            if (!referrer.pointHistory) {
+                referrer.pointHistory = [];
+            }
+            referrer.pointHistory.push({
+                date: new Date(),
+                description: `Indicação de ${patient.fullName}`,
+                points: pointsToAdd,
+            });
+            data.patients[referrerIndex] = referrer;
+        }
+    }
 
     data.sales.push(newSale);
 

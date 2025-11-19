@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import {
+  Award,
   CalendarDays,
   DollarSign,
   FlaskConical,
@@ -74,6 +75,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link href="/patients">
                   <Users />
                   <span>Pacientes</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive('/rewards')}
+                tooltip="Recompensas"
+              >
+                <Link href="/rewards">
+                  <Award />
+                  <span>Recompensas</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
