@@ -1,5 +1,24 @@
 
 import Image from 'next/image';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: "Cadastro FitDose",
+    description: "Faça seu cadastro para iniciar o acompanhamento.",
+    openGraph: {
+        title: "Cadastro FitDose",
+        description: "Faça seu cadastro para iniciar o acompanhamento.",
+        images: [
+            {
+                url: 'https://i.ibb.co/dDzrTjM/logo-fit-dose.png',
+                width: 1200,
+                height: 630,
+                alt: 'Logo FitDose',
+            },
+        ],
+    },
+};
+
 
 export default function PublicLayout({
   children,
@@ -17,5 +36,3 @@ export default function PublicLayout({
     </div>
   );
 }
-
-    

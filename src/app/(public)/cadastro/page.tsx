@@ -17,13 +17,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CalendarIcon, User as UserIcon, Upload, Loader2 } from "lucide-react";
+import { User as UserIcon, Upload, Loader2 } from "lucide-react";
 import { cn, calculateBmi } from "@/lib/utils";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { addPatient } from "@/lib/actions";
@@ -62,9 +58,6 @@ const patientFormSchema = z.object({
   initialWeight: z.coerce.number().min(1, "Peso inicial é obrigatório.").positive("Peso deve ser um número positivo."),
   height: z.coerce.number().min(1, "Altura é obrigatória.").positive("Altura deve ser um número positivo."),
   desiredWeight: z.coerce.number().min(1, "Peso desejado é obrigatório.").positive("Peso deve ser um número positivo."),
-  firstDoseDate: z.date({
-    required_error: "A data da primeira dose é obrigatória.",
-  }),
   zip: z.string().min(8, "CEP deve ter 8 dígitos.").max(9, "CEP inválido."),
   street: z.string().min(1, "Rua é obrigatória."),
   number: z.string().min(1, "Número é obrigatório."),
@@ -80,6 +73,8 @@ const patientFormSchema = z.object({
   monjauroDose: z.string().optional(),
   monjauroTime: z.string().optional(),
   avatarUrl: z.string().optional(),
+  indicationSource: z.enum(['yes', 'no']),
+  indicationName: z.string().optional(),
   consentGiven: z.boolean().refine((val) => val === true, {
     message: "Você deve ler e concordar com os termos para continuar.",
   }),
@@ -91,6 +86,14 @@ const patientFormSchema = z.object({
 }, {
     message: "Dose e tempo de uso são obrigatórios se você já usou Monjauro.",
     path: ["usedMonjauro"],
+}).refine(data => {
+    if (data.indicationSource === 'yes') {
+        return !!data.indicationName;
+    }
+    return true;
+}, {
+    message: "Por favor, informe quem o indicou.",
+    path: ["indicationName"],
 });
 
 type PatientFormValues = z.infer<typeof patientFormSchema>;
@@ -112,6 +115,8 @@ export default function PatientRegistrationPage() {
             monjauroDose: "",
             monjauroTime: "",
             avatarUrl: "",
+            indicationSource: 'no',
+            indicationName: "",
             consentGiven: false,
         }
     });
@@ -121,6 +126,7 @@ export default function PatientRegistrationPage() {
     const watchHeight = form.watch("height");
     const watchZip = form.watch("zip");
     const watchUsedMonjauro = form.watch("usedMonjauro");
+    const watchIndicationSource = form.watch("indicationSource");
 
     useEffect(() => {
         if (watchWeight && watchHeight) {
@@ -186,12 +192,19 @@ export default function PatientRegistrationPage() {
                 data.otherHealthIssues
             ].filter(Boolean).join(', ');
 
+            const indication = data.indicationSource === 'yes' && data.indicationName
+                ? { type: 'indicado' as const, name: data.indicationName }
+                : undefined;
+
             const patientDataForApi = {
                 ...data,
                 healthContraindications: fullContraindications || 'Nenhuma observação.',
+                indication,
+                firstDoseDate: new Date(), // Set to registration date
             };
             
-            const { otherHealthIssues, ...finalPatientData } = patientDataForApi as any; // remove temp fields
+            // remove temp fields
+            const { otherHealthIssues, indicationSource, ...finalPatientData } = patientDataForApi;
 
             await addPatient(finalPatientData);
             router.push("/cadastro/sucesso");
@@ -221,22 +234,15 @@ export default function PatientRegistrationPage() {
     };
 
 
-    const consentText = `
-Eu, ${watchFullName || '______________________'}, declaro, para todos os fins legais, que fui devidamente informado(a) e esclarecido(a) acerca do uso de Tirzepatida manipulada, medicamento prescrito de forma individualizada para fins terapêuticos relacionados ao tratamento de sobrepeso e obesidade, com objetivo de redução ponderal, melhora metabólica e promoção de saúde de acordo com a minha necessidade clínica.
+    const consentText = `Eu, ${watchFullName || '______________________'}, declaro, para todos os fins legais, que fui devidamente informado(a) e esclarecido(a) acerca do uso de Tirzepatida manipulada, medicamento prescrito de forma individualizada para fins terapêuticos.
 
-Declaro ter plena ciência de que o produto prescrito trata-se de formulação magistral produzida por farmácia regularizada perante os órgãos competentes, não se caracterizando como Monjauro®, Mounjaro® ou qualquer outro medicamento industrializado de referência, genérico ou similar. Tenho conhecimento de que a manipulação magistral segue parâmetros técnicos permitidos pela legislação sanitária vigente, porém pode apresentar variações inerentes ao processo produtivo, bem como respostas terapêuticas distintas conforme características individuais do paciente.
+1.  **Natureza do Produto:** Declaro ter plena ciência de que o produto prescrito trata-se de formulação magistral, não se caracterizando como Monjauro®, Mounjaro® ou qualquer outro medicamento industrializado.
+2.  **Mecanismo de Ação:** Fui informado(a) de que a Tirzepatida atua na modulação da glicemia e saciedade, podendo favorecer a redução de peso quando associada a um estilo de vida saudável e acompanhamento profissional.
+3.  **Riscos e Efeitos Adversos:** Reconheço que fui orientado(a) sobre os possíveis riscos, incluindo, mas não se limitando a: náuseas, desconforto abdominal, constipação, diarreia, e em casos raros, pancreatite. Comprometo-me a comunicar imediatamente qualquer evento adverso.
+4.  **Contraindicações:** Afirmo ter sido informado(a) sobre as contraindicações formais, como histórico pessoal ou familiar de carcinoma medular de tireoide, gestação, lactação ou pancreatite prévia.
+5.  **Responsabilidade e Adesão:** Declaro estar ciente de que o tratamento é individualizado e que a eficácia depende da minha adesão às recomendações profissionais. Reconheço que não há garantia absoluta de resultados.
 
-Fui informado(a) de maneira clara, ética e compreensível sobre o mecanismo de ação da Tirzepatida, agonista dos receptores GIP e GLP-1, o qual atua na modulação da glicemia, saciedade e resposta metabólica, podendo favorecer redução de peso quando associado a acompanhamento clínico, orientação nutricional e mudanças no estilo de vida. Declaro ciência de que a eficácia do tratamento depende não apenas do medicamento, mas também da adesão às recomendações profissionais, retorno às consultas e acompanhamento periódico.
-
-Reconheço que fui devidamente orientado(a) sobre os possíveis riscos e efeitos adversos relacionados ao uso da Tirzepatida manipulada, incluindo náuseas, desconforto abdominal, constipação, diarreia, refluxo, redução do apetite, cefaleia, hipoglicemia (especialmente em pacientes diabéticos em uso concomitante de outras terapias), colelitíase, alteração de enzimas hepáticas e, em casos raros, pancreatite ou complicações gastrointestinais graves. Declaro ter sido orientado(a) sobre a necessidade de comunicar imediatamente ao profissional responsável qualquer alteração inesperada ou evento adverso após o início do tratamento.
-
-Também afirmo ter sido informado(a) sobre as contraindicações formais ao uso do medicamento, incluindo histórico pessoal ou familiar de carcinoma medular de tireoide, Síndrome de Neoplasia Endócrina Múltipla tipo 2 (MEN2), gestação, lactação, pancreatite prévia ou outras condições que representem risco ao paciente. Comprometo-me a comunicar prontamente caso eu me enquadre em qualquer dessas condições agora ou no decorrer do tratamento.
-
-Declaro estar ciente de que o uso da Tirzepatida manipulada ocorre sob prescrição individualizada, adquirida por minha iniciativa junto à farmácia magistral autorizada, não havendo comercialização, revenda ou fornecimento de medicamento industrializado pelo profissional prescritor. Reconheço que não há garantia absoluta de resultados, uma vez que a resposta terapêutica é individual e depende de fatores clínicos, metabólicos e comportamentais específicos.
-
-Após receber todas as explicações necessárias, tive oportunidade para esclarecimento de dúvidas e, consciente dos benefícios, riscos e responsabilidades envolvidos, manifesto meu consentimento livre, claro, voluntário e informado para início e continuidade do tratamento, podendo solicitar sua interrupção a qualquer momento mediante comunicação ao profissional responsável.
-
-Por ser expressão de minha vontade, firmo o presente Termo de Consentimento, para produzir seus efeitos legais.
+Após receber todas as explicações, manifesto meu consentimento livre e informado para o tratamento, ciente dos benefícios, riscos e responsabilidades.
     `;
 
     return (
@@ -292,7 +298,7 @@ Por ser expressão de minha vontade, firmo o presente Termo de Consentimento, pa
                             )}/>
                         </div>
                         
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
                             <FormField control={form.control} name="age" render={({ field }) => (
                                 <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
@@ -305,28 +311,7 @@ Por ser expressão de minha vontade, firmo o presente Termo de Consentimento, pa
                             <FormField control={form.control} name="desiredWeight" render={({ field }) => (
                                 <FormItem><FormLabel>Sua Meta de Peso (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-                            <FormField control={form.control} name="firstDoseDate" render={({ field }) => (
-                                <FormItem className="flex flex-col"><FormLabel>Data da 1ª Dose</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                        </PopoverContent>
-                                    </Popover>
-                                <FormMessage />
-                                </FormItem>
-                            )}/>
-                            <div className="p-2 border rounded-md bg-muted/30 h-10 flex items-center justify-between">
+                             <div className="p-2 border rounded-md bg-muted/30 h-10 flex items-center justify-between">
                                 <label className="text-sm font-medium text-muted-foreground">IMC</label>
                                 <p className="text-lg font-bold">{bmi ? bmi.toFixed(2) : '-'}</p>
                             </div>
@@ -556,6 +541,44 @@ Por ser expressão de minha vontade, firmo o presente Termo de Consentimento, pa
                                     )}/>
                                 </div>
                             )}
+
+                             <FormField control={form.control} name="indicationSource" render={({ field }) => (
+                                <FormItem className="space-y-3">
+                                    <FormLabel>Foi indicado(a) por alguém?</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                        className="flex items-center gap-6"
+                                        >
+                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                            <FormControl>
+                                            <RadioGroupItem value="yes" />
+                                            </FormControl>
+                                            <FormLabel className="font-normal">Sim</FormLabel>
+                                        </FormItem>
+                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                            <FormControl>
+                                            <RadioGroupItem value="no" />
+                                            </FormControl>
+                                            <FormLabel className="font-normal">Não</FormLabel>
+                                        </FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}/>
+
+                            {watchIndicationSource === 'yes' && (
+                                <FormField control={form.control} name="indicationName" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Quem indicou?</FormLabel>
+                                        <FormControl><Input placeholder="Nome de quem te indicou" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}/>
+                            )}
+
                         </div>
 
                         <div className="space-y-6 border-t pt-6">

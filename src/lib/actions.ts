@@ -245,30 +245,10 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
     const data = readData();
     const newId = (data.patients.length > 0 ? Math.max(...data.patients.map(p => parseInt(p.id, 10))) : 0) + 1;
     
-    const initialBmi = calculateBmi(patientData.initialWeight, patientData.height / 100);
-    const doses = generateDoseSchedule(patientData.firstDoseDate).map(dose => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const doseDate = new Date(dose.date);
-        doseDate.setHours(0, 0, 0, 0);
+    // Set first dose date to the registration date
+    const firstDoseDate = new Date();
 
-        if (doseDate < today) {
-            return {
-                ...dose,
-                status: 'administered' as 'administered',
-                weight: patientData.initialWeight,
-                bmi: initialBmi,
-                administeredDose: 2.5,
-                payment: { 
-                    status: 'pago' as 'pago', 
-                    amount: 220, 
-                    method: 'pix' as 'pix',
-                    date: dose.date,
-                } 
-            };
-        }
-        return dose;
-    });
+    const doses = generateDoseSchedule(firstDoseDate);
 
     const newPatient: Patient = {
         id: String(newId),
@@ -277,7 +257,7 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         initialWeight: patientData.initialWeight,
         height: patientData.height,
         desiredWeight: patientData.desiredWeight,
-        firstDoseDate: patientData.firstDoseDate,
+        firstDoseDate: firstDoseDate,
         address: { ...patientData.address },
         phone: patientData.phone,
         healthContraindications: patientData.healthContraindications ?? "Nenhuma observação.",
@@ -627,5 +607,3 @@ export const resetAllData = async (): Promise<void> => {
     writeData(emptyData);
     await new Promise(resolve => setTimeout(resolve, 100));
 }
-
-    
