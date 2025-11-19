@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getPatients, type Patient } from "@/lib/actions";
-import { getHighestReward } from '@/lib/utils';
+import { getHighestReward, formatCurrency } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Award, Star, Gift } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -79,7 +79,7 @@ export default function RewardsPage() {
                         {reward ? (
                             <div className="flex items-center justify-end gap-2 text-accent-foreground font-semibold">
                                 <Gift className="h-4 w-4 text-accent" />
-                                <span>{reward.label}</span>
+                                <span>{reward.label} ({formatCurrency(reward.discountValue)})</span>
                             </div>
                         ) : (
                             <span className="text-muted-foreground text-sm">-</span>

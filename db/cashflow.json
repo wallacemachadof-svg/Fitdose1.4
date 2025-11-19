@@ -16,5 +16,14 @@
     "amount": 0,
     "status": "pago",
     "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-2",
+    "type": "entrada",
+    "purchaseDate": "2025-11-16T03:00:00.000Z",
+    "description": "Venda p/ CRISTIANO MARTINS COSTA ",
+    "amount": 180,
+    "status": "pago",
+    "paymentMethod": "pix"
   }
 ]

@@ -102,7 +102,15 @@
     "oralContraceptive": "no",
     "usedMonjauro": "no",
     "monjauroDose": "",
-    "monjauroTime": ""
+    "monjauroTime": "",
+    "pointHistory": [
+      {
+        "date": "2025-11-19T18:06:03.547Z",
+        "description": "Indicação de CRISTIANO MARTINS COSTA ",
+        "points": 120
+      }
+    ],
+    "points": 120
   },
   {
     "id": "2",
@@ -212,6 +220,7 @@
       "type": "indicado",
       "name": "WALLACE KEVELLYN MACHADO FONSECA",
       "patientId": "1"
-    }
+    },
+    "pointHistory": []
   }
 ]

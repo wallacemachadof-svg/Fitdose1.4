@@ -144,19 +144,13 @@ export function generateGoogleCalendarLink(patientName: string, dose: Dose): str
     return url.toString();
 }
 
-const rewardTiers = [
-    { points: 350, discountPercentage: 1, label: "1 dose 100% OFF" },
-    { points: 200, discountPercentage: 0.5, label: "1 dose 50% OFF" },
-    { points: 100, discount: 60, label: "R$ 60 de desconto" },
-    { points: 60, discount: 30, label: "R$ 30 de desconto" },
-];
-
 export function getHighestReward(points: number) {
-    for (const tier of rewardTiers) {
-        if (points >= tier.points) {
-            return tier;
-        }
+    if (points < 10) {
+        return null;
     }
-    return null;
+    const discountValue = Math.floor(points / 10);
+    return {
+        label: `Até ${formatCurrency(discountValue)} de desconto`,
+        discountValue,
+    };
 }
-    

@@ -40,14 +40,6 @@ const doseOptions = [
     { value: '7.5', label: '7.5 mg', price: 520 },
 ];
 
-const rewardTiers = [
-    { points: 60, discount: 30, label: "R$ 30 OFF" },
-    { points: 100, discount: 60, label: "R$ 60 OFF" },
-    { points: 200, discountPercentage: 0.5, label: "50% OFF" },
-    { points: 350, discountPercentage: 1, label: "100% OFF" },
-];
-
-
 const saleFormSchema = z.object({
   patientId: z.string({ required_error: "Selecione um cliente." }),
   saleDate: z.date({ required_error: "A data da venda é obrigatória." }),
@@ -108,7 +100,6 @@ export default function NewSalePage() {
     useEffect(() => {
         const patient = patients.find(p => p.id === watchPatientId);
         setSelectedPatient(patient || null);
-        // Reset discount when patient changes
         form.setValue("discount", 0);
         form.setValue("pointsUsed", 0);
     }, [watchPatientId, patients, form]);
@@ -123,7 +114,6 @@ export default function NewSalePage() {
         } else {
             form.setValue("price", 0);
         }
-        // Reset discount if dose changes
         form.setValue("discount", 0);
         form.setValue("pointsUsed", 0);
     }, [watchSoldDose, form]);
@@ -131,20 +121,15 @@ export default function NewSalePage() {
     useEffect(() => {
         const total = (watchPrice || 0) - (watchDiscount || 0);
         form.setValue("total", total < 0 ? 0 : total);
+        
+        // Convert discount back to points
+        const pointsToUse = (watchDiscount || 0) * 10;
+        form.setValue("pointsUsed", pointsToUse);
+
     }, [watchPrice, watchDiscount, form]);
 
-    const handleApplyReward = (pointsToUse: number, discountAmount?: number, discountPercentage?: number) => {
-        let finalDiscount = 0;
-        if (discountAmount) {
-            finalDiscount = discountAmount;
-        } else if (discountPercentage) {
-            const currentPrice = form.getValues("price");
-            finalDiscount = currentPrice * discountPercentage;
-        }
-        form.setValue("discount", finalDiscount);
-        form.setValue("pointsUsed", pointsToUse);
-    }
-
+    const maxDiscountAvailable = selectedPatient ? Math.floor(selectedPatient.points || 0) / 10 : 0;
+    
     async function onSubmit(data: SaleFormValues) {
         if (isStockInsufficient) {
              toast({
@@ -154,6 +139,16 @@ export default function NewSalePage() {
             });
             return;
         }
+
+        if (data.discount && data.discount > maxDiscountAvailable) {
+             toast({
+                variant: "destructive",
+                title: "Pontos Insuficientes",
+                description: `O desconto máximo disponível para este paciente é de ${formatCurrency(maxDiscountAvailable)}.`,
+            });
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             await addSale(data);
@@ -250,50 +245,6 @@ export default function NewSalePage() {
                                     )}/>
                                 </div>
                                 
-                                {selectedPatient && (
-                                     <Card className="bg-muted/50">
-                                        <CardHeader className="p-4">
-                                            <CardTitle className="text-lg flex items-center justify-between">
-                                                <span>Programa de Recompensas</span>
-                                                <span className="flex items-center gap-2 text-base">
-                                                    <Star className="h-5 w-5 text-yellow-500"/> 
-                                                    {selectedPatient.points || 0} Pontos
-                                                </span>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="p-4 pt-0">
-                                            <p className="text-sm text-muted-foreground mb-3">Selecione um resgate para aplicar o desconto:</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {rewardTiers.map(tier => (
-                                                    <Button 
-                                                        key={tier.points}
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        disabled={(selectedPatient.points || 0) < tier.points || !watchSoldDose}
-                                                        onClick={() => handleApplyReward(tier.points, tier.discount, tier.discountPercentage)}
-                                                    >
-                                                        {tier.points} pts - {tier.label}
-                                                    </Button>
-                                                ))}
-                                                 <Button 
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="text-destructive"
-                                                    onClick={() => {
-                                                        form.setValue("discount", 0);
-                                                        form.setValue("pointsUsed", 0);
-                                                    }}
-                                                >
-                                                    Remover Desconto
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                     </Card>
-                                )}
-
-
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                                     <FormField
                                         control={form.control}
@@ -330,10 +281,11 @@ export default function NewSalePage() {
                                     )}/>
                                     <FormField control={form.control} name="discount" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Desconto (R$)</FormLabel>
+                                            <FormLabel>Desconto por Pontos (R$)</FormLabel>
                                             <FormControl>
-                                                <Input type="number" step="0.01" {...field} />
+                                                <Input type="number" step="0.01" {...field} max={maxDiscountAvailable} />
                                             </FormControl>
+                                            {selectedPatient && <FormDescription className="text-xs">Disponível: {formatCurrency(maxDiscountAvailable)} ({selectedPatient.points || 0} pts)</FormDescription>}
                                             <FormMessage />
                                         </FormItem>
                                     )}/>
@@ -457,6 +409,4 @@ export default function NewSalePage() {
             </Card>
         </>
     )
-
-    
 }

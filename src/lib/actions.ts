@@ -1,3 +1,4 @@
+
 'use server';
 
 import { calculateBmi } from "./utils";
@@ -414,6 +415,10 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     const patient = data.patients[patientIndex];
 
     const soldMg = parseFloat(saleData.soldDose);
+    if (isNaN(soldMg)) {
+        throw new Error("Dose vendida inválida.");
+    }
+
     const totalRemainingMg = data.vials.reduce((acc, v) => acc + v.remainingMg, 0);
     if (totalRemainingMg < soldMg) {
         throw new Error(`Estoque insuficiente. Apenas ${totalRemainingMg.toFixed(2)}mg disponíveis.`);
@@ -444,33 +449,21 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     };
 
     // --- Handle Points ---
-    // 1. Redeem points if any were used
+    const pointsGained = soldMg * 4; // 1mg = 4 UI, 1 UI = 1 point
+    patient.points = (patient.points || 0) + pointsGained;
+    patient.pointHistory.push({
+        date: new Date(),
+        description: `Compra da dose ${saleData.soldDose}mg`,
+        points: pointsGained,
+    });
+    
     if (saleData.pointsUsed && saleData.pointsUsed > 0) {
         patient.points -= saleData.pointsUsed;
         patient.pointHistory.push({
             date: new Date(),
-            description: `Resgate na compra da dose ${saleData.soldDose}mg`,
+            description: `Resgate de ${formatCurrency(saleData.discount || 0)}`,
             points: -saleData.pointsUsed,
         });
-    }
-
-    // 2. Award points for indication (if it's the first purchase)
-    const isFirstSale = !data.sales.some(s => s.patientId === saleData.patientId);
-    if (isFirstSale && patient.indication?.type === 'indicado' && patient.indication.patientId) {
-        const referrerIndex = data.patients.findIndex(p => p.id === patient.indication!.patientId);
-        if (referrerIndex !== -1) {
-            const referrer = data.patients[referrerIndex];
-            const pointsToAdd = 120; // For now, fixed points for any first sale by referral.
-            referrer.points = (referrer.points || 0) + pointsToAdd;
-            if (!referrer.pointHistory) referrer.pointHistory = [];
-            
-            referrer.pointHistory.push({
-                date: new Date(),
-                description: `Indicação de ${patient.fullName}`,
-                points: pointsToAdd,
-            });
-            data.patients[referrerIndex] = referrer;
-        }
     }
 
     data.sales.push(newSale);
