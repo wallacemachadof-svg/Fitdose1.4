@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -52,7 +51,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const isActive = (path: string) => {
-    return pathname === path || (path !== '/dashboard' && pathname.startsWith(path));
+    // Exact match for dashboard, prefix match for others
+    if (path === '/dashboard') {
+        return pathname === path;
+    }
+    return pathname.startsWith(path);
   };
   
   const handleResetData = async () => {
