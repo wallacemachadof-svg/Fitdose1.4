@@ -82,7 +82,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center justify-center p-4">
-             <Image src="/logo-fit-dose.png" alt="FitDose Logo" width={130} height={32} />
+             <h1 className="text-2xl font-bold text-primary">FitDose</h1>
           </div>
         </SidebarHeader>
         <SidebarContent>

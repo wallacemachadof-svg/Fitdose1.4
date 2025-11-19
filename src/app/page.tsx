@@ -9,10 +9,10 @@ export default function RootPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
         <div className="text-center mb-12">
-             <Image src="/logo-fit-dose.png" alt="FitDose Logo" width={240} height={60} className="mx-auto mb-6" />
-             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+             <h1 className="text-4xl font-bold text-primary mb-6">FitDose</h1>
+             <h2 className="text-2xl md:text-3xl font-bold text-foreground">
                 Bem-vindo(a) à FitDose
-             </h1>
+             </h2>
              <p className="mt-2 text-md md:text-lg text-muted-foreground max-w-xl mx-auto">
                 Aqui começa sua experiência com a saúde e bem-estar. Acesse o portal ou cadastre-se para começar.
              </p>
