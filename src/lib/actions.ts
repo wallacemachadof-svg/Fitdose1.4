@@ -34,7 +34,10 @@ const readData = (): MockData => {
         // Dates are stored as strings in JSON, so we need to convert them back to Date objects
         patients.forEach((p: Patient) => {
             p.firstDoseDate = new Date(p.firstDoseDate);
-            p.doses.forEach(d => d.date = new Date(d.date));
+            p.doses.forEach(d => {
+                d.date = new Date(d.date);
+                if (d.payment?.date) d.payment.date = new Date(d.payment.date);
+            });
             if (p.evolutions) {
               p.evolutions.forEach(e => e.date = new Date(e.date));
             } else {
@@ -85,6 +88,9 @@ const generateDoseSchedule = (startDate: Date): Dose[] => {
       date: new Date(currentDate),
       status: 'pending',
       time: '10:00', // Default time
+      payment: {
+        status: 'pendente'
+      }
     });
     currentDate.setDate(currentDate.getDate() + 7);
   }
@@ -144,8 +150,10 @@ export type Dose = {
   weight?: number;
   bmi?: number;
   administeredDose?: number;
-  payment?: {
-    method: "cash" | "pix" | "debit" | "credit" | "payment_link";
+  payment: {
+    status: 'pago' | 'pendente';
+    date?: Date;
+    method?: "cash" | "pix" | "debit" | "credit" | "payment_link";
     installments?: number;
     amount?: number;
   };
@@ -174,6 +182,7 @@ export type Sale = {
   id: string;
   saleDate: Date;
   soldDose: string;
+  quantity: number;
   price: number;
   discount?: number;
   total: number;
@@ -247,7 +256,12 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
                 weight: patientData.initialWeight,
                 bmi: initialBmi,
                 administeredDose: 2.5,
-                payment: { method: 'pix' as 'pix', amount: 220 } 
+                payment: { 
+                    status: 'pago' as 'pago', 
+                    amount: 220, 
+                    method: 'pix' as 'pix',
+                    date: dose.date,
+                } 
             };
         }
         return dose;
@@ -334,7 +348,7 @@ export const deletePatient = async (id: string): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 100));
 };
 
-export type DoseUpdateData = Partial<Omit<Dose, 'id' | 'doseNumber'>>;
+export type DoseUpdateData = Partial<Omit<Dose, 'id' | 'doseNumber' | 'payment'>> & { payment?: Partial<Dose['payment']>};
 
 export const updateDose = async (patientId: string, doseId: number, doseData: DoseUpdateData): Promise<Patient | null> => {
     const data = readData();
@@ -353,14 +367,14 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
         ...originalDose,
         ...doseData,
         date: doseData.date ? new Date(doseData.date) : originalDose.date,
+        payment: {
+            ...originalDose.payment,
+            ...doseData.payment,
+        }
     };
     
     if (updatedDose.status === 'administered' && updatedDose.weight) {
         updatedDose.bmi = calculateBmi(updatedDose.weight, patient.height / 100);
-    }
-     // Add payment amount if method is selected
-    if(doseData.payment?.method && updatedDose.payment) {
-        updatedDose.payment.amount = originalDose.payment?.amount || 0; // Default or calculate based on dose
     }
 
     patient.doses[doseIndex] = updatedDose;
@@ -414,19 +428,20 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     }
     const patient = data.patients[patientIndex];
 
-    const soldMg = parseFloat(saleData.soldDose);
-    if (isNaN(soldMg)) {
+    const soldMgPerDose = parseFloat(saleData.soldDose);
+    if (isNaN(soldMgPerDose)) {
         throw new Error("Dose vendida inválida.");
     }
 
+    const totalSoldMg = soldMgPerDose * saleData.quantity;
     const totalRemainingMg = data.vials.reduce((acc, v) => acc + v.remainingMg, 0);
-    if (totalRemainingMg < soldMg) {
-        throw new Error(`Estoque insuficiente. Apenas ${totalRemainingMg.toFixed(2)}mg disponíveis.`);
+    if (totalRemainingMg < totalSoldMg) {
+        throw new Error(`Estoque insuficiente. Apenas ${totalRemainingMg.toFixed(2)}mg disponíveis para vender ${totalSoldMg}mg.`);
     }
 
     // --- Update Stock ---
     const sortedVials = [...data.vials].sort((a, b) => new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime());
-    let remainingToDeduct = soldMg;
+    let remainingToDeduct = totalSoldMg;
     for (const vial of sortedVials) {
         if (remainingToDeduct <= 0) break;
         if (vial.remainingMg > 0) {
@@ -439,7 +454,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     
     // --- Create Sale ---
     const newId = (data.sales.length > 0 ? Math.max(...data.sales.map(s => parseInt(s.id, 10))) : 0) + 1;
-    const total = (saleData.price || 0) - (saleData.discount || 0);
+    const total = saleData.total;
     
     const newSale: Sale = {
         id: String(newId),
@@ -449,11 +464,11 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     };
 
     // --- Handle Points ---
-    const pointsGained = soldMg * 4; // 1mg = 4 UI, 1 UI = 1 point
+    const pointsGained = totalSoldMg * 4; // 1mg = 4 UI, 1 UI = 1 point
     patient.points = (patient.points || 0) + pointsGained;
     patient.pointHistory.push({
         date: new Date(),
-        description: `Compra da dose ${saleData.soldDose}mg`,
+        description: `Compra de ${saleData.quantity}x dose(s) de ${saleData.soldDose}mg`,
         points: pointsGained,
     });
     
@@ -469,6 +484,21 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         });
     }
 
+    // --- Update Patient Doses Payment Status ---
+    if (saleData.paymentStatus === 'pago') {
+        const pendingDoses = patient.doses.filter(d => d.payment.status === 'pendente').sort((a,b) => a.date.getTime() - b.date.getTime());
+        for(let i = 0; i < saleData.quantity && i < pendingDoses.length; i++) {
+            const doseToUpdate = pendingDoses[i];
+            const doseIndex = patient.doses.findIndex(d => d.id === doseToUpdate.id);
+            if (doseIndex !== -1) {
+                patient.doses[doseIndex].payment.status = 'pago';
+                patient.doses[doseIndex].payment.date = saleData.paymentDate || saleData.saleDate;
+                patient.doses[doseIndex].payment.amount = saleData.price / saleData.quantity; // individual price
+            }
+        }
+    }
+
+
     data.sales.push(newSale);
     data.patients[patientIndex] = patient;
 
@@ -478,7 +508,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             id: `sale-${newSale.id}`,
             type: 'entrada',
             purchaseDate: newSale.paymentDate || newSale.saleDate,
-            description: `Venda p/ ${patient.fullName}`,
+            description: `Venda ${saleData.quantity}x ${saleData.soldDose}mg p/ ${patient.fullName}`,
             amount: total,
             status: 'pago',
             paymentMethod: 'pix', // Placeholder, needs to be dynamic in a real app
@@ -588,3 +618,4 @@ export const resetAllData = async (): Promise<void> => {
     writeData(emptyData);
     await new Promise(resolve => setTimeout(resolve, 100));
 }
+

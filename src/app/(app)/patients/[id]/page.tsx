@@ -20,7 +20,8 @@ import {
   formatDate,
   getDoseStatus,
   generateWhatsAppLink,
-  formatCurrency
+  formatCurrency,
+  getPaymentStatusVariant
 } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -187,7 +188,7 @@ export default function PatientDetailPage() {
   const patientNameInitial = patient.fullName.charAt(0).toUpperCase();
 
   const totalPaid = patient.doses
-    .filter(d => d.status === 'administered' && d.payment?.amount)
+    .filter(d => d.payment?.status === 'pago' && d.payment?.amount)
     .reduce((acc, d) => acc + (d.payment?.amount || 0), 0);
 
   const HealthInfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | null | undefined }) => {
@@ -350,25 +351,24 @@ export default function PatientDetailPage() {
               <TableRow>
                 <TableHead>Dose</TableHead>
                 <TableHead>Data</TableHead>
-                <TableHead>Horário</TableHead>
-                <TableHead>Peso</TableHead>
-                <TableHead>Dose Aplicada</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Status Aplicação</TableHead>
+                <TableHead>Status Pag.</TableHead>
                 <TableHead>Ação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {patient.doses.map((dose) => {
                 const status = getDoseStatus(dose);
+                const paymentStatus = getPaymentStatusVariant(dose.payment.status);
                 return (
                   <TableRow key={dose.id}>
                     <TableCell className="font-semibold">{dose.doseNumber}</TableCell>
                     <TableCell>{formatDate(dose.date)}</TableCell>
-                    <TableCell>{dose.time || '-'}</TableCell>
-                    <TableCell>{dose.weight ? `${dose.weight.toFixed(1)} kg` : '-'}</TableCell>
-                    <TableCell>{dose.administeredDose ? `${dose.administeredDose} mg` : '-'}</TableCell>
                     <TableCell>
                       <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={paymentStatus.label === 'Pago' ? 'default' : 'outline'} className={`${paymentStatus.color} ${paymentStatus.textColor} border-none`}>{paymentStatus.label}</Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -511,20 +511,18 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
     async function onSubmit(data: DoseManagementFormValues) {
         setIsSubmitting(true);
         try {
-            // This is a placeholder for a price. In a real scenario, this would be dynamic.
-            const dosePrice = 220; 
-
             const updatedPatient = await updateDose(patientId, dose.id, {
                 date: data.date,
                 time: data.time,
                 status: data.status,
                 weight: data.weight,
                 administeredDose: data.administeredDose,
-                payment: data.paymentMethod ? {
+                payment: {
+                    ...dose.payment,
                     method: data.paymentMethod,
                     installments: data.installments,
-                    amount: dose.payment?.amount || (data.status === 'administered' ? dosePrice : 0),
-                } : undefined,
+                    amount: dose.payment?.amount || 0
+                },
             });
 
             if (updatedPatient) {

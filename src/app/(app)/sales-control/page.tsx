@@ -103,7 +103,7 @@ export default function SalesControlPage() {
                 <TableRow>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Data Venda</TableHead>
-                  <TableHead>Dose (mg)</TableHead>
+                  <TableHead>Produto</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead>Status Pag.</TableHead>
@@ -124,7 +124,7 @@ export default function SalesControlPage() {
                           </Link>
                         </TableCell>
                         <TableCell>{formatDate(sale.saleDate)}</TableCell>
-                        <TableCell>{sale.soldDose}</TableCell>
+                        <TableCell>{sale.quantity}x {sale.soldDose}mg</TableCell>
                         <TableCell>{formatCurrency(sale.price)}</TableCell>
                         <TableCell className="font-semibold">{formatCurrency(sale.total)}</TableCell>
                         <TableCell>

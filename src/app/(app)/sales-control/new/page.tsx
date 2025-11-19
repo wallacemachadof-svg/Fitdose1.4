@@ -44,6 +44,7 @@ const saleFormSchema = z.object({
   patientId: z.string({ required_error: "Selecione um cliente." }),
   saleDate: z.date({ required_error: "A data da venda é obrigatória." }),
   soldDose: z.string({ required_error: "Selecione uma dose." }),
+  quantity: z.coerce.number().min(1, "A quantidade deve ser pelo menos 1.").default(1),
   price: z.coerce.number().min(0, "O preço não pode ser negativo."),
   discount: z.coerce.number().min(0, "O desconto não pode ser negativo.").optional(),
   total: z.coerce.number(),
@@ -82,6 +83,7 @@ export default function NewSalePage() {
         defaultValues: {
             patientId: '',
             soldDose: '',
+            quantity: 1,
             price: 0,
             discount: 0,
             total: 0,
@@ -94,6 +96,7 @@ export default function NewSalePage() {
     
     const watchPatientId = form.watch("patientId");
     const watchSoldDose = form.watch("soldDose");
+    const watchQuantity = form.watch("quantity");
     const watchPrice = form.watch("price");
     const watchDiscount = form.watch("discount");
 
@@ -105,18 +108,19 @@ export default function NewSalePage() {
     }, [watchPatientId, patients, form]);
 
     const selectedDoseMg = parseFloat(watchSoldDose || '0');
-    const isStockInsufficient = totalRemainingMg < selectedDoseMg;
+    const totalSoldMg = selectedDoseMg * (watchQuantity || 1);
+    const isStockInsufficient = totalRemainingMg < totalSoldMg;
 
     useEffect(() => {
         const dose = doseOptions.find(d => d.value === watchSoldDose);
         if (dose) {
-            form.setValue("price", dose.price);
+            form.setValue("price", dose.price * (watchQuantity || 1));
         } else {
             form.setValue("price", 0);
         }
         form.setValue("discount", 0);
         form.setValue("pointsUsed", 0);
-    }, [watchSoldDose, form]);
+    }, [watchSoldDose, watchQuantity, form]);
 
     useEffect(() => {
         const total = (watchPrice || 0) - (watchDiscount || 0);
@@ -135,7 +139,7 @@ export default function NewSalePage() {
              toast({
                 variant: "destructive",
                 title: "Estoque Insuficiente",
-                description: `Não há matéria-prima suficiente para vender a dose de ${selectedDoseMg}mg.`,
+                description: `Não há matéria-prima suficiente para vender a dose de ${totalSoldMg}mg.`,
             });
             return;
         }
@@ -184,7 +188,7 @@ export default function NewSalePage() {
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>Estoque Insuficiente!</AlertTitle>
                     <AlertDescription>
-                        Você não possui matéria-prima suficiente para vender a dose selecionada. 
+                        Você não possui matéria-prima suficiente para vender a quantidade selecionada. 
                         Apenas {totalRemainingMg.toFixed(2)}mg estão disponíveis. 
                         Acesse a página de <Link href="/stock-control" className="font-bold underline">Controle de Estoque</Link> para adicionar novos frascos.
                     </AlertDescription>
@@ -245,13 +249,13 @@ export default function NewSalePage() {
                                     )}/>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                                    <FormField
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                     <FormField
                                         control={form.control}
                                         name="soldDose"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Dose Vendida (mg)</FormLabel>
+                                                <FormLabel>Dose (mg)</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                     <FormControl>
                                                         <SelectTrigger>
@@ -270,9 +274,21 @@ export default function NewSalePage() {
                                             </FormItem>
                                         )}
                                     />
+                                     <FormField control={form.control} name="quantity" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Quantidade de Doses</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" min="1" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}/>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                     <FormField control={form.control} name="price" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Valor (R$)</FormLabel>
+                                            <FormLabel>Subtotal (R$)</FormLabel>
                                             <FormControl>
                                                 <Input type="number" step="0.01" {...field} disabled />
                                             </FormControl>
