@@ -11,8 +11,9 @@ import {
 } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getPatients, type Patient } from "@/lib/actions";
+import { getHighestReward } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Award, Star } from 'lucide-react';
+import { Award, Star, Gift } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function RewardsPage() {
@@ -39,7 +40,7 @@ export default function RewardsPage() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Award /> Programa de Recompensas</CardTitle>
-        <CardDescription>Acompanhe o ranking de pontos dos seus pacientes.</CardDescription>
+        <CardDescription>Acompanhe o ranking de pontos dos seus pacientes e seus prêmios.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
@@ -47,13 +48,15 @@ export default function RewardsPage() {
             <TableRow>
               <TableHead>Posição</TableHead>
               <TableHead>Paciente</TableHead>
-              <TableHead className="text-right">Pontos</TableHead>
+              <TableHead>Pontos</TableHead>
+              <TableHead className="text-right">Prêmio Disponível</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {patients.length > 0 ? (
               patients.map((patient, index) => {
                 const patientNameInitial = patient.fullName.charAt(0).toUpperCase();
+                const reward = getHighestReward(patient.points || 0);
                 return (
                   <TableRow key={patient.id}>
                     <TableCell className="font-medium text-lg w-16 text-center">{index + 1}</TableCell>
@@ -66,18 +69,28 @@ export default function RewardsPage() {
                         <div className="font-medium">{patient.fullName}</div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
-                       <div className="flex items-center justify-end gap-2">
+                    <TableCell>
+                       <div className="flex items-center gap-2">
                          <span className="font-bold text-lg">{patient.points || 0}</span>
                          <Star className="h-4 w-4 text-yellow-500" />
                        </div>
+                    </TableCell>
+                     <TableCell className="text-right">
+                        {reward ? (
+                            <div className="flex items-center justify-end gap-2 text-accent-foreground font-semibold">
+                                <Gift className="h-4 w-4 text-accent" />
+                                <span>{reward.label}</span>
+                            </div>
+                        ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                        )}
                     </TableCell>
                   </TableRow>
                 );
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={3} className="h-24 text-center">
+                <TableCell colSpan={4} className="h-24 text-center">
                   Nenhum paciente encontrado.
                 </TableCell>
               </TableRow>
@@ -102,7 +115,8 @@ function RewardsPageSkeleton() {
                         <TableRow>
                             <TableHead><Skeleton className="h-5 w-20" /></TableHead>
                             <TableHead><Skeleton className="h-5 w-48" /></TableHead>
-                            <TableHead className="text-right"><Skeleton className="h-5 w-24 ml-auto" /></TableHead>
+                            <TableHead><Skeleton className="h-5 w-24" /></TableHead>
+                            <TableHead className="text-right"><Skeleton className="h-5 w-32 ml-auto" /></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -115,7 +129,8 @@ function RewardsPageSkeleton() {
                                         <Skeleton className="h-5 w-40" />
                                     </div>
                                 </TableCell>
-                                <TableCell className="text-right"><Skeleton className="h-6 w-12 ml-auto" /></TableCell>
+                                <TableCell><Skeleton className="h-6 w-12" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-5 w-28 ml-auto" /></TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
