@@ -260,3 +260,5 @@ function EntriesTable({ entries, onEdit, onDelete }: EntriesTableProps) {
 }
 
     
+
+    

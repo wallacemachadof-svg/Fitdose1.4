@@ -139,3 +139,5 @@ function RewardsPageSkeleton() {
         </Card>
     );
 }
+
+    

@@ -876,3 +876,5 @@ function BioimpedanceItem({ label, value, unit }: { label: string, value?: numbe
         </div>
     )
 }
+
+    
