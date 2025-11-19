@@ -105,6 +105,23 @@ export default function PatientRegistrationPage() {
     const [bmi, setBmi] = useState<number | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        const storedLogo = localStorage.getItem('customLogo');
+        if (storedLogo) {
+          setLogoUrl(storedLogo);
+        }
+        const handleStorageChange = (event: StorageEvent) => {
+          if (event.key === 'customLogo') {
+            setLogoUrl(event.newValue);
+          }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => {
+          window.removeEventListener('storage', handleStorageChange);
+        };
+    }, []);
 
 
     const form = useForm<PatientFormValues>({
@@ -251,8 +268,13 @@ Após receber todas as informações necessárias de forma clara, ética e técn
     if (!showForm) {
         return (
             <Card className="w-full max-w-lg text-center">
-                <CardHeader>
-                    <CardTitle className="mt-4 text-2xl">Seja Bem-vindo(a) à FitDose!</CardTitle>
+                <CardHeader className="items-center">
+                    {logoUrl ? (
+                        <Image src={logoUrl} alt="FitDose Logo" width={150} height={60} className="object-contain h-16 mb-4"/>
+                    ) : (
+                        <h1 className="text-3xl font-bold text-primary mb-4">FitDose</h1>
+                    )}
+                    <CardTitle className="mt-4 text-2xl">Seja Bem-vindo(a)!</CardTitle>
                     <CardDescription>
                        Aqui começa sua experiência com a saúde e bem-estar. Clique abaixo para iniciar seu cadastro.
                     </CardDescription>
@@ -647,3 +669,5 @@ Após receber todas as informações necessárias de forma clara, ética e técn
         </Card>
     )
 }
+
+    
