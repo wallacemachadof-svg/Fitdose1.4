@@ -458,6 +458,9 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     });
     
     if (saleData.pointsUsed && saleData.pointsUsed > 0) {
+        if (patient.points < saleData.pointsUsed) {
+            throw new Error('Pontos insuficientes para o resgate.');
+        }
         patient.points -= saleData.pointsUsed;
         patient.pointHistory.push({
             date: new Date(),
@@ -573,4 +576,15 @@ export const addVial = async (vialData: NewVialData): Promise<Vial[]> => {
     writeData(data);
     await new Promise(resolve => setTimeout(resolve, 100));
     return newVials;
+}
+
+export const resetAllData = async (): Promise<void> => {
+    const emptyData: MockData = {
+        patients: [],
+        sales: [],
+        cashFlowEntries: [],
+        vials: []
+    };
+    writeData(emptyData);
+    await new Promise(resolve => setTimeout(resolve, 100));
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -12,25 +13,66 @@ import {
   ShoppingCart,
   Users,
   Warehouse,
+  Eraser,
+  Trash2,
 } from 'lucide-react';
 import {
   SidebarProvider,
   Sidebar,
   SidebarHeader,
   SidebarContent,
+  SidebarFooter,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
+import React from 'react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from '@/components/ui/button';
+import { resetAllData } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { toast } = useToast();
+  const router = useRouter();
 
   const isActive = (path: string) => {
     return pathname === path || (path !== '/dashboard' && pathname.startsWith(path));
   };
+  
+  const handleResetData = async () => {
+    try {
+        await resetAllData();
+        toast({
+            title: "Dados Resetados!",
+            description: "Todos os dados da aplicação foram zerados.",
+        });
+        router.push('/dashboard');
+        // We need to force a full page reload to clear all states
+        window.location.reload();
+    } catch(e) {
+        toast({
+            variant: "destructive",
+            title: "Erro ao resetar dados",
+            description: "Não foi possível zerar os dados. Tente novamente.",
+        });
+    }
+  }
 
   return (
     <SidebarProvider>
@@ -140,6 +182,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
+        <SidebarFooter>
+          <SidebarSeparator />
+           <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive">
+                    <Eraser className="mr-2 h-4 w-4" />
+                    Zerar Dados
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação não pode ser desfeita. Isso excluirá permanentemente todos os dados de pacientes, vendas, estoque e fluxo de caixa.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleResetData} className="bg-destructive hover:bg-destructive/90">
+                    <Trash2 className="mr-2 h-4 w-4"/>
+                    Sim, zerar todos os dados
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10 md:justify-end">
