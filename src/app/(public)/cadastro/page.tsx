@@ -121,7 +121,6 @@ export default function PatientRegistrationPage() {
         }
     });
 
-    const watchFullName = form.watch("fullName");
     const watchWeight = form.watch("initialWeight");
     const watchHeight = form.watch("height");
     const watchZip = form.watch("zip");
@@ -234,7 +233,7 @@ export default function PatientRegistrationPage() {
     };
 
 
-    const consentText = `Eu, ${watchFullName || '______________________'}, declaro, para todos os fins legais, que fui devidamente informado(a) e esclarecido(a) acerca do uso de Tirzepatida manipulada, medicamento prescrito de forma individualizada para fins terapêuticos.
+    const consentText = `Declaro, para todos os fins legais, que fui devidamente informado(a) e esclarecido(a) acerca do uso de Tirzepatida manipulada, medicamento prescrito de forma individualizada para fins terapêuticos.
 
 1.  **Natureza do Produto:** Declaro ter plena ciência de que o produto prescrito trata-se de formulação magistral, não se caracterizando como Monjauro®, Mounjaro® ou qualquer outro medicamento industrializado.
 2.  **Mecanismo de Ação:** Fui informado(a) de que a Tirzepatida atua na modulação da glicemia e saciedade, podendo favorecer a redução de peso quando associada a um estilo de vida saudável e acompanhamento profissional.
