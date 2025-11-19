@@ -24,7 +24,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CalendarIcon, ArrowLeft, AlertTriangle } from "lucide-react";
+import { CalendarIcon, ArrowLeft, AlertTriangle, Star } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -40,6 +40,14 @@ const doseOptions = [
     { value: '7.5', label: '7.5 mg', price: 520 },
 ];
 
+const rewardTiers = [
+    { points: 60, discount: 30, label: "R$ 30 OFF" },
+    { points: 100, discount: 60, label: "R$ 60 OFF" },
+    { points: 200, discountPercentage: 0.5, label: "50% OFF" },
+    { points: 350, discountPercentage: 1, label: "100% OFF" },
+];
+
+
 const saleFormSchema = z.object({
   patientId: z.string({ required_error: "Selecione um cliente." }),
   saleDate: z.date({ required_error: "A data da venda é obrigatória." }),
@@ -52,6 +60,7 @@ const saleFormSchema = z.object({
   deliveryStatus: z.enum(["em agendamento", "entregue", "em processamento"], { required_error: "Selecione o status da entrega." }),
   deliveryDate: z.date().optional(),
   observations: z.string().optional(),
+  pointsUsed: z.coerce.number().optional(),
 });
 
 type SaleFormValues = z.infer<typeof saleFormSchema>;
@@ -61,6 +70,7 @@ export default function NewSalePage() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [patients, setPatients] = useState<Patient[]>([]);
+    const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [vials, setVials] = useState<Vial[]>([]);
     const [totalRemainingMg, setTotalRemainingMg] = useState(0);
 
@@ -86,12 +96,22 @@ export default function NewSalePage() {
             paymentStatus: "pendente",
             deliveryStatus: "em processamento",
             observations: "",
+            pointsUsed: 0,
         },
     });
-
+    
+    const watchPatientId = form.watch("patientId");
     const watchSoldDose = form.watch("soldDose");
     const watchPrice = form.watch("price");
     const watchDiscount = form.watch("discount");
+
+    useEffect(() => {
+        const patient = patients.find(p => p.id === watchPatientId);
+        setSelectedPatient(patient || null);
+        // Reset discount when patient changes
+        form.setValue("discount", 0);
+        form.setValue("pointsUsed", 0);
+    }, [watchPatientId, patients, form]);
 
     const selectedDoseMg = parseFloat(watchSoldDose || '0');
     const isStockInsufficient = totalRemainingMg < selectedDoseMg;
@@ -103,12 +123,27 @@ export default function NewSalePage() {
         } else {
             form.setValue("price", 0);
         }
+        // Reset discount if dose changes
+        form.setValue("discount", 0);
+        form.setValue("pointsUsed", 0);
     }, [watchSoldDose, form]);
 
     useEffect(() => {
         const total = (watchPrice || 0) - (watchDiscount || 0);
-        form.setValue("total", total);
+        form.setValue("total", total < 0 ? 0 : total);
     }, [watchPrice, watchDiscount, form]);
+
+    const handleApplyReward = (pointsToUse: number, discountAmount?: number, discountPercentage?: number) => {
+        let finalDiscount = 0;
+        if (discountAmount) {
+            finalDiscount = discountAmount;
+        } else if (discountPercentage) {
+            const currentPrice = form.getValues("price");
+            finalDiscount = currentPrice * discountPercentage;
+        }
+        form.setValue("discount", finalDiscount);
+        form.setValue("pointsUsed", pointsToUse);
+    }
 
     async function onSubmit(data: SaleFormValues) {
         if (isStockInsufficient) {
@@ -214,6 +249,50 @@ export default function NewSalePage() {
                                         </FormItem>
                                     )}/>
                                 </div>
+                                
+                                {selectedPatient && (
+                                     <Card className="bg-muted/50">
+                                        <CardHeader className="p-4">
+                                            <CardTitle className="text-lg flex items-center justify-between">
+                                                <span>Programa de Recompensas</span>
+                                                <span className="flex items-center gap-2 text-base">
+                                                    <Star className="h-5 w-5 text-yellow-500"/> 
+                                                    {selectedPatient.points || 0} Pontos
+                                                </span>
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="p-4 pt-0">
+                                            <p className="text-sm text-muted-foreground mb-3">Selecione um resgate para aplicar o desconto:</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {rewardTiers.map(tier => (
+                                                    <Button 
+                                                        key={tier.points}
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        disabled={(selectedPatient.points || 0) < tier.points || !watchSoldDose}
+                                                        onClick={() => handleApplyReward(tier.points, tier.discount, tier.discountPercentage)}
+                                                    >
+                                                        {tier.points} pts - {tier.label}
+                                                    </Button>
+                                                ))}
+                                                 <Button 
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-destructive"
+                                                    onClick={() => {
+                                                        form.setValue("discount", 0);
+                                                        form.setValue("pointsUsed", 0);
+                                                    }}
+                                                >
+                                                    Remover Desconto
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                     </Card>
+                                )}
+
 
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                                     <FormField
@@ -380,3 +459,4 @@ export default function NewSalePage() {
     )
 
     
+}

@@ -183,6 +183,7 @@ export type Sale = {
   deliveryStatus: 'em agendamento' | 'entregue' | 'em processamento';
   observations?: string;
   deliveryDate?: Date;
+  pointsUsed?: number;
 };
 
 export type NewSaleData = Omit<Sale, 'id' | 'patientName'>;
@@ -406,10 +407,11 @@ export const getSales = async (): Promise<Sale[]> => {
 
 export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     const data = readData();
-    const patient = data.patients.find(p => p.id === saleData.patientId);
-    if (!patient) {
+    const patientIndex = data.patients.findIndex(p => p.id === saleData.patientId);
+    if (patientIndex === -1) {
         throw new Error("Paciente não encontrado");
     }
+    const patient = data.patients[patientIndex];
 
     const soldMg = parseFloat(saleData.soldDose);
     const totalRemainingMg = data.vials.reduce((acc, v) => acc + v.remainingMg, 0);
@@ -417,6 +419,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         throw new Error(`Estoque insuficiente. Apenas ${totalRemainingMg.toFixed(2)}mg disponíveis.`);
     }
 
+    // --- Update Stock ---
     const sortedVials = [...data.vials].sort((a, b) => new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime());
     let remainingToDeduct = soldMg;
     for (const vial of sortedVials) {
@@ -429,6 +432,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         }
     }
     
+    // --- Create Sale ---
     const newId = (data.sales.length > 0 ? Math.max(...data.sales.map(s => parseInt(s.id, 10))) : 0) + 1;
     const total = (saleData.price || 0) - (saleData.discount || 0);
     
@@ -439,19 +443,27 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         total: total,
     };
 
-    // Check if this is the first sale for the patient
-    const isFirstSale = !data.sales.some(s => s.patientId === saleData.patientId);
+    // --- Handle Points ---
+    // 1. Redeem points if any were used
+    if (saleData.pointsUsed && saleData.pointsUsed > 0) {
+        patient.points -= saleData.pointsUsed;
+        patient.pointHistory.push({
+            date: new Date(),
+            description: `Resgate na compra da dose ${saleData.soldDose}mg`,
+            points: -saleData.pointsUsed,
+        });
+    }
 
-    // If it's the first sale and the patient was referred, award points
+    // 2. Award points for indication (if it's the first purchase)
+    const isFirstSale = !data.sales.some(s => s.patientId === saleData.patientId);
     if (isFirstSale && patient.indication?.type === 'indicado' && patient.indication.patientId) {
         const referrerIndex = data.patients.findIndex(p => p.id === patient.indication!.patientId);
         if (referrerIndex !== -1) {
             const referrer = data.patients[referrerIndex];
             const pointsToAdd = 120; // For now, fixed points for any first sale by referral.
             referrer.points = (referrer.points || 0) + pointsToAdd;
-            if (!referrer.pointHistory) {
-                referrer.pointHistory = [];
-            }
+            if (!referrer.pointHistory) referrer.pointHistory = [];
+            
             referrer.pointHistory.push({
                 date: new Date(),
                 description: `Indicação de ${patient.fullName}`,
@@ -462,7 +474,9 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     }
 
     data.sales.push(newSale);
+    data.patients[patientIndex] = patient;
 
+    // --- Create Cash Flow Entry ---
     if (newSale.paymentStatus === 'pago') {
         const newCashFlowEntry: CashFlowEntry = {
             id: `sale-${newSale.id}`,
@@ -471,7 +485,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             description: `Venda p/ ${patient.fullName}`,
             amount: total,
             status: 'pago',
-            paymentMethod: 'pix',
+            paymentMethod: 'pix', // Placeholder, needs to be dynamic in a real app
         };
         data.cashFlowEntries.push(newCashFlowEntry);
     }
