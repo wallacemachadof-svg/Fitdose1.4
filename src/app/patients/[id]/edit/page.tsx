@@ -71,6 +71,7 @@ const patientEditFormSchema = z.object({
   state: z.string().optional(),
   phone: z.string().optional(),
   healthConditions: z.array(z.string()).optional(),
+  allergyDetails: z.string().optional(),
   contraindications: z.array(z.string()).optional(),
   otherHealthIssues: z.string().optional(),
   dailyMedications: z.string().optional(),
@@ -132,10 +133,16 @@ export default function PatientEditPage() {
                 const conditions = healthConditions.filter(c => hcString.includes(c.label)).map(c => c.id);
                 const contrainds = contraindicationsList.filter(c => hcString.includes(c.label)).map(c => c.id);
                 
+                let allergyDetails = "";
+                const allergyMatch = hcString.match(/Alergias: ([^,]+)/);
+                if (allergyMatch && allergyMatch[1]) {
+                    allergyDetails = allergyMatch[1].trim();
+                }
+
                 const otherIssues = hcString
                     .split(', ')
                     .filter(s => s && !s.startsWith('[CONTRAINDICADO]'))
-                    .filter(s => !healthConditions.some(c => c.label === s))
+                    .filter(s => !healthConditions.some(c => s.startsWith(c.label)))
                     .join(', ');
 
                 form.reset({
@@ -153,6 +160,7 @@ export default function PatientEditPage() {
                     phone: fetchedPatient.phone,
                     healthConditions: conditions,
                     contraindications: contrainds,
+                    allergyDetails: allergyDetails,
                     otherHealthIssues: otherIssues,
                     dailyMedications: fetchedPatient.dailyMedications,
                     oralContraceptive: fetchedPatient.oralContraceptive,
@@ -176,7 +184,13 @@ export default function PatientEditPage() {
         setIsSubmitting(true);
         try {
             const conditions = data.healthConditions
-                ?.map(id => healthConditions.find(c => c.id === id)?.label)
+                ?.map(id => {
+                    const condition = healthConditions.find(c => c.id === id);
+                    if (condition?.id === 'allergies' && data.allergyDetails) {
+                        return `${condition.label}: ${data.allergyDetails}`;
+                    }
+                    return condition?.label;
+                })
                 .filter(Boolean) ?? [];
 
             const contraindications = data.contraindications
@@ -287,6 +301,7 @@ export default function PatientEditPage() {
 
     const watchUsedMonjauro = form.watch("usedMonjauro");
     const watchIndicationSource = form.watch("indicationSource");
+    const watchHealthConditions = form.watch("healthConditions");
 
 
     return (
@@ -474,6 +489,22 @@ export default function PatientEditPage() {
                                     </FormItem>
                                 )}
                             />
+
+                            {watchHealthConditions?.includes('allergies') && (
+                                <FormField
+                                    control={form.control}
+                                    name="allergyDetails"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Especifique as alergias</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Ex: Dipirona, frutos do mar" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
 
                             <FormField
                                 control={form.control}

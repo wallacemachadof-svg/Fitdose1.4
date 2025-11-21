@@ -65,6 +65,7 @@ const patientFormSchema = z.object({
   state: z.string().optional(),
   phone: z.string().optional(),
   healthConditions: z.array(z.string()).optional(),
+  allergyDetails: z.string().optional(),
   contraindications: z.array(z.string()).optional(),
   otherHealthIssues: z.string().optional(),
   dailyMedications: z.string().optional(),
@@ -137,6 +138,7 @@ export default function PatientRegistrationPage() {
             indicationSource: 'no',
             indicationName: "",
             consentGiven: false,
+            allergyDetails: "",
         }
     });
 
@@ -145,6 +147,7 @@ export default function PatientRegistrationPage() {
     const watchZip = form.watch("zip");
     const watchUsedMonjauro = form.watch("usedMonjauro");
     const watchIndicationSource = form.watch("indicationSource");
+    const watchHealthConditions = form.watch("healthConditions");
 
     useEffect(() => {
         if (watchWeight && watchHeight) {
@@ -196,7 +199,13 @@ export default function PatientRegistrationPage() {
         setIsSubmitting(true);
         try {
             const conditions = data.healthConditions
-                ?.map(id => healthConditions.find(c => c.id === id)?.label)
+                ?.map(id => {
+                    const condition = healthConditions.find(c => c.id === id);
+                    if (condition?.id === 'allergies' && data.allergyDetails) {
+                        return `${condition.label}: ${data.allergyDetails}`;
+                    }
+                    return condition?.label;
+                })
                 .filter(Boolean) ?? [];
 
             const contraindications = data.contraindications
@@ -464,6 +473,22 @@ Após receber todas as informações necessárias de forma clara, ética e técn
                                 )}
                             />
 
+                             {watchHealthConditions?.includes('allergies') && (
+                                <FormField
+                                    control={form.control}
+                                    name="allergyDetails"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Especifique suas alergias</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Ex: Dipirona, frutos do mar" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+
                             <Separator />
 
                             <FormField
@@ -685,3 +710,5 @@ Após receber todas as informações necessárias de forma clara, ética e técn
         </Card>
     )
 }
+
+    
