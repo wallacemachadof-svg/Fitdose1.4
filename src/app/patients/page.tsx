@@ -4,8 +4,8 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from 'next/navigation';
-import { getPatients, deletePatient, type Patient } from "@/lib/actions";
-import { formatCurrency, formatDate, getDoseStatus }from "@/lib/utils";
+import { getPatients, deletePatient, type Patient, type Dose } from "@/lib/actions";
+import { formatCurrency, formatDate, getDoseStatus, getDaysUntilDose, getOverdueDays, generateOverdueWhatsAppLink }from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlusCircle, MoreVertical, Edit, Trash2, Search, User, TrendingUp, TrendingDown, Phone } from "lucide-react";
 import Link from "next/link";
+import { FaWhatsapp } from 'react-icons/fa';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,15 +81,28 @@ function PatientsPageContent() {
         }
     };
     
+    const patientHasDoseWithStatus = (patient: Patient, checker: (dose: Dose) => boolean) => {
+        return patient.doses.some(dose => dose.status === 'pending' && checker(dose));
+    }
+    
     const filteredPatients = patients.filter(patient => {
         const nameMatch = patient.fullName.toLowerCase().includes(searchTerm.toLowerCase());
         if (!nameMatch) return false;
 
-        if (filter === 'overdue') {
-            return patient.doses.some(dose => getDoseStatus(dose, patient.doses).messageType === 'overdue');
-        }
+        if (!filter) return true;
 
-        return true;
+        switch (filter) {
+            case 'overdue':
+                return patientHasDoseWithStatus(patient, (d) => getOverdueDays(d, patient.doses) > 0);
+            case 'due_today':
+                return patientHasDoseWithStatus(patient, (d) => getDaysUntilDose(d) === 0);
+            case 'due_in_2_days':
+                 return patientHasDoseWithStatus(patient, (d) => getDaysUntilDose(d) === 2);
+            case 'due_in_3_days':
+                 return patientHasDoseWithStatus(patient, (d) => getDaysUntilDose(d) === 3);
+            default:
+                return true;
+        }
     });
 
     const totalPatients = patients.length;
@@ -132,8 +146,8 @@ function PatientsPageContent() {
                 <div>
                     <h1 className="text-2xl font-bold">Pacientes</h1>
                     <p className="text-muted-foreground">
-                        {filter === 'overdue' 
-                            ? 'Lista de pacientes com doses vencidas.' 
+                        {filter 
+                            ? `Exibindo pacientes com doses ${filter.replace(/_/g, ' ')}.`
                             : 'Gerencie sua lista de pacientes.'
                         }
                     </p>
@@ -197,17 +211,17 @@ function PatientsPageContent() {
                             <TableRow>
                                 <TableHead>Paciente</TableHead>
                                 <TableHead>Contato</TableHead>
-                                <TableHead>Início do Tratamento</TableHead>
-                                <TableHead>Última Dose</TableHead>
+                                <TableHead>Próxima Dose</TableHead>
+                                <TableHead>Status</TableHead>
                                 <TableHead className="text-right">Ações</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredPatients.length > 0 ? (
                                 filteredPatients.map((patient) => {
-                                    const lastAdministeredDose = patient.doses
-                                        .filter(d => d.status === 'administered')
-                                        .sort((a,b) => b.date.getTime() - a.date.getTime())[0];
+                                    const nextPendingDose = patient.doses.find(d => d.status === 'pending');
+                                    const status = nextPendingDose ? getDoseStatus(nextPendingDose, patient.doses) : { label: 'Concluído', color: 'bg-blue-500', textColor: 'text-white' };
+                                    const isOverdue = nextPendingDose && getOverdueDays(nextPendingDose, patient.doses) > 0;
                                     
                                     return (
                                     <TableRow key={patient.id}>
@@ -226,9 +240,21 @@ function PatientsPageContent() {
                                                 <span className="text-muted-foreground">{patient.phone || "Não informado"}</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell>{formatDate(patient.firstDoseDate)}</TableCell>
-                                        <TableCell>{lastAdministeredDose ? `Dose ${lastAdministeredDose.doseNumber} em ${formatDate(lastAdministeredDose.date)}` : 'Nenhuma'}</TableCell>
+                                        <TableCell>{nextPendingDose ? `Dose ${nextPendingDose.doseNumber} em ${formatDate(nextPendingDose.date)}` : 'Nenhuma'}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
+                                        </TableCell>
                                         <TableCell className="text-right">
+                                             {isOverdue && (
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-8 w-8 text-green-500 hover:text-green-600 mr-2" 
+                                                    onClick={() => window.open(generateOverdueWhatsAppLink(patient), '_blank')}
+                                                >
+                                                    <FaWhatsapp className="h-5 w-5" />
+                                                </Button>
+                                             )}
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -297,3 +323,5 @@ export default function PatientsPage() {
         </Suspense>
     )
 }
+
+    

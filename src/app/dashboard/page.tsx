@@ -5,11 +5,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getPatients, getSales, type Dose, type Sale } from "@/lib/actions";
-import { getDoseStatus, formatDate, formatCurrency } from "@/lib/utils";
+import { getDoseStatus, formatDate, formatCurrency, getDaysUntilDose, getOverdueDays } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Syringe, User, BellDot, BarChart3, PieChart, TrendingUp, DollarSign, Link as LinkIcon, Copy, Check, ShoppingCart, PackageX, PackageCheck } from "lucide-react";
+import { Syringe, User, BellDot, BarChart3, PieChart, TrendingUp, DollarSign, Link as LinkIcon, Copy, Check, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock } from "lucide-react";
 import Link from 'next/link';
-import { differenceInDays, subDays, format as formatDateFns } from "date-fns";
+import { differenceInDays, subDays, format as formatDateFns, startOfToday } from "date-fns";
 import { ptBR } from 'date-fns/locale';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Pie, PieChart as RechartsPieChart, Cell, Legend } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -58,30 +58,27 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
-  const totalPatients = patients.length;
-  
-  const allDoses: UpcomingDose[] = patients.flatMap(p => 
+  const today = startOfToday();
+
+  const allPendingDoses = patients.flatMap(p => 
     p.doses
       .filter(d => d.status === 'pending')
-      .map(d => ({ ...d, patientId: p.id, patientName: p.fullName }))
+      .map(d => ({ ...d, patientId: p.id, patientName: p.fullName, allDoses: p.doses }))
   );
   
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const overdueDoses = allPendingDoses.filter(d => getOverdueDays(d, d.allDoses) > 0);
+  const dueToday = allPendingDoses.filter(d => getDaysUntilDose(d) === 0);
+  const dueIn2Days = allPendingDoses.filter(d => getDaysUntilDose(d) === 2);
+  const dueIn3Days = allPendingDoses.filter(d => getDaysUntilDose(d) === 3);
 
-  const upcomingDoses = allDoses
-    .filter(d => {
-      const doseDate = new Date(d.date);
-      doseDate.setHours(0, 0, 0, 0);
-      const diff = differenceInDays(doseDate, today);
-      return diff >= 0 && diff <= 7;
-    })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  // Use a Set to count unique patients for each category
+  const overduePatientsCount = new Set(overdueDoses.map(d => d.patientId)).size;
+  const dueTodayPatientsCount = new Set(dueToday.map(d => d.patientId)).size;
+  const dueIn2DaysPatientsCount = new Set(dueIn2Days.map(d => d.patientId)).size;
+  const dueIn3DaysPatientsCount = new Set(dueIn3Days.map(d => d.patientId)).size;
 
-  const overdueDosesCount = patients.filter(p => 
-    p.doses.some(d => getDoseStatus(d, p.doses).messageType === 'overdue')
-  ).length;
-
+  const totalPatients = patients.length;
+  
   const thirtyDaysAgo = subDays(today, 30);
   const recentSales = sales.filter(s => new Date(s.saleDate) >= thirtyDaysAgo);
   
@@ -111,6 +108,58 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Link href="/patients?filter=overdue">
+            <Card className="hover:bg-destructive/10 transition-colors border-destructive/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Doses Vencidas</CardTitle>
+                    <AlertCircle className="h-4 w-4 text-destructive" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-destructive">{overduePatientsCount}</div>
+                    <p className="text-xs text-muted-foreground">Pacientes com doses atrasadas</p>
+                </CardContent>
+            </Card>
+        </Link>
+        <Link href="/patients?filter=due_today">
+            <Card className="hover:bg-amber-500/10 transition-colors border-amber-500/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Vencem Hoje</CardTitle>
+                    <Clock className="h-4 w-4 text-amber-500" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-amber-500">{dueTodayPatientsCount}</div>
+                    <p className="text-xs text-muted-foreground">Pacientes com dose para hoje</p>
+                </CardContent>
+            </Card>
+        </Link>
+         <Link href="/patients?filter=due_in_2_days">
+            <Card className="hover:bg-sky-500/10 transition-colors border-sky-500/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Vencem em 2 Dias</CardTitle>
+                    <Clock className="h-4 w-4 text-sky-500" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-sky-500">{dueIn2DaysPatientsCount}</div>
+                    <p className="text-xs text-muted-foreground">Pacientes com dose próxima</p>
+                </CardContent>
+            </Card>
+        </Link>
+         <Link href="/patients?filter=due_in_3_days">
+            <Card className="hover:bg-indigo-500/10 transition-colors border-indigo-500/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Vencem em 3 Dias</CardTitle>
+                    <Clock className="h-4 w-4 text-indigo-500" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-indigo-500">{dueIn3DaysPatientsCount}</div>
+                    <p className="text-xs text-muted-foreground">Pacientes com dose próxima</p>
+                </CardContent>
+            </Card>
+        </Link>
+      </div>
+
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
@@ -195,20 +244,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/patients?filter=overdue">
-            <Card className="hover:bg-destructive/10 transition-colors border-destructive/30">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Doses Vencidas</CardTitle>
-                    <BellDot className="h-4 w-4 text-destructive" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold text-destructive">{overdueDosesCount}</div>
-                    <p className="text-xs text-muted-foreground">
-                    Pacientes com doses pendentes
-                    </p>
-                </CardContent>
-            </Card>
-        </Link>
       </div>
 
        <div className="grid gap-6 md:grid-cols-2">
@@ -257,55 +292,6 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
         </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Agenda da Semana</CardTitle>
-           <CardDescription>Doses com aplicação agendada para os próximos 7 dias.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Paciente</TableHead>
-                <TableHead>Data da Dose</TableHead>
-                <TableHead>Dose N°</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {upcomingDoses.length > 0 ? (
-                upcomingDoses.map((dose) => {
-                  const patient = patients.find(p => p.id === dose.patientId);
-                  const status = getDoseStatus(dose, patient?.doses);
-                  return (
-                    <TableRow key={`${dose.patientId}-${dose.id}`}>
-                      <TableCell>
-                        <Link href={`/patients/${dose.patientId}`} className="font-medium text-primary-foreground hover:underline">
-                          {dose.patientName}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{formatDate(dose.date)}</TableCell>
-                      <TableCell>{dose.doseNumber}</TableCell>
-                      <TableCell>
-                        <Badge variant={status.color.includes('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>
-                          {status.label}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center">
-                    Nenhuma dose agendada para os próximos 7 dias.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </div>
   );
 }
@@ -314,8 +300,13 @@ export default function DashboardPage() {
 function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-6">
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Skeleton className="h-24" />
+        <Skeleton className="h-24" />
+        <Skeleton className="h-24" />
+        <Skeleton className="h-24" />
+      </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Skeleton className="h-32" />
         <Skeleton className="h-32" />
         <Skeleton className="h-32" />
         <Skeleton className="h-32" />
@@ -326,7 +317,6 @@ function DashboardSkeleton() {
         <Skeleton className="h-80" />
         <Skeleton className="h-80" />
       </div>
-      <Skeleton className="h-80" />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { format, differenceInDays, parseISO, addDays } from "date-fns";
+import { format, differenceInDays, parseISO, addDays, startOfToday } from "date-fns";
 import type { Dose, Sale, CashFlowEntry, Patient } from "@/lib/actions";
 
 export function cn(...inputs: ClassValue[]) {
@@ -26,39 +26,62 @@ export function formatCurrency(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+export function getDaysUntilDose(dose: Dose): number {
+    const today = startOfToday();
+    const doseDate = new Date(dose.date);
+    doseDate.setHours(0, 0, 0, 0);
+    return differenceInDays(doseDate, today);
+}
+
+export function getOverdueDays(dose: Dose, allDoses: Dose[]): number {
+    const today = startOfToday();
+    const doseDate = new Date(dose.date);
+    doseDate.setHours(0, 0, 0, 0);
+
+    const lastAdministeredDose = allDoses
+        .filter(d => d.status === 'administered' && new Date(d.date) < doseDate)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+
+    const effectiveDate = lastAdministeredDose ? new Date(lastAdministeredDose.date) : doseDate;
+
+    // A dose está vencida se a data de hoje for 8 dias ou mais após a última dose administrada (ou a data agendada inicial)
+    const daysSinceEffectiveDate = differenceInDays(today, effectiveDate);
+    
+    if (daysSinceEffectiveDate >= 8) {
+        return daysSinceEffectiveDate - 7;
+    }
+    
+    return 0;
+}
+
 
 export function getDoseStatus(dose: Dose, allDoses: Dose[] = []) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = startOfToday();
   const doseDate = new Date(dose.date);
   doseDate.setHours(0, 0, 0, 0);
 
   if (dose.status === 'administered') {
-    return { label: "Administrada", color: "bg-gray-500", textColor: "text-white", days: null, messageType: "info" };
+    return { label: "Administrada", color: "bg-gray-500", textColor: "text-white" };
   }
   
-  const lastAdministeredDose = allDoses
-      .filter(d => d.status === 'administered')
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-
-  const overdueThreshold = lastAdministeredDose ? addDays(new Date(lastAdministeredDose.date), 7) : addDays(doseDate, 7);
-  overdueThreshold.setHours(0,0,0,0);
-  
-  if (today > overdueThreshold) {
-      const daysOverdue = differenceInDays(today, overdueThreshold);
-      return { label: "Vencida", color: "bg-red-500", textColor: "text-white", days: -daysOverdue, messageType: "overdue" };
+  const overdueDays = getOverdueDays(dose, allDoses);
+  if (overdueDays > 0) {
+      return { label: `Vencida há ${overdueDays}d`, color: "bg-red-500", textColor: "text-white" };
   }
 
   const daysUntilDose = differenceInDays(doseDate, today);
 
-  if (daysUntilDose <= 2 && daysUntilDose >= 0) {
-    return { label: "Vencendo", color: "bg-orange-500", textColor: "text-white", days: daysUntilDose, messageType: "urgent" };
+  if (daysUntilDose < 0) {
+      return { label: "Vencida", color: "bg-red-500", textColor: "text-white" };
   }
-  if (daysUntilDose <= 5 && daysUntilDose > 2) {
-    return { label: "Próxima", color: "bg-yellow-500", textColor: "text-white", days: daysUntilDose, messageType: "upcoming" };
+  if (daysUntilDose === 0) {
+    return { label: "Vence Hoje", color: "bg-amber-500", textColor: "text-white" };
+  }
+  if (daysUntilDose <= 3) {
+    return { label: `Vence em ${daysUntilDose}d`, color: "bg-yellow-500", textColor: "text-white" };
   }
   
-  return { label: "Agendada", color: "bg-green-500", textColor: "text-white", days: daysUntilDose, messageType: "scheduled" };
+  return { label: "Agendada", color: "bg-green-500", textColor: "text-white" };
 }
 
 
@@ -129,6 +152,18 @@ Estamos aqui para cuidar de você! Qualquer dúvida, é só nos chamar. 💖`;
     return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
 }
 
+export function generateOverdueWhatsAppLink(patient: Patient): string {
+    const patientFirstName = patient.fullName.split(' ')[0];
+
+    const message = `Olá ${patientFirstName}, passando para lembrar de agendar seu horário para prosseguirmos com seu protocolo de emagrecimento. Para que dia podemos agendar sua dose semanal?`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const cleanPhoneNumber = patient.phone?.replace(/\D/g, '') || '';
+
+    return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
+}
+
+
 export function generateGoogleCalendarLink(patientName: string, dose: Dose): string {
     const title = `Aplicação de dose - ${patientName}`;
     
@@ -162,3 +197,5 @@ export function getHighestReward(points: number) {
         discountValue,
     };
 }
+
+    
