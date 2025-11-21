@@ -12,6 +12,7 @@ import { Award, Gift, Star, Ticket, Info } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 export default function RewardsPage() {
     const [patients, setPatients] = useState<Patient[]>([]);
