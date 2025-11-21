@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { cn } from '@/lib/utils';
 
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -54,7 +55,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   const handleSignOut = async () => {
     await signOut();
-    router.push('/portal/login');
+    router.push('/login');
   };
 
   const isActive = (path: string) => {
@@ -74,10 +75,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </div>
           <nav className="flex flex-col gap-2 mt-8">
             <Link
-              href="/portal/dashboard"
+              href="/portal"
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                isActive('/portal/dashboard') && "bg-muted text-primary"
+                isActive('/portal') && "bg-muted text-primary"
               )}
             >
               <LineChart className="h-4 w-4" />
@@ -126,4 +127,3 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     </PortalAuthGuard>
   );
 }
-

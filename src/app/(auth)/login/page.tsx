@@ -51,7 +51,7 @@ export default function LoginPage() {
     useEffect(() => {
         if (!userLoading && user) {
              if (profile?.patientId) {
-                router.replace('/portal/dashboard');
+                router.replace('/portal');
             } else {
                 router.replace('/dashboard');
             }
