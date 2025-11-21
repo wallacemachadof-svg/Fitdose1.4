@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -80,6 +81,8 @@ const patientEditFormSchema = z.object({
   indicationSource: z.enum(['yes', 'no']).optional(),
   indicationName: z.string().optional(),
   avatarUrl: z.string().optional(),
+  defaultPrice: z.coerce.number().optional(),
+  defaultDose: z.string().optional(),
 }).refine(data => {
     if (data.usedMonjauro === 'yes') {
         return !!data.monjauroDose && !!data.monjauroTime;
@@ -159,6 +162,8 @@ export default function PatientEditPage() {
                     indicationSource: fetchedPatient.indication?.name ? 'yes' : 'no',
                     indicationName: fetchedPatient.indication?.name,
                     avatarUrl: fetchedPatient.avatarUrl,
+                    defaultPrice: fetchedPatient.defaultPrice,
+                    defaultDose: fetchedPatient.defaultDose,
                 });
             }
             setLoading(false);
@@ -212,6 +217,8 @@ export default function PatientEditPage() {
                 monjauroDose: data.monjauroDose,
                 monjauroTime: data.monjauroTime,
                 avatarUrl: data.avatarUrl,
+                defaultPrice: data.defaultPrice,
+                defaultDose: data.defaultDose,
             };
             
             await updatePatient(patient.id, patientDataForApi);
@@ -342,7 +349,7 @@ export default function PatientEditPage() {
                             )}/>
                          </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-end">
                             <FormField control={form.control} name="age" render={({ field }) => (
                                 <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
@@ -376,6 +383,18 @@ export default function PatientEditPage() {
                                 <FormMessage />
                                 </FormItem>
                             )}/>
+                        </div>
+                        
+                         <div className="space-y-4 pt-6 border-t">
+                            <h3 className="text-lg font-semibold -mb-2">Configurações Padrão</h3>
+                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <FormField control={form.control} name="defaultPrice" render={({ field }) => (
+                                    <FormItem><FormLabel>Preço Padrão (R$)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ex: 380.00" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                 <FormField control={form.control} name="defaultDose" render={({ field }) => (
+                                    <FormItem><FormLabel>Dose Padrão (mg)</FormLabel><FormControl><Input placeholder="Ex: 5.0" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                             </div>
                         </div>
                         
                         <h3 className="text-lg font-semibold border-t pt-6 -mb-2">Endereço</h3>

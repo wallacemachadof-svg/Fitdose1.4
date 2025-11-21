@@ -118,7 +118,12 @@ export default function NewSalePage() {
             if (watchPatientId) {
                 const patient = await getPatientById(watchPatientId);
                 setSelectedPatient(patient);
-                setValue("price", 380);
+                if (patient?.defaultPrice) {
+                    setValue("price", patient.defaultPrice);
+                }
+                if (patient?.defaultDose) {
+                    setValue("soldDose", patient.defaultDose);
+                }
             } else {
                 setSelectedPatient(null);
             }
@@ -143,7 +148,7 @@ export default function NewSalePage() {
                 title: "Venda Registrada!",
                 description: `A venda para ${selectedPatient?.fullName} foi registrada com sucesso.`,
             });
-            router.push("/sales-control");
+            router.push("/patients");
         } catch (error) {
              const errorMessage = error instanceof Error ? error.message : "Não foi possível salvar a venda. Tente novamente.";
              toast({
@@ -158,12 +163,6 @@ export default function NewSalePage() {
 
     return (
         <div className="space-y-6">
-            <Button variant="ghost" asChild className="-ml-4">
-                <Link href="/sales-control">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Voltar para Vendas
-                </Link>
-            </Button>
             <Card className="w-full max-w-4xl mx-auto">
                 <CardHeader>
                     <CardTitle>Registrar Nova Venda</CardTitle>

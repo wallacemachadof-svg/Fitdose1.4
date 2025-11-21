@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -106,7 +107,7 @@ export default function SalesControlPage() {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold">Vendas</h1>
+                    <h1 className="text-2xl font-bold">Histórico de Vendas</h1>
                     <p className="text-muted-foreground">Acompanhe todas as suas vendas e lançamentos.</p>
                 </div>
                  <Button asChild>

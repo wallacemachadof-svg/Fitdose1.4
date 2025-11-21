@@ -153,6 +153,8 @@ export type Patient = {
   pointHistory: PointTransaction[];
   consentGiven: boolean;
   consentDate?: Date;
+  defaultPrice?: number;
+  defaultDose?: string;
 };
 
 export type NewPatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>> & {

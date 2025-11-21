@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -131,7 +132,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   tooltip="Pacientes"
                 >
                   <Link href="/patients">
-                    <Users />
+                    <HeartPulse />
                     <span>Pacientes</span>
                   </Link>
                 </SidebarMenuButton>
@@ -164,11 +165,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <SidebarMenuButton
                   asChild
                   isActive={isActive('/sales-control')}
-                  tooltip="Vendas"
+                  tooltip="Lançar Venda"
                 >
-                  <Link href="/sales-control">
+                  <Link href="/sales-control/new">
                     <ShoppingCart />
-                    <span>Vendas</span>
+                    <span>Lançar Venda</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
