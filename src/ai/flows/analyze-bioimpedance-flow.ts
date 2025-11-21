@@ -9,7 +9,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { gemini15Flash } from 'genkit/models';
 
 const AnalyzeBioimpedanceInputSchema = z.object({
   photoDataUri: z
@@ -47,7 +46,7 @@ export async function analyzeBioimpedanceImage(input: AnalyzeBioimpedanceInput):
 
 const prompt = ai.definePrompt({
   name: 'analyzeBioimpedancePrompt',
-  model: gemini15Flash,
+  model: 'googleai/gemini-1.5-flash-preview',
   input: {schema: AnalyzeBioimpedanceInputSchema},
   output: {schema: AnalyzeBioimpedanceOutputSchema},
   prompt: `You are an expert AI assistant that extracts health metrics from screenshots of a bioimpedance scale application.
