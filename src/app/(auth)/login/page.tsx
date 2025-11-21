@@ -64,7 +64,7 @@ export default function LoginPage() {
             await signIn(data.email, data.password);
             toast({
                 title: "Login bem-sucedido!",
-                description: "Redirecionando para o painel...",
+                description: "Redirecionando...",
             });
             // The useEffect will handle the redirection
         } catch (error: any) {
