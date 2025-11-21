@@ -108,6 +108,7 @@ export default function NewSalePage() {
             pointsUsed: 0,
             paymentStatus: "pendente",
             deliveryStatus: "em agendamento",
+            price: 380,
         },
     });
     
@@ -124,15 +125,20 @@ export default function NewSalePage() {
             if (watchPatientId) {
                 const patient = await getPatientById(watchPatientId);
                 setSelectedPatient(patient);
-                if (patient?.defaultDose) {
-                    setValue("soldDose", patient.defaultDose);
-                }
+                // Set dose and price based on patient's default or global settings
+                const defaultDose = patient?.defaultDose || '';
+                setValue("soldDose", defaultDose);
+                
+                const dosePriceInfo = dosePrices.find(dp => dp.dose === defaultDose);
+                const priceToSet = patient?.defaultPrice ?? dosePriceInfo?.price ?? 380;
+                setValue("price", priceToSet);
+
             } else {
                 setSelectedPatient(null);
             }
         };
         fetchPatientDetails();
-    }, [watchPatientId, setValue]);
+    }, [watchPatientId, setValue, dosePrices]);
 
     useEffect(() => {
         if (watchSoldDose) {
@@ -141,7 +147,7 @@ export default function NewSalePage() {
                 setValue("price", dosePrice.price);
             }
         }
-    }, [watchSoldDose, dosePrices, setValue, selectedPatient]);
+    }, [watchSoldDose, dosePrices, setValue]);
 
 
     useEffect(() => {
@@ -400,3 +406,5 @@ export default function NewSalePage() {
         </div>
     )
 }
+
+    

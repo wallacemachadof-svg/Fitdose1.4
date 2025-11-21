@@ -186,7 +186,7 @@ export default function AdminPage() {
                             <Image 
                                 src={logoPreview} 
                                 alt="Logo Preview" 
-                                width={200}
+                                width={400}
                                 height={logoHeight}
                                 className="object-contain" 
                                 style={{ height: `${logoHeight}px`}}
@@ -201,7 +201,7 @@ export default function AdminPage() {
                             <Slider
                                 id="logo-size"
                                 min={20}
-                                max={100}
+                                max={150}
                                 step={1}
                                 value={[logoHeight]}
                                 onValueChange={handleSizeChange}
@@ -302,3 +302,5 @@ export default function AdminPage() {
     </div>
   )
 }
+
+    

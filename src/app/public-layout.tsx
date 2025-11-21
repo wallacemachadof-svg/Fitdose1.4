@@ -46,7 +46,7 @@ export default function PublicLayout({
               <Image 
                 src={logoUrl} 
                 alt="FitDose Logo" 
-                width={250} 
+                width={400} 
                 height={logoHeight} 
                 className="object-contain"
                 style={{ height: `${logoHeight}px` }}
@@ -61,3 +61,5 @@ export default function PublicLayout({
     </div>
   );
 }
+
+    

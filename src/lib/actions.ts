@@ -566,7 +566,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     const totalSoldMg = soldMgPerDose * saleData.quantity;
     const totalRemainingMg = data.vials.reduce((acc, v) => acc + v.remainingMg, 0);
     if (totalRemainingMg < totalSoldMg) {
-        throw new Error(`Estoque insuficiente. Apenas ${totalRemainingMg.toFixed(2)}mg disponíveis para vender ${totalSoldMg}mg.`);
+        throw new Error(`Estoque insuficiente. Apenas ${totalRemainingMg.toFixed(2)}mg disponíveis. Necessário: ${totalSoldMg.toFixed(2)}mg.`);
     }
 
     // --- Update Stock ---
@@ -805,5 +805,7 @@ export const resetAllData = async (): Promise<void> => {
     writeData(emptyData);
     await new Promise(resolve => setTimeout(resolve, 100));
 }
+
+    
 
     
