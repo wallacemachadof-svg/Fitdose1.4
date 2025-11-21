@@ -19,13 +19,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, CalendarIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getPatientById, updatePatient, type Patient, type UpdatePatientData } from "@/lib/actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const healthConditions = [
     { id: "hypertension", label: "Hipertensão" },
@@ -56,6 +61,7 @@ const patientEditFormSchema = z.object({
   height: z.coerce.number().min(1, "Altura é obrigatória.").positive("Altura deve ser um número positivo."),
   age: z.coerce.number().positive("Idade deve ser um número positivo.").optional(),
   desiredWeight: z.coerce.number().positive("Peso deve ser um número positivo.").optional(),
+  firstDoseDate: z.date().optional(),
   zip: z.string().optional(),
   street: z.string().optional(),
   number: z.string().optional(),
@@ -131,6 +137,7 @@ export default function PatientEditPage() {
                     height: fetchedPatient.height,
                     age: fetchedPatient.age,
                     desiredWeight: fetchedPatient.desiredWeight,
+                    firstDoseDate: fetchedPatient.firstDoseDate ? new Date(fetchedPatient.firstDoseDate) : undefined,
                     zip: fetchedPatient.address.zip,
                     street: fetchedPatient.address.street,
                     number: fetchedPatient.address.number,
@@ -183,6 +190,7 @@ export default function PatientEditPage() {
                 height: data.height,
                 age: data.age,
                 desiredWeight: data.desiredWeight,
+                firstDoseDate: data.firstDoseDate,
                 address: {
                   zip: data.zip,
                   street: data.street,
@@ -281,18 +289,39 @@ export default function PatientEditPage() {
                             )}/>
                         </div>
                         
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-                            <FormField control={form.control} name="initialWeight" render={({ field }) => (
-                                <FormItem><FormLabel>Peso Inicial (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
-                            )}/>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
                             <FormField control={form.control} name="age" render={({ field }) => (
                                 <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="height" render={({ field }) => (
                                 <FormItem><FormLabel>Altura (cm)</FormLabel><FormControl><Input type="number" placeholder="Ex: 175" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
+                            <FormField control={form.control} name="initialWeight" render={({ field }) => (
+                                <FormItem><FormLabel>Peso Inicial (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
                             <FormField control={form.control} name="desiredWeight" render={({ field }) => (
                                 <FormItem><FormLabel>Meta de Peso (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                             <FormField
+                                control={form.control}
+                                name="firstDoseDate"
+                                render={({ field }) => (
+                                <FormItem className="flex flex-col"><FormLabel>Início do Tratamento</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                        </PopoverContent>
+                                    </Popover>
+                                <FormMessage />
+                                </FormItem>
                             )}/>
                         </div>
                         
@@ -519,3 +548,5 @@ export default function PatientEditPage() {
         </>
     )
 }
+
+    
