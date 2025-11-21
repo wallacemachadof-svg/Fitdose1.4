@@ -16,8 +16,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Upload, Trash2, PlusCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Loader2, Upload, Trash2, PlusCircle, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getSettings, updateSettings, type Settings } from "@/lib/actions";
 import Image from "next/image";
@@ -26,6 +26,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatCurrency } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 
 const dosePriceSchema = z.object({
@@ -45,6 +46,8 @@ export default function AdminPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoHeight, setLogoHeight] = useState<number>(50);
+  const [improvements, setImprovements] = useState('');
+  const [isSavingImprovements, setIsSavingImprovements] = useState(false);
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsFormSchema),
@@ -75,6 +78,10 @@ export default function AdminPage() {
         const storedHeight = localStorage.getItem('customLogoHeight');
         if (storedHeight) {
             setLogoHeight(parseInt(storedHeight, 10));
+        }
+        const savedImprovements = localStorage.getItem('systemImprovements');
+        if (savedImprovements) {
+            setImprovements(savedImprovements);
         }
       } catch (error) {
         console.error("Failed to load settings:", error);
@@ -151,6 +158,15 @@ export default function AdminPage() {
       setIsSubmitting(false);
     }
   }
+  
+  const handleSaveImprovements = () => {
+    setIsSavingImprovements(true);
+    localStorage.setItem('systemImprovements', improvements);
+    setTimeout(() => {
+        toast({ title: 'Lista de melhorias salva!' });
+        setIsSavingImprovements(false);
+    }, 500)
+  }
 
   if (loading) {
     return (
@@ -175,58 +191,83 @@ export default function AdminPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Logotipo</CardTitle>
-                    <CardDescription>Altere o logotipo que aparece no topo do menu e nas páginas públicas.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center gap-4">
-                    <div className="w-full h-32 flex items-center justify-center rounded-md border border-dashed bg-muted/50 p-2">
-                        {logoPreview ? (
-                            <Image 
-                                src={logoPreview} 
-                                alt="Logo Preview" 
-                                width={400}
-                                height={logoHeight}
-                                className="object-contain" 
-                                style={{ height: `${logoHeight}px`}}
-                            />
-                        ) : (
-                            <span className="text-sm text-muted-foreground">Sem logotipo</span>
-                        )}
-                    </div>
-                     <div className="w-full space-y-4">
-                        <div className="space-y-2">
-                             <Label htmlFor="logo-size">Ajustar Tamanho (Altura)</Label>
-                            <Slider
-                                id="logo-size"
-                                min={20}
-                                max={150}
-                                step={1}
-                                value={[logoHeight]}
-                                onValueChange={handleSizeChange}
-                                onValueCommit={handleSizeCommit}
-                            />
-                        </div>
-                        <div className="flex gap-2">
-                            <Button asChild variant="outline" className="flex-1">
-                                <label htmlFor="logo-upload" className="cursor-pointer">
-                                    <Upload className="mr-2 h-4 w-4" />
-                                    Alterar Logotipo
-                                </label>
-                            </Button>
-                            <Input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-                            {logoPreview && (
-                                <Button variant="destructive" size="icon" onClick={removeLogo}>
-                                    <Trash2 className="h-4 w-4"/>
-                                </Button>
+            <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Logotipo</CardTitle>
+                        <CardDescription>Altere o logotipo que aparece no topo do menu e nas páginas públicas.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col items-center gap-4">
+                        <div className="w-full h-32 flex items-center justify-center rounded-md border border-dashed bg-muted/50 p-2">
+                            {logoPreview ? (
+                                <Image 
+                                    src={logoPreview} 
+                                    alt="Logo Preview" 
+                                    width={400}
+                                    height={logoHeight}
+                                    className="object-contain" 
+                                    style={{ height: `${logoHeight}px`}}
+                                />
+                            ) : (
+                                <span className="text-sm text-muted-foreground">Sem logotipo</span>
                             )}
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
+                         <div className="w-full space-y-4">
+                            <div className="space-y-2">
+                                 <Label htmlFor="logo-size">Ajustar Tamanho (Altura)</Label>
+                                <Slider
+                                    id="logo-size"
+                                    min={20}
+                                    max={200}
+                                    step={1}
+                                    value={[logoHeight]}
+                                    onValueChange={handleSizeChange}
+                                    onValueCommit={handleSizeCommit}
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <Button asChild variant="outline" className="flex-1">
+                                    <label htmlFor="logo-upload" className="cursor-pointer">
+                                        <Upload className="mr-2 h-4 w-4" />
+                                        Alterar Logotipo
+                                    </label>
+                                </Button>
+                                <Input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                                {logoPreview && (
+                                    <Button variant="destructive" size="icon" onClick={removeLogo}>
+                                        <Trash2 className="h-4 w-4"/>
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="flex flex-col">
+                    <CardHeader>
+                        <CardTitle>Lista de Melhorias</CardTitle>
+                        <CardDescription>Anote aqui os erros, bugs e ideias de melhorias para o sistema.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow">
+                        <Textarea 
+                            className="h-full resize-none"
+                            placeholder="Ex: Corrigir cálculo de IMC na tela de cadastro..."
+                            value={improvements}
+                            onChange={(e) => setImprovements(e.target.value)}
+                        />
+                    </CardContent>
+                    <CardFooter className="justify-end">
+                        <Button onClick={handleSaveImprovements} disabled={isSavingImprovements}>
+                            {isSavingImprovements ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Salvando...</>
+                            ) : (
+                                <><Save className="mr-2 h-4 w-4" /> Salvar Lista</>
+                            )}
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </div>
 
-            <Card className="lg:col-span-2">
+            <Card className="lg:col-span-3">
                 <CardHeader>
                     <CardTitle>Tabela de Preços por Dose</CardTitle>
                     <CardDescription>Defina os preços para cada dosagem disponível no sistema.</CardDescription>
@@ -302,5 +343,3 @@ export default function AdminPage() {
     </div>
   )
 }
-
-    
