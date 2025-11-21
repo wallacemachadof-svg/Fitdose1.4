@@ -44,6 +44,7 @@ const saleFormSchema = z.object({
     pointsUsed: z.coerce.number().min(0).optional().default(0),
     total: z.coerce.number().min(0),
     paymentStatus: z.enum(['pago', 'pendente'], { required_error: 'O status do pagamento é obrigatório.' }),
+    paymentMethod: z.enum(['dinheiro', 'pix', 'debito', 'credito', 'payment_link']).optional(),
     paymentDate: z.date().optional(),
     deliveryStatus: z.enum(['em agendamento', 'entregue', 'em processamento'], { required_error: 'O status da entrega é obrigatório.' }),
     deliveryDate: z.date().optional(),
@@ -119,6 +120,7 @@ export default function NewSalePage() {
     const watchDiscount = watch("discount");
     const watchPointsUsed = watch("pointsUsed");
     const watchQuantity = watch("quantity");
+    const watchPaymentStatus = watch("paymentStatus");
 
      useEffect(() => {
         const fetchPatientDetails = async () => {
@@ -326,25 +328,51 @@ export default function NewSalePage() {
                                             </Select>
                                         <FormMessage /></FormItem>
                                     )}/>
-                                     {form.watch('paymentStatus') === 'pago' && (
-                                        <FormField control={form.control} name="paymentDate" render={({ field }) => (
-                                            <FormItem className="flex flex-col"><FormLabel>Data do Pagamento</FormLabel>
-                                                <Popover>
-                                                    <PopoverTrigger asChild>
-                                                        <FormControl>
-                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                            {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                        </Button>
-                                                        </FormControl>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-auto p-0" align="start">
-                                                        <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                                    </PopoverContent>
-                                                </Popover>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}/>
+                                     {watchPaymentStatus === 'pago' && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <FormField control={form.control} name="paymentDate" render={({ field }) => (
+                                                <FormItem className="flex flex-col"><FormLabel>Data do Pagamento</FormLabel>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <FormControl>
+                                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                                {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                            </Button>
+                                                            </FormControl>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-0" align="start">
+                                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                <FormMessage />
+                                                </FormItem>
+                                            )}/>
+                                             <FormField
+                                                control={form.control}
+                                                name="paymentMethod"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Forma de Pagamento</FormLabel>
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                            <FormControl>
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Selecione..." />
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                <SelectItem value="pix">PIX</SelectItem>
+                                                                <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                                                                <SelectItem value="debito">Débito</SelectItem>
+                                                                <SelectItem value="credito">Crédito</SelectItem>
+                                                                <SelectItem value="payment_link">Link de Pagamento</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
                                      )}
                                 </div>
                             </div>

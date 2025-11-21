@@ -95,10 +95,7 @@ const doseManagementSchema = z.object({
   status: z.enum(['administered', 'pending']),
   weight: z.coerce.number().optional(),
   administeredDose: z.coerce.number().optional(),
-  paymentMethod: z.enum(['dinheiro', 'pix', 'debito', 'credito', 'payment_link']).optional(),
-  installments: z.coerce.number().optional(),
   paymentStatus: z.enum(['pago', 'pendente']),
-  paymentDate: z.date().optional(),
 }).refine(data => {
     if (data.status === 'administered') {
         return !!data.weight && !!data.administeredDose;
@@ -707,10 +704,7 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
             status: dose.status,
             weight: dose.weight || undefined,
             administeredDose: dose.administeredDose || undefined,
-            paymentMethod: dose.payment?.method || undefined,
-            installments: dose.payment?.installments || undefined,
             paymentStatus: dose.payment?.status || 'pendente',
-            paymentDate: dose.payment?.date ? new Date(dose.payment.date) : undefined,
         },
     });
 
@@ -721,15 +715,11 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
             status: dose.status,
             weight: dose.weight || undefined,
             administeredDose: dose.administeredDose || undefined,
-            paymentMethod: dose.payment?.method || undefined,
-            installments: dose.payment?.installments || undefined,
             paymentStatus: dose.payment?.status || 'pendente',
-            paymentDate: dose.payment?.date ? new Date(dose.payment.date) : undefined,
         });
     }, [dose, form]);
 
     const watchStatus = form.watch("status");
-    const watchPaymentMethod = form.watch("paymentMethod");
     const watchPaymentStatus = form.watch("paymentStatus");
 
     async function onSubmit(data: DoseManagementFormValues) {
@@ -744,9 +734,6 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                 payment: {
                     ...dose.payment,
                     status: data.paymentStatus,
-                    date: data.paymentDate,
-                    method: data.paymentMethod,
-                    installments: data.installments,
                     amount: dose.payment?.amount || 0
                 },
             });
@@ -879,60 +866,6 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                                     </FormItem>
                                 )}
                             />
-                             {watchPaymentStatus === 'pago' && (
-                                <>
-                                    <FormField
-                                        control={form.control}
-                                        name="paymentDate"
-                                        render={({ field }) => (
-                                        <FormItem className="flex flex-col"><FormLabel>Data do Pagamento</FormLabel>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                        {field.value ? formatDateFns(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                                </PopoverContent>
-                                            </Popover>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}/>
-                                    <FormField
-                                        control={form.control}
-                                        name="paymentMethod"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Forma de Pagamento</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Selecione o pagamento" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                                                        <SelectItem value="pix">PIX</SelectItem>
-                                                        <SelectItem value="debito">Débito</SelectItem>
-                                                        <SelectItem value="credito">Crédito</SelectItem>
-                                                        <SelectItem value="payment_link">Link de Pagamento</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    {watchPaymentMethod === 'credito' && (
-                                        <FormField control={form.control} name="installments" render={({ field }) => (
-                                            <FormItem><FormLabel>Parcelas</FormLabel><FormControl><Input type="number" placeholder="Ex: 2" {...field} /></FormControl><FormMessage /></FormItem>
-                                        )}/>
-                                    )}
-                                </>
-                             )}
                         </div>
 
                         <DialogFooter>
@@ -956,4 +889,5 @@ const isSameDay = (date1: Date, date2: Date) =>
   date1.getDate() === date2.getDate();
 
     
+
 
