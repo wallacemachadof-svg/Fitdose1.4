@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from 'react';
@@ -8,17 +7,21 @@ import { useUser } from '@/firebase';
 
 export default function RootPage() {
   const router = useRouter();
-  const { user, loading } = useUser();
+  const { user, profile, loading } = useUser();
 
   useEffect(() => {
     if (!loading) {
       if (user) {
-        router.replace('/dashboard');
+        if (profile?.patientId) {
+            router.replace('/portal');
+        } else {
+            router.replace('/dashboard');
+        }
       } else {
         router.replace('/login');
       }
     }
-  }, [user, loading, router]);
+  }, [user, profile, loading, router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
