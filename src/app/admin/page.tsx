@@ -180,39 +180,41 @@ export default function AdminPage() {
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            <FormField
-                                control={form.control}
-                                name="defaultDoses"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Doses Padrão (mg)</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="2.5, 5.0, 7.5, 10.0" {...field} />
-                                        </FormControl>
-                                        <FormDescription>
-                                            Separe os valores por vírgula. Ex: 2.5, 5.0, 7.5
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={form.control}
-                                name="defaultPrice"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Preço Padrão por Dose (R$)</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" step="0.01" {...field} />
-                                        </FormControl>
-                                        <FormDescription>
-                                           Este valor será usado como padrão em novos lançamentos.
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <Button type="submit" disabled={isSubmitting}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField
+                                    control={form.control}
+                                    name="defaultDoses"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Doses Padrão (mg)</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="2.5, 5.0, 7.5, 10.0" {...field} />
+                                            </FormControl>
+                                            <FormDescription>
+                                                Separe os valores por vírgula.
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="defaultPrice"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Preço Padrão (R$)</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" step="0.01" {...field} />
+                                            </FormControl>
+                                            <FormDescription>
+                                            Valor padrão para novas vendas.
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
                                 {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : 'Salvar Configurações'}
                             </Button>
                         </form>
@@ -223,3 +225,4 @@ export default function AdminPage() {
     </div>
   )
 }
+
