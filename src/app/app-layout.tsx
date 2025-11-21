@@ -15,6 +15,7 @@ import {
   Warehouse,
   Eraser,
   Trash2,
+  HeartPulse,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -154,7 +155,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   tooltip="Bioimpedância"
                 >
                   <Link href="/bioimpedance">
-                    <Users />
+                    <HeartPulse />
                     <span>Bioimpedância</span>
                   </Link>
                 </SidebarMenuButton>
