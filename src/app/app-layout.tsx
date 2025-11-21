@@ -54,23 +54,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
-  useEffect(() => {
+  const updateLogo = () => {
     // Ensure this runs only on the client
     const storedLogo = localStorage.getItem('customLogo');
-    if (storedLogo) {
-      setLogoUrl(storedLogo);
-    }
-     // Listen for logo changes from other tabs/windows
+    setLogoUrl(storedLogo);
+  };
+
+  useEffect(() => {
+    updateLogo();
+
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'customLogo') {
-        setLogoUrl(event.newValue);
+        updateLogo();
       }
     };
+
     window.addEventListener('storage', handleStorageChange);
+
+    // Also listen for a custom event dispatched from the admin page
+    window.addEventListener('logo-updated', updateLogo);
+    
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('logo-updated', updateLogo);
     };
   }, []);
+
 
 
   const isActive = (path: string) => {

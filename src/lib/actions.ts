@@ -72,7 +72,7 @@ const readData = (): MockData => {
         return { patients, sales, cashFlowEntries, vials, settings };
     } catch (error) {
         // If files don't exist, return empty arrays
-        return { patients: [], sales: [], cashFlowEntries: [], vials: [], settings: { defaultDoses: [], defaultPrice: 0 } };
+        return { patients: [], sales: [], cashFlowEntries: [], vials: [], settings: { defaultDoses: ["2.5", "5.0", "7.5", "10.0", "12.5", "15.0"], defaultPrice: 380 } };
     }
 };
 
@@ -343,6 +343,7 @@ export const updatePatient = async (id: string, patientData: UpdatePatientData):
     const updatedPatient: Patient = {
         ...originalPatient,
         ...patientData,
+        avatarUrl: patientData.avatarUrl ?? originalPatient.avatarUrl,
         address: {
             ...originalPatient.address,
             ...patientData.address,
@@ -408,7 +409,7 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     }
     
     // If payment status is set to pending, clear the payment date
-    if (updatedDose.payment.status === 'pendente') {
+    if (updatedDose.payment.status === 'pendente' && doseData.payment?.status === 'pendente') {
         updatedDose.payment.date = undefined;
     }
 
@@ -491,7 +492,11 @@ export const addBioimpedanceEntry = async (patientId: string, date: Date, bioimp
     }
     
     // Ensure doses are always in chronological order by dose number
-    patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
+    patient.doses.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .forEach((dose, index) => {
+            dose.doseNumber = index + 1;
+            dose.id = index + 1;
+        });
 
 
     data.patients[patientIndex] = patient;

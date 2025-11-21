@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -42,19 +43,30 @@ export default function AdminPage() {
   useEffect(() => {
     async function loadSettings() {
       setLoading(true);
-      const settings = await getSettings();
-      form.reset({
-        defaultPrice: settings.defaultPrice,
-        defaultDoses: settings.defaultDoses.join(", "),
-      });
-      const storedLogo = localStorage.getItem('customLogo');
-      if (storedLogo) {
-        setLogoPreview(storedLogo);
+      try {
+        const settings = await getSettings();
+        if (settings) {
+            form.reset({
+                defaultPrice: settings.defaultPrice,
+                defaultDoses: settings.defaultDoses.join(", "),
+            });
+        }
+        const storedLogo = localStorage.getItem('customLogo');
+        if (storedLogo) {
+            setLogoPreview(storedLogo);
+        }
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+        toast({
+            variant: "destructive",
+            title: "Erro ao carregar configurações",
+        })
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     loadSettings();
-  }, [form]);
+  }, [form, toast]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -68,8 +80,7 @@ export default function AdminPage() {
           title: "Logotipo Atualizado!",
           description: "O novo logotipo foi salvo localmente e será exibido na aplicação.",
         });
-         // Force reload to update sidebar logo instantly
-        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new Event('logo-updated'));
       };
       reader.readAsDataURL(file);
     }
@@ -81,7 +92,7 @@ export default function AdminPage() {
       toast({
         title: "Logotipo Removido",
       });
-      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new Event('logo-updated'));
   }
 
   async function onSubmit(data: SettingsFormValues) {
@@ -111,10 +122,13 @@ export default function AdminPage() {
   if (loading) {
     return (
         <div className="space-y-6">
-            <Skeleton className="h-8 w-1/3" />
-            <div className="grid md:grid-cols-2 gap-8">
+            <div>
+                <h1 className="text-2xl font-bold">Administrador</h1>
+                <p className="text-muted-foreground">Gerencie as configurações globais do sistema.</p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <Skeleton className="h-64" />
-                <Skeleton className="h-64" />
+                <Skeleton className="h-80" />
             </div>
         </div>
     )

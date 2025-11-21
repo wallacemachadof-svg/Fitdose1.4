@@ -259,7 +259,7 @@ export default function NewSalePage() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Dose Vendida (mg) *</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <Select onValueChange={field.onChange} value={field.value}>
                                                     <FormControl>
                                                         <SelectTrigger>
                                                             <SelectValue placeholder="Selecione a dose" />
@@ -388,7 +388,7 @@ export default function NewSalePage() {
                             </div>
 
                             <div className="flex justify-end gap-2 pt-4">
-                                <Button type="button" variant="outline" onClick={() => router.push('/sales-control')} disabled={isSubmitting}>Cancelar</Button>
+                                <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>Cancelar</Button>
                                 <Button type="submit" disabled={isSubmitting || !watchPatientId}>
                                     {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Salvando...</> : 'Salvar Venda'}
                                 </Button>
