@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
-import { addSale, getPatients, type Patient, type Bioimpedance } from "@/lib/actions";
+import { addSale, getPatients, getPatientById, type Patient, type Bioimpedance } from "@/lib/actions";
 import { Combobox } from "@/components/ui/combobox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -117,12 +118,13 @@ export default function NewSalePage() {
             if (watchPatientId) {
                 const patient = await getPatientById(watchPatientId);
                 setSelectedPatient(patient);
+                setValue("price", 380);
             } else {
                 setSelectedPatient(null);
             }
         };
         fetchPatientDetails();
-    }, [watchPatientId]);
+    }, [watchPatientId, setValue]);
 
     useEffect(() => {
         const price = watchPrice || 0;

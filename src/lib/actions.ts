@@ -611,7 +611,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         patient.points -= saleData.pointsUsed;
         patient.pointHistory.push({
             date: new Date(),
-            description: `Resgate de ${formatCurrency(saleData.discount || 0)}`,
+            description: `Resgate de ${saleData.discount || 0}`,
             points: -saleData.pointsUsed,
         });
     }
