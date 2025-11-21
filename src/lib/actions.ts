@@ -147,7 +147,7 @@ export type NewPatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions'
     initialWeight: number;
     height: number;
 };
-export type UpdatePatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>>;
+export type UpdatePatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate' | 'firstDoseDate' | 'initialWeight' | 'avatarUrl'>>;
 
 
 export type Dose = {
@@ -662,3 +662,5 @@ export const resetAllData = async (): Promise<void> => {
     writeData(emptyData);
     await new Promise(resolve => setTimeout(resolve, 100));
 }
+
+    
