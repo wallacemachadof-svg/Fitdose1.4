@@ -5,7 +5,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from 'next/navigation';
 import { getPatients, deletePatient, type Patient, type Dose } from "@/lib/actions";
-import { formatCurrency, formatDate, getDoseStatus, getDaysUntilDose, getOverdueDays, generateOverdueWhatsAppLink }from "@/lib/utils";
+import { formatCurrency, formatDate, getDoseStatus, getDaysUntilDose, getOverdueDays, generateOverdueWhatsAppLink, generateDueTodayWhatsAppLink }from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -222,7 +222,8 @@ function PatientsPageContent() {
                                     const nextPendingDose = patient.doses.find(d => d.status === 'pending');
                                     const status = nextPendingDose ? getDoseStatus(nextPendingDose, patient.doses) : { label: 'Concluído', color: 'bg-blue-500', textColor: 'text-white' };
                                     const isOverdue = nextPendingDose && getOverdueDays(nextPendingDose, patient.doses) > 0;
-                                    
+                                    const isDueToday = nextPendingDose && getDaysUntilDose(nextPendingDose) === 0;
+
                                     return (
                                     <TableRow key={patient.id}>
                                         <TableCell>
@@ -245,12 +246,17 @@ function PatientsPageContent() {
                                             <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                             {isOverdue && (
+                                             {nextPendingDose && (isOverdue || isDueToday) && (
                                                 <Button 
                                                     variant="ghost" 
                                                     size="icon" 
                                                     className="h-8 w-8 text-green-500 hover:text-green-600 mr-2" 
-                                                    onClick={() => window.open(generateOverdueWhatsAppLink(patient), '_blank')}
+                                                    onClick={() => {
+                                                        const link = isOverdue 
+                                                            ? generateOverdueWhatsAppLink(patient) 
+                                                            : generateDueTodayWhatsAppLink(patient, nextPendingDose);
+                                                        window.open(link, '_blank');
+                                                    }}
                                                 >
                                                     <FaWhatsapp className="h-5 w-5" />
                                                 </Button>
@@ -323,5 +329,3 @@ export default function PatientsPage() {
         </Suspense>
     )
 }
-
-    

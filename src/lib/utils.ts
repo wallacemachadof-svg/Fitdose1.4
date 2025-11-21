@@ -155,7 +155,32 @@ Estamos aqui para cuidar de você! Qualquer dúvida, é só nos chamar. 💖`;
 export function generateOverdueWhatsAppLink(patient: Patient): string {
     const patientFirstName = patient.fullName.split(' ')[0];
 
-    const message = `Olá ${patientFirstName}, passando para lembrar de agendar seu horário para prosseguirmos com seu protocolo de emagrecimento. Para que dia podemos agendar sua dose semanal?`;
+    const message = `Olá ${patientFirstName}, passando para lembrar de agendar seu horario para proceguimor com seu protocolo de emagrecimento. para que dia podemos agendar sua dose semanal?`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const cleanPhoneNumber = patient.phone?.replace(/\D/g, '') || '';
+
+    return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
+}
+
+export function generateDueTodayWhatsAppLink(patient: Patient, dose: Dose): string {
+    const patientFirstName = patient.fullName.split(' ')[0];
+    const doseDate = formatDate(dose.date);
+    const doseTime = dose.time || '[Insira o Horário Agendado Aqui]';
+
+    const message = `🚨 ATENÇÃO, ${patientFirstName}! Sua Dose Vence HOJE!
+
+Olá! Verificamos em nosso sistema que a sua Dose (Nº ${dose.doseNumber}) agendada para hoje, ${doseDate}, precisa ser aplicada.
+
+⏰ Horário: ${doseTime}
+
+Se você já fez a aplicação, desconsidere esta mensagem!
+
+Se ainda não fez: É fundamental seguir o cronograma para manter a eficácia total do seu tratamento de Emagrecimento & Estética.
+
+👉 AÇÃO IMEDIATA: Por favor, responda a esta mensagem ou ligue para [Seu Telefone/Contato] imediatamente se você tiver qualquer dificuldade ou se precisar de auxílio.
+
+Conte conosco para te ajudar a não perder o timing dos seus resultados! ✨`;
 
     const encodedMessage = encodeURIComponent(message);
     const cleanPhoneNumber = patient.phone?.replace(/\D/g, '') || '';
@@ -197,5 +222,3 @@ export function getHighestReward(points: number) {
         discountValue,
     };
 }
-
-    
