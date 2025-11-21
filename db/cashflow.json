@@ -43,5 +43,59 @@
     "amount": 180,
     "status": "pago",
     "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-5",
+    "type": "entrada",
+    "purchaseDate": "2025-11-12T03:00:00.000Z",
+    "description": "Venda 1x 5.0mg p/ LUCIANA FONSECA",
+    "amount": 430,
+    "status": "pago",
+    "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-6",
+    "type": "entrada",
+    "purchaseDate": "2025-11-20T03:00:00.000Z",
+    "description": "Venda 1x 6.25mg p/ LUCIANA FONSECA",
+    "amount": 500,
+    "status": "pago",
+    "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-7",
+    "type": "entrada",
+    "purchaseDate": "2025-10-21T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ ALINE",
+    "amount": 200,
+    "status": "pago",
+    "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-8",
+    "type": "entrada",
+    "purchaseDate": "2025-10-29T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ ALINE",
+    "amount": 200,
+    "status": "pago",
+    "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-9",
+    "type": "entrada",
+    "purchaseDate": "2025-11-08T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ ALINE",
+    "amount": 200.01,
+    "status": "pago",
+    "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-10",
+    "type": "entrada",
+    "purchaseDate": "2025-11-18T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ ALINE",
+    "amount": 200,
+    "status": "pago",
+    "paymentMethod": "pix"
   }
 ]

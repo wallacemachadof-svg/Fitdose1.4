@@ -524,11 +524,6 @@ export const deleteBioimpedanceEntry = async (patientId: string, evolutionId: st
     }
 
     const patient = data.patients[patientIndex];
-    
-    if (evolutionId === 'initial-record') {
-        throw new Error("Cannot delete the initial weight record via this function. Edit the patient profile instead.");
-    }
-    
     const initialLength = patient.evolutions.length;
     
     patient.evolutions = patient.evolutions.filter(e => e.id !== evolutionId);
@@ -723,7 +718,6 @@ export const deleteCashFlowEntry = async (id: string): Promise<void> => {
     const index = data.cashFlowEntries.findIndex(e => e.id === id);
     if (index !== -1) {
         data.cashFlowEntries.splice(index, 1);
-        writeData({ cashFlowEntries: data.cashFlowEntries });
     } else {
         throw new Error("Lançamento não encontrado no fluxo de caixa");
     }
