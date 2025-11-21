@@ -9,7 +9,7 @@ import Link from 'next/link';
 import {
   getPatientById,
   updateDose,
-  addPatientEvolution,
+  deleteBioimpedanceEntry,
   type Patient,
   type Dose,
   type Evolution,
@@ -62,11 +62,22 @@ import {
     ArrowDown,
     ArrowUp,
     Minus,
+    Trash2,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
 import { summarizeHealthData } from '@/ai/flows/summarize-health-data';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -106,6 +117,8 @@ export default function PatientDetailPage() {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [selectedDose, setSelectedDose] = useState<Dose | null>(null);
   const [isDoseModalOpen, setIsDoseModalOpen] = useState(false);
+  const [evolutionToDelete, setEvolutionToDelete] = useState<Evolution | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
   const router = useRouter();
   const { toast } = useToast();
@@ -159,6 +172,33 @@ export default function PatientDetailPage() {
   const onDoseUpdate = (updatedPatient: Patient) => {
     setPatient(updatedPatient);
   }
+
+  const handleDeleteEvolutionClick = (evolution: Evolution) => {
+    setEvolutionToDelete(evolution);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDeleteEvolution = async () => {
+    if (!evolutionToDelete || !patient) return;
+    try {
+        const updatedPatient = await deleteBioimpedanceEntry(patient.id, evolutionToDelete.id);
+        setPatient(updatedPatient);
+        toast({
+            title: "Registro Excluído",
+            description: "O registro de bioimpedância foi removido com sucesso.",
+        });
+    } catch (error) {
+        console.error("Failed to delete bioimpedance entry:", error);
+        toast({
+            variant: "destructive",
+            title: "Erro ao Excluir",
+            description: "Não foi possível remover o registro de bioimpedância.",
+        });
+    } finally {
+        setIsDeleteDialogOpen(false);
+        setEvolutionToDelete(null);
+    }
+  };
 
 
   const evolutionChartData = useMemo(() => {
@@ -221,13 +261,15 @@ export default function PatientDetailPage() {
       { key: 'weight', label: 'Peso', icon: Weight, unit: 'kg' },
       { key: 'bmi', label: 'IMC', icon: Activity },
       { key: 'fatPercentage', label: 'Gordura', icon: Activity, unit: '%' },
-      { key: 'muscleMassPercentage', label: 'Massa Muscular', icon: UserCheck, unit: '%' },
+      { key: 'skeletalMusclePercentage', label: 'Massa Muscular', icon: UserCheck, unit: '%' },
       { key: 'visceralFat', label: 'Gordura Visceral', icon: HeartPulse },
       { key: 'hydration', label: 'Água', icon: Droplets, unit: '%' },
       { key: 'metabolism', label: 'Metabolismo', icon: Flame, unit: 'kcal' },
       { key: 'boneMass', label: 'Massa Óssea', icon: Bone, unit: 'kg' },
       { key: 'protein', label: 'Proteína', icon: Beef, unit: '%' },
   ];
+  
+  const sortedEvolutions = patient.evolutions.sort((a,b) => b.date.getTime() - a.date.getTime());
 
   return (
     <div className="space-y-6">
@@ -323,6 +365,51 @@ export default function PatientDetailPage() {
           )}
         </CardContent>
       </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><HeartPulse className="h-5 w-5" />Histórico de Evolução</CardTitle>
+          <CardDescription>Todos os registros de bioimpedância do paciente.</CardDescription>
+        </CardHeader>
+        <CardContent>
+           <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Peso (kg)</TableHead>
+                    <TableHead>IMC</TableHead>
+                    <TableHead>Gordura (%)</TableHead>
+                    <TableHead>Músculo (%)</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {sortedEvolutions.length > 0 ? (
+                    sortedEvolutions.map((evo) => (
+                        <TableRow key={evo.id}>
+                            <TableCell>{formatDate(evo.date)}</TableCell>
+                            <TableCell>{evo.bioimpedance?.weight?.toFixed(2) ?? '-'}</TableCell>
+                            <TableCell>{evo.bioimpedance?.bmi?.toFixed(2) ?? '-'}</TableCell>
+                            <TableCell>{evo.bioimpedance?.fatPercentage?.toFixed(2) ?? '-'}</TableCell>
+                            <TableCell>{evo.bioimpedance?.skeletalMusclePercentage?.toFixed(2) ?? '-'}</TableCell>
+                            <TableCell className="text-right">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteEvolutionClick(evo)}>
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Excluir registro</span>
+                                </Button>
+                            </TableCell>
+                        </TableRow>
+                    ))
+                ) : (
+                    <TableRow>
+                        <TableCell colSpan={6} className="text-center h-24">Nenhum registro de bioimpedância encontrado.</TableCell>
+                    </TableRow>
+                )}
+            </TableBody>
+           </Table>
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader>
@@ -456,6 +543,24 @@ export default function PatientDetailPage() {
             onDoseUpdate={onDoseUpdate}
         />
       )}
+      
+       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Isso excluirá permanentemente o registro de bioimpedância da data <span className="font-semibold">{evolutionToDelete ? formatDate(evolutionToDelete.date) : ''}</span>.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmDeleteEvolution} className="bg-destructive hover:bg-destructive/90">
+                      <Trash2 className="mr-2 h-4 w-4"/>
+                      Sim, excluir registro
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }

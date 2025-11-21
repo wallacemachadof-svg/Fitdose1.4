@@ -410,10 +410,15 @@ export const addBioimpedanceEntry = async (patientId: string, date: Date, bioimp
     }
 
     const patient = data.patients[patientIndex];
+    
+    if (!bioimpedance.bmi && bioimpedance.weight && patient.height) {
+        bioimpedance.bmi = calculateBmi(bioimpedance.weight, patient.height / 100);
+    }
+    
     const newEvolution: Evolution = {
-        id: `evo-ia-${Date.now()}`,
+        id: `evo-manual-${Date.now()}`,
         date: date,
-        notes: "Registro de bioimpedância via IA.",
+        notes: "Registro de bioimpedância manual.",
         bioimpedance: bioimpedance,
     };
 
@@ -424,6 +429,28 @@ export const addBioimpedanceEntry = async (patientId: string, date: Date, bioimp
     data.patients[patientIndex] = patient;
     writeData(data);
 
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return patient;
+}
+
+export const deleteBioimpedanceEntry = async (patientId: string, evolutionId: string): Promise<Patient> => {
+    const data = readData();
+    const patientIndex = data.patients.findIndex(p => p.id === patientId);
+    if (patientIndex === -1) {
+        throw new Error("Patient not found");
+    }
+
+    const patient = data.patients[patientIndex];
+    const initialLength = patient.evolutions.length;
+    
+    patient.evolutions = patient.evolutions.filter(e => e.id !== evolutionId);
+
+    if(patient.evolutions.length === initialLength){
+        throw new Error("Evolution entry not found");
+    }
+
+    data.patients[patientIndex] = patient;
+    writeData(data);
     await new Promise(resolve => setTimeout(resolve, 100));
     return patient;
 }
