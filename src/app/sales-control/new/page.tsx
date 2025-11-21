@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
-import { addSale, getPatients, getPatientById, type Patient, type Bioimpedance } from "@/lib/actions";
+import { addSale, getPatients, getPatientById, getSettings, type Patient, type Bioimpedance } from "@/lib/actions";
 import { Combobox } from "@/components/ui/combobox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -84,13 +84,28 @@ export default function NewSalePage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [patients, setPatients] = useState<{ value: string, label: string }[]>([]);
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+    const [defaultDoses, setDefaultDoses] = useState<string[]>([]);
+    const [defaultPrice, setDefaultPrice] = useState(0);
+
+    useEffect(() => {
+        async function fetchInitialData() {
+            const [patientData, settings] = await Promise.all([
+                getPatients(),
+                getSettings(),
+            ]);
+            setPatients(patientData.map(p => ({ value: p.id, label: p.fullName })));
+            setDefaultDoses(settings.defaultDoses || []);
+            setDefaultPrice(settings.defaultPrice || 380);
+        }
+        fetchInitialData();
+    }, []);
+
 
     const form = useForm<SaleFormValues>({
         resolver: zodResolver(saleFormSchema),
         defaultValues: {
             saleDate: new Date(),
             quantity: 1,
-            price: 380,
             discount: 0,
             pointsUsed: 0,
             paymentStatus: "pendente",
@@ -99,12 +114,8 @@ export default function NewSalePage() {
     });
     
     useEffect(() => {
-        async function fetchPatients() {
-            const patientData = await getPatients();
-            setPatients(patientData.map(p => ({ value: p.id, label: p.fullName })));
-        }
-        fetchPatients();
-    }, []);
+        form.setValue("price", defaultPrice);
+    }, [defaultPrice, form]);
 
     const { watch, setValue } = form;
     const watchPatientId = watch("patientId");
@@ -120,6 +131,8 @@ export default function NewSalePage() {
                 setSelectedPatient(patient);
                 if (patient?.defaultPrice) {
                     setValue("price", patient.defaultPrice);
+                } else {
+                    setValue("price", defaultPrice);
                 }
                 if (patient?.defaultDose) {
                     setValue("soldDose", patient.defaultDose);
@@ -129,7 +142,7 @@ export default function NewSalePage() {
             }
         };
         fetchPatientDetails();
-    }, [watchPatientId, setValue]);
+    }, [watchPatientId, setValue, defaultPrice]);
 
     useEffect(() => {
         const price = watchPrice || 0;
@@ -165,7 +178,7 @@ export default function NewSalePage() {
         <div className="space-y-6">
             <Card className="w-full max-w-4xl mx-auto">
                 <CardHeader>
-                    <CardTitle>Registrar Nova Venda</CardTitle>
+                    <CardTitle>Lançar Venda e Aplicação</CardTitle>
                     <CardDescription>Preencha os dados abaixo para registrar uma nova venda e aplicação.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -240,9 +253,30 @@ export default function NewSalePage() {
                             <div className="space-y-4 pt-4 border-t">
                                <h3 className="text-lg font-semibold">Detalhes do Produto</h3>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <FormField control={form.control} name="soldDose" render={({ field }) => (
-                                        <FormItem><FormLabel>Dose Vendida (mg) *</FormLabel><FormControl><Input placeholder="Ex: 5.0" {...field} /></FormControl><FormMessage /></FormItem>
-                                    )}/>
+                                    <FormField
+                                        control={form.control}
+                                        name="soldDose"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Dose Vendida (mg) *</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Selecione a dose" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {defaultDoses.map(dose => (
+                                                            <SelectItem key={dose} value={dose}>
+                                                                {dose} mg
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                     <FormField control={form.control} name="quantity" render={({ field }) => (
                                         <FormItem><FormLabel>Quantidade *</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                                     )}/>

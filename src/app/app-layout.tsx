@@ -17,6 +17,7 @@ import {
   Eraser,
   Trash2,
   HeartPulse,
+  Settings,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -164,7 +165,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={isActive('/sales-control')}
+                  isActive={isActive('/sales-control/new')}
                   tooltip="Lançar Venda"
                 >
                   <Link href="/sales-control/new">
@@ -206,6 +207,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <Link href="/ai-personalization">
                     <FlaskConical />
                     <span>Personalização AI</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/admin')}
+                  tooltip="Administrador"
+                >
+                  <Link href="/admin">
+                    <Settings />
+                    <span>Administrador</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

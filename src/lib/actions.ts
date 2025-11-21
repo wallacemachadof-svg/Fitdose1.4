@@ -17,12 +17,15 @@ const patientsFilePath = path.join(dataDir, 'patients.json');
 const salesFilePath = path.join(dataDir, 'sales.json');
 const cashFlowFilePath = path.join(dataDir, 'cashflow.json');
 const vialsFilePath = path.join(dataDir, 'vials.json');
+const settingsFilePath = path.join(dataDir, 'settings.json');
+
 
 type MockData = {
     patients: Patient[];
     sales: Sale[];
     cashFlowEntries: CashFlowEntry[];
     vials: Vial[];
+    settings: Settings;
 };
 
 const readData = (): MockData => {
@@ -31,6 +34,8 @@ const readData = (): MockData => {
         const sales = fs.existsSync(salesFilePath) ? JSON.parse(fs.readFileSync(salesFilePath, 'utf-8')) : [];
         const cashFlowEntries = fs.existsSync(cashFlowFilePath) ? JSON.parse(fs.readFileSync(cashFlowFilePath, 'utf-8')) : [];
         const vials = fs.existsSync(vialsFilePath) ? JSON.parse(fs.readFileSync(vialsFilePath, 'utf-8')) : [];
+        const settings = fs.existsSync(settingsFilePath) ? JSON.parse(fs.readFileSync(settingsFilePath, 'utf-8')) : { defaultDoses: [], defaultPrice: 0 };
+
         
         // Dates are stored as strings in JSON, so we need to convert them back to Date objects
         patients.forEach((p: Patient) => {
@@ -64,18 +69,22 @@ const readData = (): MockData => {
             v.purchaseDate = new Date(v.purchaseDate);
         });
 
-        return { patients, sales, cashFlowEntries, vials };
+        return { patients, sales, cashFlowEntries, vials, settings };
     } catch (error) {
         // If files don't exist, return empty arrays
-        return { patients: [], sales: [], cashFlowEntries: [], vials: [] };
+        return { patients: [], sales: [], cashFlowEntries: [], vials: [], settings: { defaultDoses: [], defaultPrice: 0 } };
     }
 };
 
-const writeData = (data: MockData) => {
-    fs.writeFileSync(patientsFilePath, JSON.stringify(data.patients, null, 2));
-    fs.writeFileSync(salesFilePath, JSON.stringify(data.sales, null, 2));
-    fs.writeFileSync(cashFlowFilePath, JSON.stringify(data.cashFlowEntries, null, 2));
-    fs.writeFileSync(vialsFilePath, JSON.stringify(data.vials, null, 2));
+const writeData = (data: Partial<MockData>) => {
+    const currentData = readData();
+    const newData = { ...currentData, ...data };
+    
+    if (data.patients) fs.writeFileSync(patientsFilePath, JSON.stringify(newData.patients, null, 2));
+    if (data.sales) fs.writeFileSync(salesFilePath, JSON.stringify(newData.sales, null, 2));
+    if (data.cashFlowEntries) fs.writeFileSync(cashFlowFilePath, JSON.stringify(newData.cashFlowEntries, null, 2));
+    if (data.vials) fs.writeFileSync(vialsFilePath, JSON.stringify(newData.vials, null, 2));
+    if (data.settings) fs.writeFileSync(settingsFilePath, JSON.stringify(newData.settings, null, 2));
 };
 
 // --- Type Definitions ---
@@ -255,6 +264,11 @@ export type NewVialData = Omit<Vial, 'id' | 'remainingMg' | 'soldMg'> & {
     quantity: number;
 };
 
+export type Settings = {
+    defaultDoses: string[];
+    defaultPrice: number;
+};
+
 // --- Data Access Functions ---
 
 export const getPatients = async (): Promise<Patient[]> => {
@@ -310,7 +324,7 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
     };
 
     data.patients.push(newPatient);
-    writeData(data);
+    writeData({ patients: data.patients });
     
     await new Promise(resolve => setTimeout(resolve, 100));
     return newPatient;
@@ -345,7 +359,7 @@ export const updatePatient = async (id: string, patientData: UpdatePatientData):
 
 
     data.patients[patientIndex] = updatedPatient;
-    writeData(data);
+    writeData({ patients: data.patients });
 
     await new Promise(resolve => setTimeout(resolve, 100));
     return updatedPatient;
@@ -357,7 +371,7 @@ export const deletePatient = async (id: string): Promise<void> => {
     const index = data.patients.findIndex(p => p.id === id);
     if (index !== -1) {
         data.patients.splice(index, 1);
-        writeData(data);
+        writeData({ patients: data.patients });
     } else {
         throw new Error("Patient not found");
     }
@@ -402,7 +416,7 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     patient.doses[doseIndex] = updatedDose;
     patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
     data.patients[patientIndex] = patient;
-    writeData(data);
+    writeData({ patients: data.patients });
 
     await new Promise(resolve => setTimeout(resolve, 100));
     return patient;
@@ -429,7 +443,7 @@ export const addPatientEvolution = async (patientId: string, evolutionData: NewE
     }
     patient.evolutions.push(newEvolution);
     data.patients[patientIndex] = patient;
-    writeData(data);
+    writeData({ patients: data.patients });
 
     await new Promise(resolve => setTimeout(resolve, 100));
     return patient;
@@ -481,7 +495,7 @@ export const addBioimpedanceEntry = async (patientId: string, date: Date, bioimp
 
 
     data.patients[patientIndex] = patient;
-    writeData(data);
+    writeData({ patients: data.patients });
 
     await new Promise(resolve => setTimeout(resolve, 100));
     return patient;
@@ -509,7 +523,7 @@ export const deleteBioimpedanceEntry = async (patientId: string, evolutionId: st
     }
 
     data.patients[patientIndex] = patient;
-    writeData(data);
+    writeData({ patients: data.patients });
     await new Promise(resolve => setTimeout(resolve, 100));
     return patient;
 }
@@ -650,7 +664,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         data.cashFlowEntries.push(newCashFlowEntry);
     }
     
-    writeData(data);
+    writeData({ sales: data.sales, patients: data.patients, cashFlowEntries: data.cashFlowEntries, vials: data.vials });
     await new Promise(resolve => setTimeout(resolve, 100));
     return newSale;
 };
@@ -669,7 +683,7 @@ export const deleteSale = async (id: string): Promise<void> => {
     if (cashFlowIndex !== -1) {
         data.cashFlowEntries.splice(cashFlowIndex, 1);
     }
-    writeData(data);
+    writeData({ sales: data.sales, cashFlowEntries: data.cashFlowEntries });
     await new Promise(resolve => setTimeout(resolve, 100));
 };
     
@@ -684,7 +698,7 @@ export const addCashFlowEntry = async (entryData: NewCashFlowData): Promise<Cash
     const newId = `manual-${(data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).length > 0 ? Math.max(...data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).map(e => parseInt(e.id.replace('manual-',''), 10))) : 0) + 1}`;
     const newEntry: CashFlowEntry = { id: newId, ...entryData };
     data.cashFlowEntries.push(newEntry);
-    writeData(data);
+    writeData({ cashFlowEntries: data.cashFlowEntries });
     await new Promise(resolve => setTimeout(resolve, 100));
     return newEntry;
 }
@@ -694,7 +708,7 @@ export const deleteCashFlowEntry = async (id: string): Promise<void> => {
     const index = data.cashFlowEntries.findIndex(e => e.id === id);
     if (index !== -1) {
         data.cashFlowEntries.splice(index, 1);
-        writeData(data);
+        writeData({ cashFlowEntries: data.cashFlowEntries });
     } else {
         throw new Error("Lançamento não encontrado no fluxo de caixa");
     }
@@ -737,17 +751,36 @@ export const addVial = async (vialData: NewVialData): Promise<Vial[]> => {
     const newEntry: CashFlowEntry = { id: newId, ...cashFlowEntry };
     data.cashFlowEntries.push(newEntry);
     
-    writeData(data);
+    writeData({ vials: data.vials, cashFlowEntries: data.cashFlowEntries });
     await new Promise(resolve => setTimeout(resolve, 100));
     return newVials;
 }
 
+export const getSettings = async (): Promise<Settings> => {
+    const { settings } = readData();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return settings;
+}
+
+export const updateSettings = async (newSettings: Partial<Settings>): Promise<Settings> => {
+    const data = readData();
+    const updatedSettings = { ...data.settings, ...newSettings };
+    writeData({ settings: updatedSettings });
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return updatedSettings;
+};
+
+
 export const resetAllData = async (): Promise<void> => {
-    const emptyData: MockData = {
+    const emptyData: Partial<MockData> = {
         patients: [],
         sales: [],
         cashFlowEntries: [],
-        vials: []
+        vials: [],
+        settings: {
+            defaultDoses: ["2.5", "5.0", "7.5", "10.0", "12.5", "15.0"],
+            defaultPrice: 380,
+        }
     };
     writeData(emptyData);
     await new Promise(resolve => setTimeout(resolve, 100));
