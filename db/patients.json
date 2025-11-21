@@ -225,21 +225,27 @@
       {
         "id": 2,
         "doseNumber": 2,
-        "date": "2025-11-28T19:09:25.293Z",
-        "status": "pending",
+        "date": "2025-11-16T03:00:00.000Z",
+        "status": "administered",
         "time": "10:00",
         "payment": {
-          "status": "pendente"
-        }
+          "status": "pago",
+          "date": "2025-11-16T03:00:00.000Z",
+          "amount": 430
+        },
+        "weight": 104,
+        "bmi": 30.39,
+        "administeredDose": 5
       },
       {
         "id": 3,
         "doseNumber": 3,
-        "date": "2025-12-05T19:09:25.293Z",
+        "date": "2025-11-23T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
-          "status": "pendente"
+          "status": "pendente",
+          "amount": 0
         }
       },
       {
@@ -342,15 +348,29 @@
           "weight": 108,
           "bmi": 31.56
         }
+      },
+      {
+        "id": "evo-sale-4",
+        "date": "2025-11-16T03:00:00.000Z",
+        "notes": "Registro de bioimpedância no momento da venda.",
+        "bioimpedance": {
+          "weight": 104,
+          "bmi": 30.39
+        }
       }
     ],
     "dailyMedications": "",
     "monjauroDose": "",
     "monjauroTime": "",
-    "points": 20,
+    "points": 40,
     "pointHistory": [
       {
         "date": "2025-11-21T19:11:23.725Z",
+        "description": "Compra de 1x dose(s) de 5.0mg",
+        "points": 20
+      },
+      {
+        "date": "2025-11-21T19:21:09.329Z",
         "description": "Compra de 1x dose(s) de 5.0mg",
         "points": 20
       }

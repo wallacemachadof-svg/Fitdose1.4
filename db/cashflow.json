@@ -34,5 +34,14 @@
     "amount": 180,
     "status": "pago",
     "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-4",
+    "type": "entrada",
+    "purchaseDate": "2025-11-16T03:00:00.000Z",
+    "description": "Venda 1x 5.0mg p/ CRISTIANO MARTINS COSTA",
+    "amount": 180,
+    "status": "pago",
+    "paymentMethod": "pix"
   }
 ]
