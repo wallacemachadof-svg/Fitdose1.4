@@ -2,30 +2,43 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { analyzeBioimpedanceImage, type AnalyzeBioimpedanceOutput } from '@/ai/flows/analyze-bioimpedance-flow';
-import { getPatients, addBioimpedanceEntry, type Patient } from '@/lib/actions';
+import { getPatients, addBioimpedanceEntry, type Bioimpedance } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Upload, Loader2, Bot, Wand2, X } from 'lucide-react';
-import Image from 'next/image';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Loader2 } from 'lucide-react';
 import { format as formatDateFns } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
+const initialBioimpedanceState: Bioimpedance = {
+    weight: undefined,
+    bmi: undefined,
+    fatPercentage: undefined,
+    fatWeight: undefined,
+    skeletalMusclePercentage: undefined,
+    skeletalMuscleWeight: undefined,
+    muscleMassPercentage: undefined,
+    muscleMassWeight: undefined,
+    visceralFat: undefined,
+    hydration: undefined,
+    waterWeight: undefined,
+    metabolism: undefined,
+    obesityPercentage: undefined,
+    boneMass: undefined,
+    protein: undefined,
+    lbm: undefined,
+    metabolicAge: undefined,
+};
+
 export default function BioimpedancePage() {
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageData, setImageData] = useState<string | null>(null);
-  const [extractedData, setExtractedData] = useState<AnalyzeBioimpedanceOutput | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [bioimpedanceData, setBioimpedanceData] = useState<Bioimpedance>(initialBioimpedanceState);
   const [patients, setPatients] = useState<{ value: string, label: string }[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -42,68 +55,26 @@ export default function BioimpedancePage() {
     fetchPatients();
   }, []);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string;
-        setImagePreview(dataUrl);
-        setImageData(dataUrl);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setBioimpedanceData(prev => ({
+        ...prev,
+        [id]: value === '' ? undefined : Number(value)
+    }));
   };
-  
-  const clearImage = () => {
-      setImagePreview(null);
-      setImageData(null);
-      setExtractedData(null);
-  }
 
-  const handleAnalyzeClick = async () => {
-    if (!imageData) {
-      toast({
-        variant: "destructive",
-        title: "Nenhuma imagem selecionada",
-        description: "Por favor, envie uma imagem para análise.",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    setExtractedData(null);
-    try {
-      const result = await analyzeBioimpedanceImage({ photoDataUri: imageData });
-      setExtractedData(result);
-      toast({
-        title: "Análise Concluída!",
-        description: "Os dados da bioimpedância foram extraídos com sucesso.",
-      });
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: "destructive",
-        title: "Erro na Análise",
-        description: "Não foi possível extrair os dados da imagem. Tente novamente.",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
   const handleSaveEntry = async () => {
-      if (!selectedPatientId || !extractedData || !date) {
+      if (!selectedPatientId || !date) {
           toast({
               variant: "destructive",
               title: "Dados incompletos",
-              description: "Selecione um paciente, data e analise uma imagem antes de salvar."
+              description: "Selecione um paciente e uma data antes de salvar."
           });
           return;
       }
       setIsSubmitting(true);
       try {
-        await addBioimpedanceEntry(selectedPatientId, date, extractedData);
+        await addBioimpedanceEntry(selectedPatientId, date, bioimpedanceData);
         toast({
             title: "Registro Salvo!",
             description: "A nova entrada de bioimpedância foi salva no perfil do paciente."
@@ -142,122 +113,74 @@ export default function BioimpedancePage() {
     { key: 'metabolicAge', label: 'Idade metabólica' },
   ];
 
+  const isFormFilled = Object.values(bioimpedanceData).some(value => value !== undefined && value !== '');
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Análise de Bioimpedância com IA</h1>
+        <h1 className="text-2xl font-bold">Lançamento Manual de Bioimpedância</h1>
         <p className="text-muted-foreground">
-          Envie a imagem do aplicativo de bioimpedância para extrair os dados automaticamente.
+          Insira os dados da avaliação de bioimpedância do paciente.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 space-y-6">
-           <Card>
-                <CardHeader>
-                    <CardTitle>1. Envio da Imagem</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="space-y-2">
-                        <Label htmlFor="picture">Imagem da Bioimpedância</Label>
-                        <label htmlFor="picture" className="cursor-pointer">
-                            <div className="w-full h-64 rounded-md bg-muted flex items-center justify-center border-2 border-dashed border-gray-300 relative">
-                                {imagePreview ? (
-                                    <>
-                                    <Image src={imagePreview} alt="Preview" layout="fill" className="rounded-md object-contain" />
-                                    <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={(e) => { e.preventDefault(); e.stopPropagation(); clearImage(); }}>
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                    </>
-                                ) : (
-                                    <div className="flex flex-col items-center text-muted-foreground text-center p-4">
-                                    <Upload className="w-12 h-12 mb-2" />
-                                    <span className="text-sm">Clique ou arraste a imagem aqui</span>
-                                    </div>
-                                )}
-                            </div>
-                        </label>
-                        <Input id="picture" type="file" className="sr-only" accept="image/*" onChange={handleImageChange} />
-                         <Button type="button" className="w-full" onClick={() => document.getElementById('picture')?.click()}>
-                            <Upload className="w-4 h-4 mr-2" />
-                            Escolher Arquivo
-                        </Button>
-                    </div>
-                     <Button type="button" className="w-full" onClick={handleAnalyzeClick} disabled={isLoading || !imageData}>
-                        {isLoading ? (
-                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analisando...</>
-                        ) : (
-                            <><Bot className="w-4 h-4 mr-2" /> Analisar com IA</>
-                        )}
-                    </Button>
-                </CardContent>
-            </Card>
-
-            
-        </div>
-        <div className="lg:col-span-2">
-            <Card>
-                <CardHeader>
-                    <CardTitle>2. Dados Extraídos e Validação</CardTitle>
-                    <CardDescription>Verifique os dados extraídos pela IA e selecione o paciente e a data para salvar o registro.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <div className="space-y-2">
-                            <Label>Paciente</Label>
-                             <Combobox 
-                                options={patients}
-                                value={selectedPatientId}
-                                onChange={(value) => setSelectedPatientId(value)}
-                                placeholder="Selecione um paciente..."
-                                noResultsText="Nenhum paciente encontrado."
-                            />
-                        </div>
-                         <div className="space-y-2">
-                            <Label>Data do Registro</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {date ? formatDateFns(date, "PPP", {locale: ptBR}) : <span>Escolha uma data</span>}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar mode="single" selected={date} onSelect={setDate} initialFocus locale={ptBR}/>
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                    </div>
-                   
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {dataFields.map(field => (
-                        <div key={field.key} className="space-y-2">
-                            <Label htmlFor={field.key} className="text-xs">{field.label}</Label>
-                            {isLoading ? (
-                                <Skeleton className="h-10 w-full" />
-                            ) : (
-                                <Input
-                                    id={field.key}
-                                    type="text"
-                                    value={(extractedData?.[field.key as keyof AnalyzeBioimpedanceOutput] as any) ?? ''}
-                                    onChange={(e) => setExtractedData(prev => ({...prev as object, [field.key]: e.target.value }))}
-                                    placeholder="-"
-                                />
-                            )}
-                        </div>
-                    ))}
-                    </div>
-                     <Button type="button" className="w-full" size="lg" onClick={handleSaveEntry} disabled={isSubmitting || !extractedData || !selectedPatientId}>
-                        {isSubmitting ? (
-                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Salvando Registro...</>
-                        ) : (
-                            'Salvar Registro no Perfil do Paciente'
-                        )}
-                    </Button>
-                </CardContent>
-            </Card>
-        </div>
-      </div>
+      <Card>
+          <CardHeader>
+              <CardTitle>Dados da Avaliação</CardTitle>
+              <CardDescription>Preencha os campos abaixo com as informações da bioimpedância.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                      <Label>Paciente *</Label>
+                       <Combobox 
+                          options={patients}
+                          value={selectedPatientId}
+                          onChange={(value) => setSelectedPatientId(value)}
+                          placeholder="Selecione um paciente..."
+                          noResultsText="Nenhum paciente encontrado."
+                      />
+                  </div>
+                   <div className="space-y-2">
+                      <Label>Data do Registro *</Label>
+                      <Popover>
+                          <PopoverTrigger asChild>
+                              <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {date ? formatDateFns(date, "PPP", {locale: ptBR}) : <span>Escolha uma data</span>}
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                              <Calendar mode="single" selected={date} onSelect={setDate} initialFocus locale={ptBR}/>
+                          </PopoverContent>
+                      </Popover>
+                  </div>
+              </div>
+             
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {dataFields.map(field => (
+                  <div key={field.key} className="space-y-2">
+                      <Label htmlFor={field.key} className="text-xs">{field.label}</Label>
+                      <Input
+                          id={field.key}
+                          type="number"
+                          step="0.1"
+                          value={(bioimpedanceData?.[field.key as keyof Bioimpedance] as any) ?? ''}
+                          onChange={handleInputChange}
+                          placeholder="-"
+                      />
+                  </div>
+              ))}
+              </div>
+               <Button type="button" className="w-full" size="lg" onClick={handleSaveEntry} disabled={isSubmitting || !selectedPatientId || !isFormFilled}>
+                  {isSubmitting ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Salvando Registro...</>
+                  ) : (
+                      'Salvar Registro no Perfil do Paciente'
+                  )}
+              </Button>
+          </CardContent>
+      </Card>
     </div>
   );
 }
