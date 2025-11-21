@@ -2,7 +2,7 @@
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,15 +17,21 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Upload, Trash2 } from "lucide-react";
+import { Loader2, Upload, Trash2, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getSettings, updateSettings, type Settings } from "@/lib/actions";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatCurrency } from "@/lib/utils";
+
+const dosePriceSchema = z.object({
+  dose: z.string().min(1, "A dose é obrigatória."),
+  price: z.coerce.number().min(0, "O preço deve ser um valor positivo."),
+});
 
 const settingsFormSchema = z.object({
-  defaultPrice: z.coerce.number().min(0, "O preço deve ser um valor positivo."),
-  defaultDoses: z.string().min(1, "É necessário pelo menos uma dose padrão."),
+  dosePrices: z.array(dosePriceSchema),
 });
 
 type SettingsFormValues = z.infer<typeof settingsFormSchema>;
@@ -38,6 +44,14 @@ export default function AdminPage() {
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsFormSchema),
+    defaultValues: {
+      dosePrices: [],
+    }
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "dosePrices",
   });
 
   useEffect(() => {
@@ -45,10 +59,9 @@ export default function AdminPage() {
       setLoading(true);
       try {
         const settings = await getSettings();
-        if (settings) {
+        if (settings && settings.dosePrices) {
             form.reset({
-                defaultPrice: settings.defaultPrice,
-                defaultDoses: settings.defaultDoses.join(", "),
+                dosePrices: settings.dosePrices,
             });
         }
         const storedLogo = localStorage.getItem('customLogo');
@@ -98,15 +111,13 @@ export default function AdminPage() {
   async function onSubmit(data: SettingsFormValues) {
     setIsSubmitting(true);
     try {
-      const dosesArray = data.defaultDoses.split(',').map(d => d.trim()).filter(Boolean);
       const settingsToSave: Settings = {
-        defaultPrice: data.defaultPrice,
-        defaultDoses: dosesArray,
+        dosePrices: data.dosePrices,
       };
       await updateSettings(settingsToSave);
       toast({
         title: "Configurações Salvas!",
-        description: "As configurações gerais foram atualizadas com sucesso.",
+        description: "A tabela de preços foi atualizada com sucesso.",
       });
     } catch (error) {
       toast({
@@ -141,7 +152,7 @@ export default function AdminPage() {
             <p className="text-muted-foreground">Gerencie as configurações globais do sistema.</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <Card>
                 <CardHeader>
                     <CardTitle>Logotipo</CardTitle>
@@ -172,51 +183,74 @@ export default function AdminPage() {
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="lg:col-span-2">
                 <CardHeader>
-                    <CardTitle>Configurações Gerais</CardTitle>
-                    <CardDescription>Defina valores padrão para doses e preços no sistema.</CardDescription>
+                    <CardTitle>Tabela de Preços por Dose</CardTitle>
+                    <CardDescription>Defina os preços para cada dosagem disponível no sistema.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField
-                                    control={form.control}
-                                    name="defaultDoses"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Doses Padrão (mg)</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="2.5, 5.0, 7.5, 10.0" {...field} />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Separe os valores por vírgula.
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="defaultPrice"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Preço Padrão (R$)</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" step="0.01" {...field} />
-                                            </FormControl>
-                                            <FormDescription>
-                                            Valor padrão para novas vendas.
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                            <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
-                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : 'Salvar Configurações'}
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Dose (mg)</TableHead>
+                                        <TableHead>Preço (R$)</TableHead>
+                                        <TableHead className="text-right">Ação</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {fields.map((field, index) => (
+                                        <TableRow key={field.id}>
+                                            <TableCell>
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`dosePrices.${index}.dose`}
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormControl><Input placeholder="Ex: 2.5" {...field} /></FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`dosePrices.${index}.price`}
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormControl><Input type="number" step="0.01" placeholder="Ex: 220.00" {...field} /></FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                             <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="mt-4"
+                                onClick={() => append({ dose: "", price: 0 })}
+                            >
+                                <PlusCircle className="h-4 w-4 mr-2" />
+                                Adicionar Dose
                             </Button>
+                            
+                            <div className="flex justify-end pt-4">
+                                <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
+                                    {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : 'Salvar Tabela de Preços'}
+                                </Button>
+                            </div>
                         </form>
                     </Form>
                 </CardContent>
@@ -225,4 +259,3 @@ export default function AdminPage() {
     </div>
   )
 }
-

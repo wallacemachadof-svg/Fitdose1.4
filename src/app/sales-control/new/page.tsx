@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
-import { addSale, getPatients, getPatientById, getSettings, type Patient, type Bioimpedance } from "@/lib/actions";
+import { addSale, getPatients, getPatientById, getSettings, type Patient, type Bioimpedance, type DosePrice } from "@/lib/actions";
 import { Combobox } from "@/components/ui/combobox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -84,8 +84,7 @@ export default function NewSalePage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [patients, setPatients] = useState<{ value: string, label: string }[]>([]);
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-    const [defaultDoses, setDefaultDoses] = useState<string[]>([]);
-    const [defaultPrice, setDefaultPrice] = useState(0);
+    const [dosePrices, setDosePrices] = useState<DosePrice[]>([]);
 
     useEffect(() => {
         async function fetchInitialData() {
@@ -94,8 +93,7 @@ export default function NewSalePage() {
                 getSettings(),
             ]);
             setPatients(patientData.map(p => ({ value: p.id, label: p.fullName })));
-            setDefaultDoses(settings.defaultDoses || []);
-            setDefaultPrice(settings.defaultPrice || 380);
+            setDosePrices(settings.dosePrices || []);
         }
         fetchInitialData();
     }, []);
@@ -113,12 +111,9 @@ export default function NewSalePage() {
         },
     });
     
-    useEffect(() => {
-        form.setValue("price", defaultPrice);
-    }, [defaultPrice, form]);
-
     const { watch, setValue } = form;
     const watchPatientId = watch("patientId");
+    const watchSoldDose = watch("soldDose");
     const watchPrice = watch("price");
     const watchDiscount = watch("discount");
     const watchPointsUsed = watch("pointsUsed");
@@ -129,11 +124,6 @@ export default function NewSalePage() {
             if (watchPatientId) {
                 const patient = await getPatientById(watchPatientId);
                 setSelectedPatient(patient);
-                if (patient?.defaultPrice) {
-                    setValue("price", patient.defaultPrice);
-                } else {
-                    setValue("price", defaultPrice);
-                }
                 if (patient?.defaultDose) {
                     setValue("soldDose", patient.defaultDose);
                 }
@@ -142,7 +132,17 @@ export default function NewSalePage() {
             }
         };
         fetchPatientDetails();
-    }, [watchPatientId, setValue, defaultPrice]);
+    }, [watchPatientId, setValue]);
+
+    useEffect(() => {
+        if (watchSoldDose) {
+            const dosePrice = dosePrices.find(dp => dp.dose === watchSoldDose);
+            if (dosePrice) {
+                setValue("price", dosePrice.price);
+            }
+        }
+    }, [watchSoldDose, dosePrices, setValue, selectedPatient]);
+
 
     useEffect(() => {
         const price = watchPrice || 0;
@@ -266,9 +266,9 @@ export default function NewSalePage() {
                                                         </SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent>
-                                                        {defaultDoses.map(dose => (
-                                                            <SelectItem key={dose} value={dose}>
-                                                                {dose} mg
+                                                        {dosePrices.map(dp => (
+                                                            <SelectItem key={dp.dose} value={dp.dose}>
+                                                                {dp.dose} mg
                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>

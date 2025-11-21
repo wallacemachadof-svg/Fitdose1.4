@@ -34,7 +34,7 @@ const readData = (): MockData => {
         const sales = fs.existsSync(salesFilePath) ? JSON.parse(fs.readFileSync(salesFilePath, 'utf-8')) : [];
         const cashFlowEntries = fs.existsSync(cashFlowFilePath) ? JSON.parse(fs.readFileSync(cashFlowFilePath, 'utf-8')) : [];
         const vials = fs.existsSync(vialsFilePath) ? JSON.parse(fs.readFileSync(vialsFilePath, 'utf-8')) : [];
-        const settings = fs.existsSync(settingsFilePath) ? JSON.parse(fs.readFileSync(settingsFilePath, 'utf-8')) : { defaultDoses: [], defaultPrice: 0 };
+        const settings = fs.existsSync(settingsFilePath) ? JSON.parse(fs.readFileSync(settingsFilePath, 'utf-8')) : { dosePrices: [] };
 
         
         // Dates are stored as strings in JSON, so we need to convert them back to Date objects
@@ -72,7 +72,13 @@ const readData = (): MockData => {
         return { patients, sales, cashFlowEntries, vials, settings };
     } catch (error) {
         // If files don't exist, return empty arrays
-        return { patients: [], sales: [], cashFlowEntries: [], vials: [], settings: { defaultDoses: ["2.5", "5.0", "7.5", "10.0", "12.5", "15.0"], defaultPrice: 380 } };
+        return { patients: [], sales: [], cashFlowEntries: [], vials: [], settings: { dosePrices: [
+            { dose: "2.5", price: 220 },
+            { dose: "3.75", price: 330 },
+            { dose: "5.0", price: 430 },
+            { dose: "6.25", price: 540 },
+            { dose: "7.05", price: 620 }
+        ] } };
     }
 };
 
@@ -264,9 +270,13 @@ export type NewVialData = Omit<Vial, 'id' | 'remainingMg' | 'soldMg'> & {
     quantity: number;
 };
 
+export type DosePrice = {
+    dose: string;
+    price: number;
+};
+
 export type Settings = {
-    defaultDoses: string[];
-    defaultPrice: number;
+    dosePrices: DosePrice[];
 };
 
 // --- Data Access Functions ---
@@ -783,8 +793,13 @@ export const resetAllData = async (): Promise<void> => {
         cashFlowEntries: [],
         vials: [],
         settings: {
-            defaultDoses: ["2.5", "5.0", "7.5", "10.0", "12.5", "15.0"],
-            defaultPrice: 380,
+            dosePrices: [
+                { dose: "2.5", price: 220 },
+                { dose: "3.75", price: 330 },
+                { dose: "5.0", price: 430 },
+                { dose: "6.25", price: 540 },
+                { dose: "7.05", price: 620 }
+            ]
         }
     };
     writeData(emptyData);
