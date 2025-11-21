@@ -33,7 +33,7 @@ const readData = (): MockData => {
         
         // Dates are stored as strings in JSON, so we need to convert them back to Date objects
         patients.forEach((p: Patient) => {
-            p.firstDoseDate = new Date(p.firstDoseDate);
+            if (p.firstDoseDate) p.firstDoseDate = new Date(p.firstDoseDate);
             if (p.consentDate) p.consentDate = new Date(p.consentDate);
             p.doses.forEach(d => {
                 d.date = new Date(d.date);
@@ -181,7 +181,7 @@ export type Bioimpedance = {
 export type Evolution = {
     id: string;
     date: Date;
-    notes: string;
+    notes?: string;
     photoUrl?: string;
     bioimpedance?: Bioimpedance;
 };
@@ -408,7 +408,7 @@ export const addBioimpedanceEntry = async (patientId: string, date: Date, bioimp
 
     const patient = data.patients[patientIndex];
     const newEvolution: Evolution = {
-        id: `evo-${Date.now()}`,
+        id: `evo-ia-${Date.now()}`,
         date: date,
         notes: "Registro de bioimpedância via IA.",
         bioimpedance: bioimpedance,
@@ -632,4 +632,5 @@ export const resetAllData = async (): Promise<void> => {
     writeData(emptyData);
     await new Promise(resolve => setTimeout(resolve, 100));
 }
+
 
