@@ -400,10 +400,12 @@ export default function PatientDetailPage() {
                             <TableCell>{(evo as any).fatPercentage?.toFixed(2) ?? '-'}</TableCell>
                             <TableCell>{(evo as any).skeletalMusclePercentage?.toFixed(2) ?? '-'}</TableCell>
                             <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteEvolutionClick(evo as Evolution)}>
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">Excluir registro</span>
-                                </Button>
+                                {!evo.isInitial && (
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteEvolutionClick(evo as Evolution)}>
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="sr-only">Excluir registro</span>
+                                    </Button>
+                                )}
                             </TableCell>
                         </TableRow>
                     ))
@@ -684,6 +686,7 @@ const isSameDay = (date1: Date, date2: Date) =>
   date1.getDate() === date2.getDate();
 
     
+
 
 
 

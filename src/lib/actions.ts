@@ -414,16 +414,16 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
         }
     };
     
-    // Sort doses by number to ensure correct order
+    // Sort doses by number to ensure correct order before recalculating
     patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
 
     // Recalculate dates for subsequent pending doses
     for (let i = 0; i < patient.doses.length; i++) {
-        const currentDose = patient.doses[i];
-        
         // Find the previous dose in the sorted list
         if (i > 0) {
+            const currentDose = patient.doses[i];
             const prevDose = patient.doses[i-1];
+            
             // If the current dose is pending, reschedule it 7 days after the previous one
             if (currentDose.status === 'pending') {
                 const newDate = new Date(prevDose.date);
