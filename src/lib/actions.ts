@@ -387,9 +387,15 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     if (updatedDose.status === 'administered' && updatedDose.weight) {
         updatedDose.bmi = calculateBmi(updatedDose.weight, patient.height / 100);
     }
+    
+    // If payment status is set to pending, clear the payment date
+    if (updatedDose.payment.status === 'pendente') {
+        updatedDose.payment.date = undefined;
+    }
+
 
     patient.doses[doseIndex] = updatedDose;
-    patient.doses.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
     data.patients[patientIndex] = patient;
     writeData(data);
 
@@ -465,7 +471,7 @@ export const addBioimpedanceEntry = async (patientId: string, date: Date, bioimp
         patient.doses[nextPendingDoseIndex] = doseToUpdate;
     }
     
-    // Ensure doses are always in chronological order
+    // Ensure doses are always in chronological order by dose number
     patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
 
 

@@ -97,6 +97,8 @@ const doseManagementSchema = z.object({
   administeredDose: z.coerce.number().optional(),
   paymentMethod: z.enum(['cash', 'pix', 'debit', 'credit', 'payment_link']).optional(),
   installments: z.coerce.number().optional(),
+  paymentStatus: z.enum(['pago', 'pendente']),
+  paymentDate: z.date().optional(),
 }).refine(data => {
     if (data.status === 'administered') {
         return !!data.weight && !!data.administeredDose;
@@ -718,6 +720,8 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
             administeredDose: dose.administeredDose || undefined,
             paymentMethod: dose.payment?.method || undefined,
             installments: dose.payment?.installments || undefined,
+            paymentStatus: dose.payment?.status || 'pendente',
+            paymentDate: dose.payment?.date ? new Date(dose.payment.date) : undefined,
         },
     });
 
@@ -730,11 +734,14 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
             administeredDose: dose.administeredDose || undefined,
             paymentMethod: dose.payment?.method || undefined,
             installments: dose.payment?.installments || undefined,
+            paymentStatus: dose.payment?.status || 'pendente',
+            paymentDate: dose.payment?.date ? new Date(dose.payment.date) : undefined,
         });
     }, [dose, form]);
 
     const watchStatus = form.watch("status");
     const watchPaymentMethod = form.watch("paymentMethod");
+    const watchPaymentStatus = form.watch("paymentStatus");
 
     async function onSubmit(data: DoseManagementFormValues) {
         setIsSubmitting(true);
@@ -747,6 +754,8 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                 administeredDose: data.administeredDose,
                 payment: {
                     ...dose.payment,
+                    status: data.paymentStatus,
+                    date: data.paymentDate,
                     method: data.paymentMethod,
                     installments: data.installments,
                     amount: dose.payment?.amount || 0
@@ -777,7 +786,7 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent>
+            <DialogContent className="max-w-xl">
                 <DialogHeader>
                     <DialogTitle>Gerenciar Dose N° {dose.doseNumber}</DialogTitle>
                     <DialogDescription>
@@ -792,7 +801,7 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                                 control={form.control}
                                 name="date"
                                 render={({ field }) => (
-                                <FormItem className="flex flex-col"><FormLabel>Data da Dose</FormLabel>
+                                <FormItem className="flex flex-col"><FormLabel>Data da Aplicação</FormLabel>
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <FormControl>
@@ -819,7 +828,7 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                             name="status"
                             render={({ field }) => (
                                 <FormItem className="space-y-3">
-                                    <FormLabel>Status da Dose</FormLabel>
+                                    <FormLabel>Status da Aplicação</FormLabel>
                                     <FormControl>
                                         <RadioGroup
                                             onValueChange={field.onChange}
@@ -841,7 +850,8 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                             )}
                         />
                         {watchStatus === 'administered' && (
-                           <>
+                           <div className="p-4 border rounded-md space-y-4">
+                               <h4 className="text-sm font-semibold">Dados da Aplicação</h4>
                                 <div className="grid grid-cols-2 gap-4">
                                      <FormField control={form.control} name="weight" render={({ field }) => (
                                         <FormItem><FormLabel>Peso (kg)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 84.5" {...field} /></FormControl><FormMessage /></FormItem>
@@ -850,37 +860,92 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                                         <FormItem><FormLabel>Dose Aplicada (mg)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 2.5" {...field} /></FormControl><FormMessage /></FormItem>
                                     )}/>
                                 </div>
-                                <FormField
-                                    control={form.control}
-                                    name="paymentMethod"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Forma de Pagamento</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Selecione o pagamento" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="cash">Dinheiro</SelectItem>
-                                                    <SelectItem value="pix">PIX</SelectItem>
-                                                    <SelectItem value="debit">Débito</SelectItem>
-                                                    <SelectItem value="credit">Crédito</SelectItem>
-                                                    <SelectItem value="payment_link">Link de Pagamento</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                {watchPaymentMethod === 'credit' && (
-                                     <FormField control={form.control} name="installments" render={({ field }) => (
-                                        <FormItem><FormLabel>Parcelas</FormLabel><FormControl><Input type="number" placeholder="Ex: 2" {...field} /></FormControl><FormMessage /></FormItem>
-                                    )}/>
-                                )}
-                           </>
+                            </div>
                         )}
+                        <div className="p-4 border rounded-md space-y-4">
+                            <h4 className="text-sm font-semibold">Dados Financeiros</h4>
+                            <FormField
+                                control={form.control}
+                                name="paymentStatus"
+                                render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                        <FormLabel>Status do Pagamento</FormLabel>
+                                        <FormControl>
+                                            <RadioGroup
+                                                onValueChange={field.onChange}
+                                                defaultValue={field.value}
+                                                className="flex items-center gap-6"
+                                            >
+                                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                                    <FormControl><RadioGroupItem value="pendente" /></FormControl>
+                                                    <FormLabel className="font-normal">Pendente</FormLabel>
+                                                </FormItem>
+                                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                                    <FormControl><RadioGroupItem value="pago" /></FormControl>
+                                                    <FormLabel className="font-normal">Pago</FormLabel>
+                                                </FormItem>
+                                            </RadioGroup>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             {watchPaymentStatus === 'pago' && (
+                                <>
+                                    <FormField
+                                        control={form.control}
+                                        name="paymentDate"
+                                        render={({ field }) => (
+                                        <FormItem className="flex flex-col"><FormLabel>Data do Pagamento</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                        {field.value ? formatDateFns(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                    </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                </PopoverContent>
+                                            </Popover>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}/>
+                                    <FormField
+                                        control={form.control}
+                                        name="paymentMethod"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Forma de Pagamento</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Selecione o pagamento" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="cash">Dinheiro</SelectItem>
+                                                        <SelectItem value="pix">PIX</SelectItem>
+                                                        <SelectItem value="debit">Débito</SelectItem>
+                                                        <SelectItem value="credit">Crédito</SelectItem>
+                                                        <SelectItem value="payment_link">Link de Pagamento</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    {watchPaymentMethod === 'credit' && (
+                                        <FormField control={form.control} name="installments" render={({ field }) => (
+                                            <FormItem><FormLabel>Parcelas</FormLabel><FormControl><Input type="number" placeholder="Ex: 2" {...field} /></FormControl><FormMessage /></FormItem>
+                                        )}/>
+                                    )}
+                                </>
+                             )}
+                        </div>
+
                         <DialogFooter>
                             <DialogClose asChild>
                                 <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>

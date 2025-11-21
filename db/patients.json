@@ -15,9 +15,16 @@
       {
         "id": 1,
         "doseNumber": 1,
-        "date": "2025-11-18T03:00:00.000Z",
-        "status": "pending",
-        "time": "12:00"
+        "date": "2025-07-18T03:00:00.000Z",
+        "status": "administered",
+        "time": "12:00",
+        "weight": 91.9,
+        "administeredDose": 2.5,
+        "payment": {
+          "method": "pix",
+          "amount": 0
+        },
+        "bmi": 30.01
       },
       {
         "id": 2,
