@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import Image from 'next/image';
@@ -13,19 +14,22 @@ export default function PublicLayout({
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedLogo = localStorage.getItem('customLogo');
-    if (storedLogo) {
-      setLogoUrl(storedLogo);
+    // This check ensures localStorage is accessed only on the client side.
+    if (typeof window !== 'undefined') {
+        const storedLogo = localStorage.getItem('customLogo');
+        if (storedLogo) {
+            setLogoUrl(storedLogo);
+        }
+        const handleStorageChange = (event: StorageEvent) => {
+            if (event.key === 'customLogo') {
+                setLogoUrl(event.newValue);
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+        };
     }
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'customLogo') {
-        setLogoUrl(event.newValue);
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
   }, []);
 
   return (

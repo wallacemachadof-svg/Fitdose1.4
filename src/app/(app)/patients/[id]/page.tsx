@@ -13,7 +13,8 @@ import {
   type Patient,
   type Dose,
   type Evolution,
-  type Bioimpedance
+  type Bioimpedance,
+  linkPatientToAuth,
 } from '@/lib/actions';
 import {
   calculateBmi,
@@ -495,16 +496,13 @@ function AccessControlCard({ patient, onPatientUpdate }: { patient: Patient, onP
         try {
             const user = await createUser(data.email, data.password);
             if (user) {
-                // Here you would link the firebase user (user.uid) to your patient record
-                console.log("User created:", user.uid);
+                const updatedPatient = await linkPatientToAuth(patient.id, user.uid, data.email);
+                onPatientUpdate(updatedPatient);
                 toast({
                     title: "Acesso Criado!",
                     description: "O paciente agora pode acessar o portal com as credenciais fornecidas.",
                 });
                 setIsCreateAccessOpen(false);
-                // This is a placeholder. You'll need an action to update the patient with the auth UID
-                // const updatedPatient = await linkPatientToAuth(patient.id, user.uid, data.email);
-                // onPatientUpdate(updatedPatient);
             }
         } catch (error: any) {
             console.error("Failed to create user", error);
