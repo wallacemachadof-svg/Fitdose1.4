@@ -416,9 +416,11 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     
     // Sort doses by number to ensure correct order before recalculating
     patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
+    const updatedDoseIndex = patient.doses.findIndex(d => d.id === doseId);
+
 
     // Recalculate dates for subsequent pending doses
-    for (let i = doseIndex + 1; i < patient.doses.length; i++) {
+    for (let i = updatedDoseIndex + 1; i < patient.doses.length; i++) {
         const currentDose = patient.doses[i];
         const prevDose = patient.doses[i-1];
         
@@ -503,16 +505,17 @@ export const addBioimpedanceEntry = async (patientId: string, date: Date, bioimp
             doseToUpdate.bmi = bioimpedance.bmi;
         }
         patient.doses[nextPendingDoseIndex] = doseToUpdate;
+        
+        // Reschedule subsequent doses
+        for (let i = nextPendingDoseIndex + 1; i < patient.doses.length; i++) {
+            const prevDose = patient.doses[i-1];
+            const newDate = new Date(prevDose.date);
+            newDate.setDate(newDate.getDate() + 7);
+            patient.doses[i].date = newDate;
+        }
+
     }
     
-    // Ensure doses are always in chronological order by dose number
-    patient.doses.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-        .forEach((dose, index) => {
-            dose.doseNumber = index + 1;
-            dose.id = index + 1;
-        });
-
-
     data.patients[patientIndex] = patient;
     writeData({ patients: data.patients });
 
@@ -612,13 +615,19 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         // Auto-administer next pending dose
         const nextPendingDoseIndex = patient.doses.findIndex(d => d.status === 'pending');
         if (nextPendingDoseIndex !== -1) {
-            const doseToUpdate = patient.doses[nextPendingDoseIndex];
-            doseToUpdate.status = 'administered';
-            doseToUpdate.date = newSale.saleDate;
-            doseToUpdate.weight = bioimpedance.weight;
-            doseToUpdate.bmi = bioimpedance.bmi;
-            doseToUpdate.administeredDose = parseFloat(saleData.soldDose) || undefined;
-            patient.doses[nextPendingDoseIndex] = doseToUpdate;
+            patient.doses[nextPendingDoseIndex].status = 'administered';
+            patient.doses[nextPendingDoseIndex].date = newSale.saleDate;
+            patient.doses[nextPendingDoseIndex].weight = bioimpedance.weight;
+            patient.doses[nextPendingDoseIndex].bmi = bioimpedance.bmi;
+            patient.doses[nextPendingDoseIndex].administeredDose = parseFloat(saleData.soldDose) || undefined;
+            
+            // Reschedule subsequent doses
+            for (let i = nextPendingDoseIndex + 1; i < patient.doses.length; i++) {
+                const prevDose = patient.doses[i-1];
+                const newDate = new Date(prevDose.date);
+                newDate.setDate(newDate.getDate() + 7);
+                patient.doses[i].date = newDate;
+            }
         }
     }
 
