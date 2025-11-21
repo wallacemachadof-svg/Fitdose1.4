@@ -12,7 +12,7 @@ export function PortalAuthGuard({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (!loading && !user) {
-            router.push('/portal/login');
+            router.push('/portal/acesso');
         }
     }, [user, loading, router]);
 
