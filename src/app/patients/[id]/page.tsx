@@ -333,8 +333,18 @@ export default function PatientDetailPage() {
       
        <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" /> Evolução da Bioimpedância</CardTitle>
-          <CardDescription>Visualize o progresso de cada métrica ao longo do tempo.</CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" /> Evolução da Bioimpedância</CardTitle>
+              <CardDescription>Visualize o progresso de cada métrica ao longo do tempo.</CardDescription>
+            </div>
+            <Button asChild variant="outline">
+              <Link href={`/bioimpedance?patientId=${patient.id}`}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Lançar Nova Medida
+              </Link>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {evolutionChartData.length > 1 ? (
@@ -367,7 +377,7 @@ export default function PatientDetailPage() {
              </div>
           ) : (
             <p className="text-sm text-center text-muted-foreground py-8">
-              É necessário pelo menos dois registros de bioimpedância para gerar os gráficos. Adicione um na aba <Link href="/bioimpedance" className="text-primary hover:underline font-semibold">Bioimpedância</Link>.
+              É necessário pelo menos dois registros de bioimpedância para gerar os gráficos. Adicione um na página de <Link href={`/bioimpedance?patientId=${patient.id}`} className="text-primary hover:underline font-semibold">Bioimpedância</Link>.
             </p>
           )}
         </CardContent>
@@ -686,6 +696,7 @@ const isSameDay = (date1: Date, date2: Date) =>
   date1.getDate() === date2.getDate();
 
     
+
 
 
 

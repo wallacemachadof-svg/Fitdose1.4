@@ -235,5 +235,23 @@
       "protein": 10.7
     },
     "patientName": "ALINE"
+  },
+  {
+    "id": "11",
+    "patientId": "1",
+    "saleDate": "2025-08-08T03:00:00.000Z",
+    "soldDose": "2.5",
+    "quantity": 1,
+    "price": 220,
+    "discount": 220,
+    "pointsUsed": 0,
+    "total": 0,
+    "paymentStatus": "pago",
+    "paymentMethod": "pix",
+    "paymentDate": "2025-08-08T03:00:00.000Z",
+    "deliveryStatus": "entregue",
+    "deliveryDate": "2025-08-08T03:00:00.000Z",
+    "bioimpedance": {},
+    "patientName": "WALLACE KEVELLYN MACHADO FONSECA"
   }
 ]

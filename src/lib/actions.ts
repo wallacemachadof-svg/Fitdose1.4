@@ -418,12 +418,10 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
 
     // Recalculate dates for subsequent pending doses
-    for (let i = 1; i < patient.doses.length; i++) {
+    for (let i = doseIndex + 1; i < patient.doses.length; i++) {
         const currentDose = patient.doses[i];
         const prevDose = patient.doses[i-1];
         
-        // If the current dose is pending and its date is before or at the same day as the previous one
-        // or if the updated dose is the previous one, we need to reschedule
         if (currentDose.status === 'pending') {
             const newDate = new Date(prevDose.date);
             newDate.setDate(newDate.getDate() + 7);

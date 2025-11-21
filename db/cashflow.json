@@ -97,5 +97,14 @@
     "amount": 200,
     "status": "pago",
     "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-11",
+    "type": "entrada",
+    "purchaseDate": "2025-08-08T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ WALLACE KEVELLYN MACHADO FONSECA",
+    "amount": 0,
+    "status": "pago",
+    "paymentMethod": "pix"
   }
 ]
