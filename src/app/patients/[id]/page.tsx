@@ -226,6 +226,32 @@ export default function PatientDetailPage() {
 
   }, [patient]);
 
+  const evolutionHistoryData = useMemo(() => {
+    if (!patient) return [];
+    const history = patient.evolutions.map(e => ({
+      id: e.id,
+      date: e.date,
+      ...e.bioimpedance,
+      isInitial: false
+    }));
+
+    if (patient.initialWeight && patient.firstDoseDate) {
+      const initialDate = new Date(patient.firstDoseDate);
+      // Add initial record only if there's no evolution on the same day
+      if (!history.some(h => isSameDay(new Date(h.date), initialDate))) {
+        history.push({
+          id: 'initial-record',
+          date: initialDate,
+          weight: patient.initialWeight,
+          bmi: calculateBmi(patient.initialWeight, patient.height / 100),
+          isInitial: true,
+        });
+      }
+    }
+    
+    return history.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [patient]);
+
 
   if (loading || !patient) {
     return <PatientDetailSkeleton />;
@@ -268,8 +294,6 @@ export default function PatientDetailPage() {
       { key: 'boneMass', label: 'Massa Óssea', icon: Bone, unit: 'kg' },
       { key: 'protein', label: 'Proteína', icon: Beef, unit: '%' },
   ];
-  
-  const sortedEvolutions = patient.evolutions.sort((a,b) => b.date.getTime() - a.date.getTime());
 
   return (
     <div className="space-y-6">
@@ -336,7 +360,7 @@ export default function PatientDetailPage() {
                 const data = evolutionChartData
                   .map(e => ({
                     date: formatDate(e.date),
-                    value: e[metric.key] as number
+                    value: e[metric.key as keyof typeof e] as number
                   }))
                   .filter(item => item.value !== undefined && item.value !== null);
 
@@ -384,19 +408,23 @@ export default function PatientDetailPage() {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {sortedEvolutions.length > 0 ? (
-                    sortedEvolutions.map((evo) => (
-                        <TableRow key={evo.id}>
-                            <TableCell>{formatDate(evo.date)}</TableCell>
-                            <TableCell>{evo.bioimpedance?.weight?.toFixed(2) ?? '-'}</TableCell>
-                            <TableCell>{evo.bioimpedance?.bmi?.toFixed(2) ?? '-'}</TableCell>
-                            <TableCell>{evo.bioimpedance?.fatPercentage?.toFixed(2) ?? '-'}</TableCell>
-                            <TableCell>{evo.bioimpedance?.skeletalMusclePercentage?.toFixed(2) ?? '-'}</TableCell>
+                {evolutionHistoryData.length > 0 ? (
+                    evolutionHistoryData.map((evo) => (
+                        <TableRow key={evo.id} className={cn(evo.isInitial && "bg-muted/50")}>
+                            <TableCell>{formatDate(evo.date)} {evo.isInitial && <Badge variant="outline" className="ml-2">Inicial</Badge>}</TableCell>
+                            <TableCell>{evo.weight?.toFixed(2) ?? '-'}</TableCell>
+                            <TableCell>{evo.bmi?.toFixed(2) ?? '-'}</TableCell>
+                            <TableCell>{(evo as any).fatPercentage?.toFixed(2) ?? '-'}</TableCell>
+                            <TableCell>{(evo as any).skeletalMusclePercentage?.toFixed(2) ?? '-'}</TableCell>
                             <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteEvolutionClick(evo)}>
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">Excluir registro</span>
-                                </Button>
+                                { !evo.isInitial ? (
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteEvolutionClick(evo as Evolution)}>
+                                      <Trash2 className="h-4 w-4" />
+                                      <span className="sr-only">Excluir registro</span>
+                                  </Button>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">N/A</span>
+                                )}
                             </TableCell>
                         </TableRow>
                     ))
