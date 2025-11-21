@@ -7,6 +7,7 @@ import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import { FirebaseClientProvider } from './client-provider';
 import { firebaseApp, auth, firestore } from '.';
+import { AuthProvider } from './auth/use-user';
 
 interface FirebaseContextValue {
   firebaseApp: FirebaseApp;
@@ -20,7 +21,9 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   return (
     <FirebaseContext.Provider value={{ firebaseApp, auth, firestore }}>
       <FirebaseClientProvider {...{ firebaseApp, auth, firestore }}>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </FirebaseClientProvider>
     </FirebaseContext.Provider>
   );
