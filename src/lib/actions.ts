@@ -168,15 +168,24 @@ export type Dose = {
 };
 
 export type Bioimpedance = {
+    weight?: number;
+    bmi?: number;
     fatPercentage?: number;
-    muscleMass?: number;
+    fatWeight?: number;
+    skeletalMusclePercentage?: number;
+    skeletalMuscleWeight?: number;
+    muscleMassPercentage?: number;
+    muscleMassWeight?: number;
     visceralFat?: number;
-    metabolicAge?: number;
     hydration?: number;
-    boneMass?: number;
+    waterWeight?: number;
     metabolism?: number;
+    obesityPercentage?: number;
+    boneMass?: number;
     protein?: number;
-}
+    lbm?: number;
+    metabolicAge?: number;
+};
 
 export type Evolution = {
     id: string;
@@ -632,5 +641,3 @@ export const resetAllData = async (): Promise<void> => {
     writeData(emptyData);
     await new Promise(resolve => setTimeout(resolve, 100));
 }
-
-

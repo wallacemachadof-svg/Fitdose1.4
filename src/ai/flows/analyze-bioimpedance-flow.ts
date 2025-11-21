@@ -20,14 +20,23 @@ const AnalyzeBioimpedanceInputSchema = z.object({
 export type AnalyzeBioimpedanceInput = z.infer<typeof AnalyzeBioimpedanceInputSchema>;
 
 const AnalyzeBioimpedanceOutputSchema = z.object({
-    fatPercentage: z.number().optional().describe('O valor da "Gordura Corporal" em porcentagem.'),
-    muscleMass: z.number().optional().describe('O valor do "Músculo" em porcentagem.'),
-    visceralFat: z.number().optional().describe('O valor da "Gordura Visceral".'),
-    hydration: z.number().optional().describe('O valor da "Água Corporal" em porcentagem.'),
-    metabolism: z.number().optional().describe('O valor do "Metabolismo Basal" em kcal.'),
-    boneMass: z.number().optional().describe('O valor da "Massa Óssea" em kg.'),
-    protein: z.number().optional().describe('O valor da "Proteína" em porcentagem.'),
-    metabolicAge: z.number().optional().describe('O valor da "Idade Corporal".'),
+    weight: z.number().optional().describe('O valor do "Peso(Kg)".'),
+    bmi: z.number().optional().describe('O valor do "IMC".'),
+    fatPercentage: z.number().optional().describe('O valor da "Gordura(%)".'),
+    fatWeight: z.number().optional().describe('O valor do "Peso da gordura(Kg)".'),
+    skeletalMusclePercentage: z.number().optional().describe('O valor do "Percentual da massa muscular esquelética(%)".'),
+    skeletalMuscleWeight: z.number().optional().describe('O valor do "Peso da massa muscular esquelética(Kg)".'),
+    muscleMassPercentage: z.number().optional().describe('O valor do "Registro de massa muscular(%)".'),
+    muscleMassWeight: z.number().optional().describe('O valor do "Peso da massa muscular(Kg)".'),
+    visceralFat: z.number().optional().describe('O valor da "Gordura visceral".'),
+    hydration: z.number().optional().describe('O valor da "Água(%)".'),
+    waterWeight: z.number().optional().describe('O valor do "peso da água(Kg)".'),
+    metabolism: z.number().optional().describe('O valor do "Metabolismo(kcal / dia)".'),
+    obesityPercentage: z.number().optional().describe('O valor da "Obesidade(%)".'),
+    boneMass: z.number().optional().describe('O valor da "Ossos(Kg)".'),
+    protein: z.number().optional().describe('O valor da "Proteina(%)".'),
+    lbm: z.number().optional().describe('O valor da "LBM(Kg)".'),
+    metabolicAge: z.number().optional().describe('O valor da "Idade metabólica".'),
 });
 export type AnalyzeBioimpedanceOutput = z.infer<typeof AnalyzeBioimpedanceOutputSchema>;
 
@@ -40,16 +49,25 @@ const prompt = ai.definePrompt({
   input: {schema: AnalyzeBioimpedanceInputSchema},
   output: {schema: AnalyzeBioimpedanceOutputSchema},
   prompt: `You are an expert AI assistant that extracts health metrics from screenshots of a bioimpedance scale application.
-Analyze the provided image and extract the following values. The labels might be in Portuguese.
+The language in the image is Brazilian Portuguese. Analyze the provided image and extract the following values based on their labels.
 
-- "Gordura Corporal" (Fat Percentage) as a percentage.
-- "Músculo" (Muscle Mass) as a percentage.
-- "Gordura Visceral" (Visceral Fat) as a level/number.
-- "Água Corporal" (Body Water) as a percentage.
-- "Metabolismo Basal" (Basal Metabolism) in kcal.
-- "Massa Óssea" (Bone Mass) in kg.
-- "Proteína" (Protein) as a percentage.
-- "Idade Corporal" (Body Age) as a number of years.
+- "Peso(Kg)"
+- "IMC"
+- "Gordura(%)"
+- "Peso da gordura(Kg)"
+- "Percentual da massa muscular esquelética(%)"
+- "Peso da massa muscular esquelética(Kg)"
+- "Registro de massa muscular(%)"
+- "Peso da massa muscular(Kg)"
+- "Gordura visceral"
+- "Água(%)"
+- "peso da água(Kg)"
+- "Metabolismo(kcal / dia)"
+- "Obesidade(%)"
+- "Ossos(Kg)"
+- "Proteina(%)"
+- "LBM(Kg)"
+- "Idade metabólica"
 
 Return the extracted data in the specified JSON format. If a value is not present or not clear, omit it.
 

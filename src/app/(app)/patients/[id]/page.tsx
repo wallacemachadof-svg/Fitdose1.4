@@ -67,7 +67,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
 import { summarizeHealthData } from '@/ai/flows/summarize-health-data';
-import { analyzeBioimpedanceImage } from '@/ai/flows/analyze-bioimpedance-flow';
+import { analyzeBioimpedanceImage, AnalyzeBioimpedanceOutput } from '@/ai/flows/analyze-bioimpedance-flow';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -171,10 +171,10 @@ export default function PatientDetailPage() {
     if (!patient) return [];
     
     const data = patient.evolutions
-      .filter(e => e.date && e.bioimpedance?.fatPercentage) // Changed to check for a bioimpedance value
+      .filter(e => e.date && e.bioimpedance?.weight) 
       .map(e => ({
         date: formatDate(e.date),
-        peso: e.bioimpedance?.fatPercentage, // Example, should be weight from somewhere
+        peso: e.bioimpedance?.weight,
       }));
 
     if (patient.initialWeight && patient.firstDoseDate) {
@@ -196,8 +196,12 @@ export default function PatientDetailPage() {
     return <PatientDetailSkeleton />;
   }
   
-  const currentWeight = patient.doses.findLast(d => d.status === 'administered' && d.weight)?.weight ?? patient.initialWeight;
-  const currentBmi = calculateBmi(currentWeight, patient.height / 100);
+  const lastEvolutionWeight = patient.evolutions?.slice().reverse().find(e => e.bioimpedance?.weight)?.bioimpedance?.weight;
+  const currentWeight = lastEvolutionWeight ?? patient.initialWeight;
+
+  const lastEvolutionBmi = patient.evolutions?.slice().reverse().find(e => e.bioimpedance?.bmi)?.bioimpedance?.bmi;
+  const currentBmi = lastEvolutionBmi ?? calculateBmi(currentWeight, patient.height / 100);
+
   const weightToLose = patient.desiredWeight ? currentWeight - patient.desiredWeight : 0;
   const patientNameInitial = patient.fullName.charAt(0).toUpperCase();
 
@@ -263,7 +267,7 @@ export default function PatientDetailPage() {
         </Card>
         <div className="w-full md:w-2/3 grid grid-cols-2 lg:grid-cols-3 gap-4">
             <InfoCard icon={Weight} label="Peso Atual" value={`${currentWeight.toFixed(1)} kg`} />
-            <InfoCard icon={Activity} label="IMC Atual" value={currentBmi} />
+            <InfoCard icon={Activity} label="IMC Atual" value={currentBmi ? currentBmi.toFixed(2) : '-'} />
             <InfoCard icon={Ruler} label="Altura" value={`${patient.height} cm`} />
             {patient.desiredWeight && <InfoCard icon={Target} label="Meta de Peso" value={`${patient.desiredWeight} kg`} /> }
             {patient.desiredWeight && <InfoCard icon={TrendingDown} label="Faltam Perder" value={`${weightToLose > 0 ? weightToLose.toFixed(1) : 0} kg`} /> }
@@ -696,14 +700,23 @@ const evolutionFormSchema = z.object({
     notes: z.string().optional(),
     photoUrl: z.string().optional(),
     bioimpedance: z.object({
+        weight: z.coerce.number().optional(),
+        bmi: z.coerce.number().optional(),
         fatPercentage: z.coerce.number().optional(),
-        muscleMass: z.coerce.number().optional(),
+        fatWeight: z.coerce.number().optional(),
+        skeletalMusclePercentage: z.coerce.number().optional(),
+        skeletalMuscleWeight: z.coerce.number().optional(),
+        muscleMassPercentage: z.coerce.number().optional(),
+        muscleMassWeight: z.coerce.number().optional(),
         visceralFat: z.coerce.number().optional(),
-        metabolicAge: z.coerce.number().optional(),
         hydration: z.coerce.number().optional(),
-        boneMass: z.coerce.number().optional(),
+        waterWeight: z.coerce.number().optional(),
         metabolism: z.coerce.number().optional(),
+        obesityPercentage: z.coerce.number().optional(),
+        boneMass: z.coerce.number().optional(),
         protein: z.coerce.number().optional(),
+        lbm: z.coerce.number().optional(),
+        metabolicAge: z.coerce.number().optional(),
     }).optional(),
 });
 
@@ -725,19 +738,10 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
         defaultValues: {
             notes: "",
             photoUrl: "",
-            bioimpedance: {
-                fatPercentage: undefined,
-                muscleMass: undefined,
-                visceralFat: undefined,
-                metabolicAge: undefined,
-                hydration: undefined,
-                boneMass: undefined,
-                metabolism: undefined,
-                protein: undefined,
-            }
+            bioimpedance: {}
         },
     });
-
+    
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -763,16 +767,16 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
 
         setIsAnalyzing(true);
         try {
-            const result = await analyzeBioimpedanceImage({ photoDataUri: imagePreview });
+            const result: AnalyzeBioimpedanceOutput = await analyzeBioimpedanceImage({ photoDataUri: imagePreview });
             
-            if (result.fatPercentage) form.setValue('bioimpedance.fatPercentage', result.fatPercentage);
-            if (result.muscleMass) form.setValue('bioimpedance.muscleMass', result.muscleMass);
-            if (result.visceralFat) form.setValue('bioimpedance.visceralFat', result.visceralFat);
-            if (result.hydration) form.setValue('bioimpedance.hydration', result.hydration);
-            if (result.metabolism) form.setValue('bioimpedance.metabolism', result.metabolism);
-            if (result.boneMass) form.setValue('bioimpedance.boneMass', result.boneMass);
-            if (result.protein) form.setValue('bioimpedance.protein', result.protein);
-            if (result.metabolicAge) form.setValue('bioimpedance.metabolicAge', result.metabolicAge);
+            // Set all fields from the analysis result
+            Object.keys(result).forEach(key => {
+                const formKey = `bioimpedance.${key}` as keyof EvolutionFormValues;
+                const value = result[key as keyof typeof result];
+                if (value !== undefined) {
+                    form.setValue(formKey, value);
+                }
+            });
 
             toast({
                 title: 'Análise Concluída!',
@@ -840,29 +844,35 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
                         <div>
                             <h4 className="text-sm font-medium mb-2">Dados de Bioimpedância (Opcional)</h4>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <FormField control={form.control} name="bioimpedance.fatPercentage" render={({ field }) => (
-                                    <FormItem><FormLabel>% Gordura</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 25.5" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormField control={form.control} name="bioimpedance.weight" render={({ field }) => (
+                                    <FormItem><FormLabel>Peso (Kg)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 80.7" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
-                                <FormField control={form.control} name="bioimpedance.muscleMass" render={({ field }) => (
-                                    <FormItem><FormLabel>Massa Musc. (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 35.5" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormField control={form.control} name="bioimpedance.bmi" render={({ field }) => (
+                                    <FormItem><FormLabel>IMC</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 28.9" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="bioimpedance.fatPercentage" render={({ field }) => (
+                                    <FormItem><FormLabel>Gordura (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 28.4" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="bioimpedance.muscleMassPercentage" render={({ field }) => (
+                                    <FormItem><FormLabel>Massa Muscular (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 68.2" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="bioimpedance.visceralFat" render={({ field }) => (
-                                    <FormItem><FormLabel>Gordura Visceral</FormLabel><FormControl><Input type="number" placeholder="Ex: 8" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Gordura Visceral</FormLabel><FormControl><Input type="number" placeholder="Ex: 14" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="bioimpedance.hydration" render={({ field }) => (
-                                    <FormItem><FormLabel>Água (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 55.3" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Água (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 51.9" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                  <FormField control={form.control} name="bioimpedance.metabolism" render={({ field }) => (
-                                    <FormItem><FormLabel>Metabolismo</FormLabel><FormControl><Input type="number" placeholder="Ex: 1753" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Metabolismo (kcal)</FormLabel><FormControl><Input type="number" placeholder="Ex: 1680" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                  <FormField control={form.control} name="bioimpedance.boneMass" render={({ field }) => (
-                                    <FormItem><FormLabel>Massa Óssea</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 2.7" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Massa Óssea (Kg)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 2.7" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="bioimpedance.protein" render={({ field }) => (
-                                    <FormItem><FormLabel>Proteína (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 13.2" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Proteína (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 16.4" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="bioimpedance.metabolicAge" render={({ field }) => (
-                                    <FormItem><FormLabel>Idade Metab.</FormLabel><FormControl><Input type="number" placeholder="Ex: 35" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Idade Metabólica</FormLabel><FormControl><Input type="number" placeholder="Ex: 36" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                             </div>
                         </div>
@@ -925,14 +935,16 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
                                             {evo.notes && <p className="text-sm text-muted-foreground mb-4">{evo.notes}</p>}
                                             {evo.bioimpedance && (
                                                 <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
+                                                    <BioimpedanceItem icon={Weight} label="Peso" value={evo.bioimpedance.weight} unit="kg" />
+                                                    <BioimpedanceItem icon={Activity} label="IMC" value={evo.bioimpedance.bmi} />
                                                     <BioimpedanceItem icon={Activity} label="% Gordura" value={evo.bioimpedance.fatPercentage} unit="%" />
-                                                    <BioimpedanceItem icon={UserCheck} label="Massa Muscular" value={evo.bioimpedance.muscleMass} unit="%" />
-                                                    <BioimpedanceItem icon={HeartPulse} label="Gordura Visceral" value={evo.bioimpedance.visceralFat} />
+                                                    <BioimpedanceItem icon={UserCheck} label="% M. Muscular" value={evo.bioimpedance.muscleMassPercentage} unit="%" />
+                                                    <BioimpedanceItem icon={HeartPulse} label="Gord. Visceral" value={evo.bioimpedance.visceralFat} />
                                                     <BioimpedanceItem icon={Droplets} label="Água" value={evo.bioimpedance.hydration} unit="%" />
                                                     <BioimpedanceItem icon={Flame} label="Metabolismo" value={evo.bioimpedance.metabolism} unit=" kcal" />
                                                     <BioimpedanceItem icon={Bone} label="Massa Óssea" value={evo.bioimpedance.boneMass} unit=" kg" />
                                                     <BioimpedanceItem icon={Beef} label="Proteína" value={evo.bioimpedance.protein} unit="%" />
-                                                    <BioimpedanceItem icon={CalendarIcon} label="Idade Metabólica" value={evo.bioimpedance.metabolicAge} unit=" anos" />
+                                                    <BioimpedanceItem icon={CalendarIcon} label="Idade Metab." value={evo.bioimpedance.metabolicAge} unit=" anos" />
                                                 </div>
                                             )}
                                         </div>
