@@ -129,20 +129,22 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pacientes Ativos
-            </CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalPatients}</div>
-            <p className="text-xs text-muted-foreground">
-              Total de pacientes registrados
-            </p>
-          </CardContent>
-        </Card>
+        <Link href="/patients">
+          <Card className="hover:bg-muted/50 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Pacientes Ativos
+              </CardTitle>
+              <User className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalPatients}</div>
+              <p className="text-xs text-muted-foreground">
+                Total de pacientes registrados
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -157,32 +159,36 @@ export default function DashboardPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Próximas Doses (7 dias)
-            </CardTitle>
-            <Syringe className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{upcomingDoses.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Doses agendadas para a semana
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Doses Vencidas</CardTitle>
-            <BellDot className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overdueDosesCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Doses pendentes de aplicação
-            </p>
-          </CardContent>
-        </Card>
+        <Link href="/schedule">
+            <Card className="hover:bg-muted/50 transition-colors">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                    Próximas Doses (7 dias)
+                    </CardTitle>
+                    <Syringe className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{upcomingDoses.length}</div>
+                    <p className="text-xs text-muted-foreground">
+                    Doses agendadas para a semana
+                    </p>
+                </CardContent>
+            </Card>
+        </Link>
+        <Link href="/patients?filter=overdue">
+            <Card className="hover:bg-destructive/10 transition-colors border-destructive/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Doses Vencidas</CardTitle>
+                    <BellDot className="h-4 w-4 text-destructive" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-destructive">{overdueDosesCount}</div>
+                    <p className="text-xs text-muted-foreground">
+                    Doses pendentes de aplicação
+                    </p>
+                </CardContent>
+            </Card>
+        </Link>
       </div>
 
        <div className="grid gap-6 md:grid-cols-2">
@@ -286,6 +292,7 @@ function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Skeleton className="h-28" />
         <Skeleton className="h-28" />
         <Skeleton className="h-28" />
         <Skeleton className="h-28" />

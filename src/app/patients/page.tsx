@@ -1,9 +1,10 @@
 
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from 'next/navigation';
 import { getPatients, deletePatient, type Patient } from "@/lib/actions";
-import { formatCurrency, formatDate }from "@/lib/utils";
+import { formatCurrency, formatDate, getDoseStatus }from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -31,13 +32,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function PatientsPage() {
+function PatientsPageContent() {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [loading, setLoading] = useState(true);
     const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const { toast } = useToast();
+    const searchParams = useSearchParams();
+    const filter = searchParams.get('filter');
+
 
     useEffect(() => {
         const fetchPatients = async () => {
@@ -75,9 +79,16 @@ export default function PatientsPage() {
         }
     };
     
-    const filteredPatients = patients.filter(patient =>
-        patient.fullName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredPatients = patients.filter(patient => {
+        const nameMatch = patient.fullName.toLowerCase().includes(searchTerm.toLowerCase());
+        if (!nameMatch) return false;
+
+        if (filter === 'overdue') {
+            return patient.doses.some(dose => getDoseStatus(dose).messageType === 'overdue');
+        }
+
+        return true;
+    });
 
     const totalPatients = patients.length;
     const weightLossPatients = patients.filter(p => {
@@ -119,7 +130,12 @@ export default function PatientsPage() {
             <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                 <div>
                     <h1 className="text-2xl font-bold">Pacientes</h1>
-                    <p className="text-muted-foreground">Gerencie sua lista de pacientes.</p>
+                    <p className="text-muted-foreground">
+                        {filter === 'overdue' 
+                            ? 'Lista de pacientes com doses vencidas.' 
+                            : 'Gerencie sua lista de pacientes.'
+                        }
+                    </p>
                 </div>
                 <div className="flex gap-2">
                     <div className="relative">
@@ -270,4 +286,13 @@ export default function PatientsPage() {
             </AlertDialog>
         </div>
     );
+}
+
+
+export default function PatientsPage() {
+    return (
+        <Suspense fallback={<p>Carregando...</p>}>
+            <PatientsPageContent />
+        </Suspense>
+    )
 }
