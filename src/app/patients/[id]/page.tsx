@@ -180,6 +180,18 @@ export default function PatientDetailPage() {
 
   const handleConfirmDeleteEvolution = async () => {
     if (!evolutionToDelete || !patient) return;
+
+    if (evolutionToDelete.id === 'initial-record') {
+        toast({
+            variant: "destructive",
+            title: "Ação não permitida",
+            description: "Não é possível excluir o registro de peso inicial. Para alterá-lo, edite o perfil do paciente.",
+        });
+        setIsDeleteDialogOpen(false);
+        setEvolutionToDelete(null);
+        return;
+    }
+
     try {
         const updatedPatient = await deleteBioimpedanceEntry(patient.id, evolutionToDelete.id);
         setPatient(updatedPatient);
@@ -417,14 +429,10 @@ export default function PatientDetailPage() {
                             <TableCell>{(evo as any).fatPercentage?.toFixed(2) ?? '-'}</TableCell>
                             <TableCell>{(evo as any).skeletalMusclePercentage?.toFixed(2) ?? '-'}</TableCell>
                             <TableCell className="text-right">
-                                { !evo.isInitial ? (
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteEvolutionClick(evo as Evolution)}>
-                                      <Trash2 className="h-4 w-4" />
-                                      <span className="sr-only">Excluir registro</span>
-                                  </Button>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">N/A</span>
-                                )}
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteEvolutionClick(evo as Evolution)}>
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Excluir registro</span>
+                                </Button>
                             </TableCell>
                         </TableRow>
                     ))
