@@ -54,26 +54,26 @@ const contraindicationsList = [
 
 const patientFormSchema = z.object({
   fullName: z.string().min(3, "Nome completo é obrigatório."),
-  age: z.coerce.number().min(1, "Idade é obrigatória.").positive("Idade deve ser um número positivo."),
   initialWeight: z.coerce.number().min(1, "Peso inicial é obrigatório.").positive("Peso deve ser um número positivo."),
   height: z.coerce.number().min(1, "Altura é obrigatória.").positive("Altura deve ser um número positivo."),
-  desiredWeight: z.coerce.number().min(1, "Peso desejado é obrigatório.").positive("Peso deve ser um número positivo."),
-  zip: z.string().min(8, "CEP deve ter 8 dígitos.").max(9, "CEP inválido."),
-  street: z.string().min(1, "Rua é obrigatória."),
-  number: z.string().min(1, "Número é obrigatório."),
-  city: z.string().min(1, "Cidade é obrigatória."),
-  state: z.string().min(2, "Estado é obrigatório.").max(2, "Use a sigla do estado."),
-  phone: z.string().min(10, "Telefone inválido."),
+  age: z.coerce.number().positive("Idade deve ser um número positivo.").optional(),
+  desiredWeight: z.coerce.number().positive("Peso deve ser um número positivo.").optional(),
+  zip: z.string().optional(),
+  street: z.string().optional(),
+  number: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  phone: z.string().optional(),
   healthConditions: z.array(z.string()).optional(),
   contraindications: z.array(z.string()).optional(),
   otherHealthIssues: z.string().optional(),
   dailyMedications: z.string().optional(),
   oralContraceptive: z.enum(['yes', 'no']).optional(),
-  usedMonjauro: z.enum(['yes', 'no']),
+  usedMonjauro: z.enum(['yes', 'no']).optional(),
   monjauroDose: z.string().optional(),
   monjauroTime: z.string().optional(),
   avatarUrl: z.string().optional(),
-  indicationSource: z.enum(['yes', 'no']),
+  indicationSource: z.enum(['yes', 'no']).optional(),
   indicationName: z.string().optional(),
   consentGiven: z.boolean().refine((val) => val === true, {
     message: "Você deve ler e concordar com os termos para continuar.",
@@ -215,16 +215,32 @@ export default function PatientRegistrationPage() {
                 : undefined;
 
             const patientDataForApi = {
-                ...data,
+                fullName: data.fullName,
+                initialWeight: data.initialWeight,
+                height: data.height,
+                age: data.age || 0,
+                desiredWeight: data.desiredWeight || 0,
+                address: {
+                  zip: data.zip || '',
+                  street: data.street || '',
+                  number: data.number || '',
+                  city: data.city || '',
+                  state: data.state || '',
+                },
+                phone: data.phone || '',
                 healthContraindications: fullContraindications || 'Nenhuma observação.',
                 indication,
                 firstDoseDate: new Date(), // Set to registration date
+                avatarUrl: data.avatarUrl || '',
+                dailyMedications: data.dailyMedications,
+                oralContraceptive: data.oralContraceptive,
+                usedMonjauro: data.usedMonjauro,
+                monjauroDose: data.monjauroDose,
+                monjauroTime: data.monjauroTime,
+                consentGiven: data.consentGiven
             };
             
-            // remove temp fields
-            const { otherHealthIssues, indicationSource, ...finalPatientData } = patientDataForApi;
-
-            await addPatient(finalPatientData);
+            await addPatient(patientDataForApi);
             router.push("/cadastro/sucesso");
         } catch (error) {
             console.error("Failed to add patient", error);
@@ -306,7 +322,7 @@ Após receber todas as informações necessárias de forma clara, ética e técn
                                         <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input placeholder="Seu nome completo" {...field} /></FormControl><FormMessage /></FormItem>
                                     )}/>
                                     <FormField control={form.control} name="phone" render={({ field }) => (
-                                        <FormItem><FormLabel>Telefone (WhatsApp)</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Telefone (WhatsApp) <span className="text-muted-foreground text-xs">(Opcional)</span></FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>
                                     )}/>
                                 </div>
                             </div>
@@ -319,7 +335,7 @@ Após receber todas as informações necessárias de forma clara, ética e técn
                                         ) : (
                                             <div className="flex flex-col items-center text-muted-foreground">
                                                 <UserIcon className="w-12 h-12" />
-                                                <span className="text-sm mt-1">Sua Foto</span>
+                                                <span className="text-sm mt-1">Sua Foto <span className="text-muted-foreground text-xs">(Opcional)</span></span>
                                             </div>
                                         )}
                                     </div>
@@ -344,7 +360,7 @@ Após receber todas as informações necessárias de forma clara, ética e técn
                         
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
                             <FormField control={form.control} name="age" render={({ field }) => (
-                                <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Idade <span className="text-muted-foreground text-xs">(Opcional)</span></FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="initialWeight" render={({ field }) => (
                                 <FormItem><FormLabel>Seu Peso Atual (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
@@ -353,7 +369,7 @@ Após receber todas as informações necessárias de forma clara, ética e técn
                                 <FormItem><FormLabel>Sua Altura (cm)</FormLabel><FormControl><Input type="number" placeholder="Ex: 175" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="desiredWeight" render={({ field }) => (
-                                <FormItem><FormLabel>Sua Meta de Peso (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Sua Meta de Peso (kg) <span className="text-muted-foreground text-xs">(Opcional)</span></FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
                              <div className="p-2 border rounded-md bg-muted/30 h-10 flex items-center justify-between">
                                 <label className="text-sm font-medium text-muted-foreground">IMC</label>
@@ -361,7 +377,7 @@ Após receber todas as informações necessárias de forma clara, ética e técn
                             </div>
                         </div>
                         
-                        <h3 className="text-lg font-semibold border-t pt-6 -mb-2">Seu Endereço</h3>
+                        <h3 className="text-lg font-semibold border-t pt-6 -mb-2">Seu Endereço <span className="text-muted-foreground text-sm font-normal">(Opcional)</span></h3>
                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField control={form.control} name="zip" render={({ field }) => (
                                 <FormItem><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} /></FormControl><FormMessage /></FormItem>
@@ -385,7 +401,7 @@ Após receber todas as informações necessárias de forma clara, ética e técn
                         </div>
 
                          <div className="space-y-8 border-t pt-6">
-                            <h3 className="text-lg font-semibold">Avaliação de Saúde</h3>
+                            <h3 className="text-lg font-semibold">Avaliação de Saúde <span className="text-muted-foreground text-sm font-normal">(Opcional)</span></h3>
                             
                             <FormField control={form.control} name="otherHealthIssues" render={({ field }) => (
                                 <FormItem>

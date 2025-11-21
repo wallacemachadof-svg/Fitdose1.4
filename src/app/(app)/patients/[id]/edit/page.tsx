@@ -59,31 +59,30 @@ const contraindicationsList = [
 
 const patientFormSchema = z.object({
   fullName: z.string().min(3, "Nome completo é obrigatório."),
-  age: z.coerce.number().min(1, "Idade é obrigatória.").positive("Idade deve ser um número positivo."),
   initialWeight: z.coerce.number().min(1, "Peso inicial é obrigatório.").positive("Peso deve ser um número positivo."),
   height: z.coerce.number().min(1, "Altura é obrigatória.").positive("Altura deve ser um número positivo."),
-  desiredWeight: z.coerce.number().min(1, "Peso desejado é obrigatório.").positive("Peso deve ser um número positivo."),
-  firstDoseDate: z.date({
-    required_error: "A data da primeira dose é obrigatória.",
-  }),
-  zip: z.string().min(8, "CEP deve ter 8 dígitos.").max(9, "CEP inválido."),
-  street: z.string().min(1, "Rua é obrigatória."),
-  number: z.string().min(1, "Número é obrigatório."),
-  city: z.string().min(1, "Cidade é obrigatória."),
-  state: z.string().min(2, "Estado é obrigatório.").max(2, "Use a sigla do estado."),
-  phone: z.string().min(10, "Telefone inválido."),
+  age: z.coerce.number().positive("Idade deve ser um número positivo.").optional(),
+  desiredWeight: z.coerce.number().positive("Peso deve ser um número positivo.").optional(),
+  firstDoseDate: z.date().optional(),
+  zip: z.string().optional(),
+  street: z.string().optional(),
+  number: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  phone: z.string().optional(),
   healthConditions: z.array(z.string()).optional(),
   contraindications: z.array(z.string()).optional(),
   otherHealthIssues: z.string().optional(),
   dailyMedications: z.string().optional(),
   oralContraceptive: z.enum(['yes', 'no']).optional(),
-  usedMonjauro: z.enum(['yes', 'no']),
+  usedMonjauro: z.enum(['yes', 'no']).optional(),
   monjauroDose: z.string().optional(),
   monjauroTime: z.string().optional(),
   avatarUrl: z.string().optional(),
   indicationType: z.enum(['indicado', 'indicador', 'nao_se_aplica']).optional(),
   indicationName: z.string().optional(),
   indicationPatientId: z.string().optional(),
+  consentGiven: z.boolean().optional(),
 }).refine(data => {
     if (data.usedMonjauro === 'yes') {
         return !!data.monjauroDose && !!data.monjauroTime;
@@ -110,32 +109,7 @@ export default function EditPatientPage() {
     const [allPatients, setAllPatients] = useState<Patient[]>([]);
 
     const form = useForm<PatientFormValues>({
-        resolver: zodResolver(patientFormSchema),
-        defaultValues: {
-            fullName: "",
-            age: 0,
-            initialWeight: 0,
-            height: 0,
-            desiredWeight: 0,
-            zip: "",
-            street: "",
-            number: "",
-            city: "",
-            state: "",
-            phone: "",
-            healthConditions: [],
-            contraindications: [],
-            otherHealthIssues: "",
-            dailyMedications: "",
-            oralContraceptive: undefined,
-            usedMonjauro: 'no',
-            monjauroDose: "",
-            monjauroTime: "",
-            avatarUrl: "",
-            indicationType: "nao_se_aplica",
-            indicationName: "",
-            indicationPatientId: "",
-        },
+        resolver: zodResolver(patientFormSchema)
     });
 
     useEffect(() => {
@@ -181,17 +155,17 @@ export default function EditPatientPage() {
 
                 form.reset({
                     fullName: patientData.fullName,
-                    age: patientData.age,
+                    age: patientData.age || undefined,
                     initialWeight: patientData.initialWeight,
                     height: patientData.height,
-                    desiredWeight: patientData.desiredWeight,
-                    firstDoseDate: new Date(patientData.firstDoseDate),
+                    desiredWeight: patientData.desiredWeight || undefined,
+                    firstDoseDate: patientData.firstDoseDate ? new Date(patientData.firstDoseDate) : undefined,
                     zip: patientData.address?.zip || '',
                     street: patientData.address?.street || '',
                     number: patientData.address?.number || '',
                     city: patientData.address?.city || '',
                     state: patientData.address?.state || '',
-                    phone: patientData.phone,
+                    phone: patientData.phone || '',
                     healthConditions: healthConditionsIds,
                     contraindications: contraindicationsIds,
                     otherHealthIssues: otherIssues,
@@ -204,6 +178,7 @@ export default function EditPatientPage() {
                     indicationType: patientData.indication?.type || 'nao_se_aplica',
                     indicationName: patientData.indication?.name || '',
                     indicationPatientId: patientData.indication?.patientId || '',
+                    consentGiven: patientData.consentGiven,
                 });
                 setImagePreview(patientData.avatarUrl);
 
@@ -307,6 +282,7 @@ export default function EditPatientPage() {
                 variant: "default",
             });
             router.push(`/patients/${patientId}`);
+            router.refresh();
         } catch (error) {
             console.error("Failed to update patient", error);
              toast({
@@ -375,7 +351,7 @@ export default function EditPatientPage() {
                                             <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input placeholder="Ex: João da Silva" {...field} /></FormControl><FormMessage /></FormItem>
                                         )}/>
                                         <FormField control={form.control} name="phone" render={({ field }) => (
-                                            <FormItem><FormLabel>Telefone (WhatsApp)</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>
+                                            <FormItem><FormLabel>Telefone (WhatsApp) <span className="text-muted-foreground text-xs">(Opcional)</span></FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>
                                         )}/>
                                     </div>
                                 </div>
@@ -388,7 +364,7 @@ export default function EditPatientPage() {
                                             ) : (
                                                 <div className="flex flex-col items-center text-muted-foreground">
                                                     <UserIcon className="w-12 h-12" />
-                                                    <span className="text-sm mt-1">Foto</span>
+                                                    <span className="text-sm mt-1">Foto <span className="text-muted-foreground text-xs">(Opcional)</span></span>
                                                 </div>
                                             )}
                                         </div>
@@ -413,7 +389,7 @@ export default function EditPatientPage() {
                             
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <FormField control={form.control} name="age" render={({ field }) => (
-                                    <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Idade <span className="text-muted-foreground text-xs">(Opcional)</span></FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="initialWeight" render={({ field }) => (
                                     <FormItem><FormLabel>Peso Inicial (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
@@ -422,13 +398,13 @@ export default function EditPatientPage() {
                                     <FormItem><FormLabel>Altura (cm)</FormLabel><FormControl><Input type="number" placeholder="Ex: 175" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="desiredWeight" render={({ field }) => (
-                                    <FormItem><FormLabel>Meta de Peso (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Meta de Peso (kg) <span className="text-muted-foreground text-xs">(Opcional)</span></FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                             </div>
                             
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
                                 <FormField control={form.control} name="firstDoseDate" render={({ field }) => (
-                                    <FormItem className="flex flex-col"><FormLabel>Data da 1ª Dose</FormLabel>
+                                    <FormItem className="flex flex-col"><FormLabel>Data da 1ª Dose <span className="text-muted-foreground text-xs">(Opcional)</span></FormLabel>
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
@@ -451,7 +427,7 @@ export default function EditPatientPage() {
                                 </div>
                             </div>
                             
-                            <h3 className="text-lg font-semibold border-t pt-6 -mb-2">Endereço</h3>
+                            <h3 className="text-lg font-semibold border-t pt-6 -mb-2">Endereço <span className="text-muted-foreground text-sm font-normal">(Opcional)</span></h3>
                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <FormField control={form.control} name="zip" render={({ field }) => (
                                     <FormItem><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} /></FormControl><FormMessage /></FormItem>
@@ -475,7 +451,7 @@ export default function EditPatientPage() {
                             </div>
 
                              <div className="space-y-8 border-t pt-6">
-                                <h3 className="text-lg font-semibold">Ficha de Avaliação de Saúde</h3>
+                                <h3 className="text-lg font-semibold">Ficha de Avaliação de Saúde <span className="text-muted-foreground text-sm font-normal">(Opcional)</span></h3>
                                 
                                 <FormField control={form.control} name="otherHealthIssues" render={({ field }) => (
                                     <FormItem>
@@ -678,7 +654,7 @@ export default function EditPatientPage() {
                             </div>
 
                              <div className="space-y-8 border-t pt-6">
-                                <h3 className="text-lg font-semibold">Indicação</h3>
+                                <h3 className="text-lg font-semibold">Indicação <span className="text-muted-foreground text-sm font-normal">(Opcional)</span></h3>
                                  <FormField
                                     control={form.control}
                                     name="indicationType"

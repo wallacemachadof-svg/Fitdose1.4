@@ -125,11 +125,11 @@ export type Patient = {
   avatarUrl: string;
   doses: Dose[];
   evolutions: Evolution[];
-  dailyMedications: string;
+  dailyMedications?: string;
   oralContraceptive?: 'yes' | 'no';
   usedMonjauro?: 'yes' | 'no';
-  monjauroDose: string;
-  monjauroTime: string;
+  monjauroDose?: string;
+  monjauroTime?: string;
   indication?: {
     type: 'indicado' | 'indicador' | 'nao_se_aplica';
     name: string;
@@ -142,7 +142,7 @@ export type Patient = {
 };
 
 export type NewPatientData = Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>;
-export type UpdatePatientData = Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>;
+export type UpdatePatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>>;
 
 
 export type Dose = {
@@ -253,13 +253,19 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
     const newPatient: Patient = {
         id: String(newId),
         fullName: patientData.fullName,
-        age: patientData.age,
+        age: patientData.age || 0,
         initialWeight: patientData.initialWeight,
         height: patientData.height,
-        desiredWeight: patientData.desiredWeight,
+        desiredWeight: patientData.desiredWeight || 0,
         firstDoseDate: firstDoseDate,
-        address: { ...patientData.address },
-        phone: patientData.phone,
+        address: {
+            zip: patientData.address.zip || '',
+            street: patientData.address.street || '',
+            number: patientData.address.number || '',
+            city: patientData.address.city || '',
+            state: patientData.address.state || '',
+        },
+        phone: patientData.phone || '',
         healthContraindications: patientData.healthContraindications ?? "Nenhuma observação.",
         avatarUrl: patientData.avatarUrl || `https://i.pravatar.cc/150?u=${newId}`,
         doses: doses,
@@ -294,25 +300,12 @@ export const updatePatient = async (id: string, patientData: UpdatePatientData):
     const originalPatient = data.patients[patientIndex];
 
     const updatedPatient: Patient = {
-        ...originalPatient, // Keep original doses, evolutions, id
-        fullName: patientData.fullName,
-        age: patientData.age,
-        initialWeight: patientData.initialWeight,
-        height: patientData.height,
-        desiredWeight: patientData.desiredWeight,
-        firstDoseDate: patientData.firstDoseDate,
-        address: { ...patientData.address },
-        phone: patientData.phone,
-        healthContraindications: patientData.healthContraindications,
-        avatarUrl: patientData.avatarUrl || originalPatient.avatarUrl,
-        dailyMedications: patientData.dailyMedications ?? '',
-        oralContraceptive: patientData.oralContraceptive,
-        usedMonjauro: patientData.usedMonjauro,
-        monjauroDose: patientData.monjauroDose ?? '',
-        monjauroTime: patientData.monjauroTime ?? '',
-        indication: patientData.indication,
-        consentGiven: patientData.consentGiven || originalPatient.consentGiven,
-        consentDate: patientData.consentGiven && !originalPatient.consentDate ? new Date() : originalPatient.consentDate,
+        ...originalPatient,
+        ...patientData,
+        address: {
+            ...originalPatient.address,
+            ...patientData.address,
+        }
     };
 
     data.patients[patientIndex] = updatedPatient;
@@ -607,3 +600,5 @@ export const resetAllData = async (): Promise<void> => {
     writeData(emptyData);
     await new Promise(resolve => setTimeout(resolve, 100));
 }
+
+    
