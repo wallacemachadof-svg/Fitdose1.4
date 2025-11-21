@@ -237,6 +237,7 @@ export type Sale = {
   observations?: string;
   deliveryDate?: Date;
   pointsUsed?: number;
+  paymentMethod?: "dinheiro" | "pix" | "debito" | "credito" | "payment_link";
 };
 
 export type NewSaleData = Omit<Sale, 'id' | 'patientName'> & {
@@ -425,19 +426,21 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
 
     patient.doses[doseIndex] = updatedDose;
     
-    // Sort doses by their original doseNumber to keep a logical order
+    // Sort doses by their doseNumber to ensure the sequence is correct before recalculating.
     patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
 
-    // Recalculate dates for subsequent pending doses based on the previous dose's date
-    for (let i = 1; i < patient.doses.length; i++) {
+    // Recalculate dates for subsequent pending doses
+    for (let i = 0; i < patient.doses.length; i++) {
         const currentDose = patient.doses[i];
-        const prevDose = patient.doses[i-1];
         
-        // Only reschedule PENDING doses
-        if (currentDose.status === 'pending') {
-            const nextDate = new Date(prevDose.date);
-            nextDate.setDate(nextDate.getDate() + 7);
-            currentDose.date = nextDate;
+        // Only reschedule PENDING doses that are AFTER the one we just edited.
+        if (currentDose.status === 'pending' && currentDose.doseNumber > updatedDose.doseNumber) {
+            const prevDose = patient.doses[i - 1];
+            if (prevDose) {
+                const nextDate = new Date(prevDose.date);
+                nextDate.setDate(nextDate.getDate() + 7);
+                currentDose.date = nextDate;
+            }
         }
     }
 
@@ -684,7 +687,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             description: `Venda ${saleData.quantity}x ${saleData.soldDose}mg p/ ${patient.fullName}`,
             amount: total,
             status: 'pago',
-            paymentMethod: 'pix', // Placeholder, needs to be dynamic in a real app
+            paymentMethod: saleData.paymentMethod,
         };
         data.cashFlowEntries.push(newCashFlowEntry);
     }
