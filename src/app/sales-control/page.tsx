@@ -183,7 +183,7 @@ export default function SalesControlPage() {
                                             </TableCell>
                                              <TableCell>
                                                 <Badge variant={'default'} className={`${deliveryStatus.color} ${deliveryStatus.textColor} border-none`}>{deliveryStatus.label}</Badge>
-                                            </TableCell>
+                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
@@ -237,3 +237,5 @@ export default function SalesControlPage() {
         </div>
     );
 }
+
+    

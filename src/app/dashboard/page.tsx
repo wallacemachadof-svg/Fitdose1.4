@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getPatients, getSales, type Dose, type Sale } from "@/lib/actions";
 import { getDoseStatus, formatDate, formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Syringe, User, BellDot, BarChart3, PieChart, TrendingUp, DollarSign, Link as LinkIcon, Copy, Check } from "lucide-react";
+import { Syringe, User, BellDot, BarChart3, PieChart, TrendingUp, DollarSign, Link as LinkIcon, Copy, Check, ShoppingCart, PackageX, PackageCheck } from "lucide-react";
 import Link from 'next/link';
 import { differenceInDays, subDays, format as formatDateFns } from "date-fns";
 import { ptBR } from 'date-fns/locale';
@@ -103,11 +103,15 @@ export default function DashboardPage() {
 
   const salesByDoseChartData = Object.entries(salesByDose).map(([name, value]) => ({ name, value }));
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57'];
+  
+  const totalSales = sales.length;
+  const pendingPayments = sales.filter(s => s.paymentStatus === 'pendente').length;
+  const pendingDeliveries = sales.filter(s => s.deliveryStatus !== 'entregue').length;
 
 
   return (
     <div className="flex flex-col gap-6">
-       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center justify-between">
@@ -143,35 +147,53 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </Link>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Receita (Últimos 30 dias)
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalRevenueLast30Days)}</div>
-             <p className="text-xs text-muted-foreground">
-              Total de vendas no período
-            </p>
-          </CardContent>
-        </Card>
-        <Link href="/schedule">
-            <Card className="hover:bg-muted/50 transition-colors">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                    Próximas Doses (7 dias)
-                    </CardTitle>
-                    <Syringe className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{upcomingDoses.length}</div>
-                    <p className="text-xs text-muted-foreground">
-                    Doses agendadas para a semana
-                    </p>
-                </CardContent>
-            </Card>
+        <Link href="/sales-control">
+          <Card className="hover:bg-muted/50 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total de Vendas
+              </CardTitle>
+              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalSales}</div>
+              <p className="text-xs text-muted-foreground">
+                Total de vendas registradas no sistema
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/sales-control">
+          <Card className="hover:bg-muted/50 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Pagamentos Pendentes
+              </CardTitle>
+              <PackageX className="h-4 w-4 text-yellow-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-500">{pendingPayments}</div>
+              <p className="text-xs text-muted-foreground">
+                Vendas aguardando pagamento
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/sales-control">
+          <Card className="hover:bg-muted/50 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Entregas Pendentes
+              </CardTitle>
+              <PackageCheck className="h-4 w-4 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-500">{pendingDeliveries}</div>
+               <p className="text-xs text-muted-foreground">
+                Vendas aguardando entrega
+              </p>
+            </CardContent>
+          </Card>
         </Link>
         <Link href="/patients?filter=overdue">
             <Card className="hover:bg-destructive/10 transition-colors border-destructive/30">
@@ -193,6 +215,7 @@ export default function DashboardPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />Vendas nos Últimos 30 Dias</CardTitle>
+                    <CardDescription>Receita total de {formatCurrency(totalRevenueLast30Days)}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
@@ -207,7 +230,8 @@ export default function DashboardPage() {
             </Card>
              <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><PieChart className="h-5 w-5" />Vendas por Dose</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><PieChart className="h-5 w-5" />Vendas por Dose (Últimos 30 dias)</CardTitle>
+                     <CardDescription>Distribuição das doses mais vendidas.</CardDescription>
                 </CardHeader>
                 <CardContent>
                      <ResponsiveContainer width="100%" height={300}>
@@ -290,12 +314,13 @@ export default function DashboardPage() {
 function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Skeleton className="h-28" />
-        <Skeleton className="h-28" />
-        <Skeleton className="h-28" />
-        <Skeleton className="h-28" />
-        <Skeleton className="h-28" />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Skeleton className="h-32" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-32" />
       </div>
       <div className="grid gap-6 md:grid-cols-2">
         <Skeleton className="h-80" />
@@ -305,3 +330,5 @@ function DashboardSkeleton() {
     </div>
   );
 }
+
+    
