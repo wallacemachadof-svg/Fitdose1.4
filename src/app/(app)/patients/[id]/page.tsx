@@ -169,7 +169,7 @@ export default function PatientDetailPage() {
     if (!patient) return [];
     
     const data = patient.evolutions
-      .filter(e => e.date)
+      .filter(e => e.date && e.bioimpedance?.fatPercentage) // Changed to check for a bioimpedance value
       .map(e => ({
         date: formatDate(e.date),
         peso: e.bioimpedance?.fatPercentage, // Example, should be weight from somewhere
@@ -907,7 +907,7 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
     );
 }
 
-function BioimpedanceItem({ icon: Icon, label, value, unit }: { icon: React.ElementType, label: string, value?: number, unit?: string }) {
+function BioimpedanceItem({ icon: Icon, label, value, unit }: { icon: React.ElementType, label: string, value?: number | null, unit?: string }) {
     if (value === undefined || value === null) return null;
     return (
         <div className="flex items-center gap-2 p-1.5 bg-background/50 rounded">
