@@ -14,7 +14,6 @@ import {
   type Dose,
   type Evolution,
   type Bioimpedance,
-  linkPatientToAuth,
 } from '@/lib/actions';
 import {
   calculateBmi,
@@ -63,10 +62,6 @@ import {
     ArrowDown,
     ArrowUp,
     Minus,
-    KeyRound,
-    UserCog,
-    Mail,
-    Send,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -82,7 +77,6 @@ import { cn } from '@/lib/utils';
 import { format as formatDateFns } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
-import { useAuth } from '@/firebase';
 
 const doseManagementSchema = z.object({
   date: z.date({ required_error: "A data é obrigatória." }),
@@ -104,12 +98,6 @@ const doseManagementSchema = z.object({
 
 type DoseManagementFormValues = z.infer<typeof doseManagementSchema>;
 
-const createAccessFormSchema = z.object({
-  email: z.string().email("Por favor, insira um email válido."),
-  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."),
-});
-
-type CreateAccessFormValues = z.infer<typeof createAccessFormSchema>;
 
 export default function PatientDetailPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
@@ -169,9 +157,6 @@ export default function PatientDetailPage() {
   };
   
   const onDoseUpdate = (updatedPatient: Patient) => {
-    setPatient(updatedPatient);
-  }
-   const onPatientUpdate = (updatedPatient: Patient) => {
     setPatient(updatedPatient);
   }
 
@@ -296,8 +281,6 @@ export default function PatientDetailPage() {
             <InfoCard icon={DollarSign} label="Total Pago" value={formatCurrency(totalPaid)} />
         </div>
       </div>
-
-       <AccessControlCard patient={patient} onPatientUpdate={onPatientUpdate}/>
       
        <Card>
         <CardHeader>
@@ -476,135 +459,6 @@ export default function PatientDetailPage() {
     </div>
   );
 }
-
-function AccessControlCard({ patient, onPatientUpdate }: { patient: Patient, onPatientUpdate: (patient: Patient) => void }) {
-    const { createUser } = useAuth();
-    const { toast } = useToast();
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isCreateAccessOpen, setIsCreateAccessOpen] = useState(false);
-
-    const form = useForm<CreateAccessFormValues>({
-        resolver: zodResolver(createAccessFormSchema),
-        defaultValues: {
-            email: '',
-            password: ''
-        },
-    });
-
-    async function onSubmit(data: CreateAccessFormValues) {
-        setIsSubmitting(true);
-        try {
-            const user = await createUser(data.email, data.password);
-            if (user) {
-                const updatedPatient = await linkPatientToAuth(patient.id, user.uid, data.email);
-                onPatientUpdate(updatedPatient);
-                toast({
-                    title: "Acesso Criado!",
-                    description: "O paciente agora pode acessar o portal com as credenciais fornecidas.",
-                });
-                setIsCreateAccessOpen(false);
-            }
-        } catch (error: any) {
-            console.error("Failed to create user", error);
-            const message = error.code === 'auth/email-already-in-use' 
-                ? 'Este e-mail já está em uso por outra conta.'
-                : 'Não foi possível criar o acesso. Tente novamente.';
-            toast({
-                variant: "destructive",
-                title: "Erro ao Criar Acesso",
-                description: message,
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
-    }
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><UserCog className="h-5 w-5"/>Acesso do Paciente</CardTitle>
-                <CardDescription>Gerencie o acesso do paciente ao portal do cliente.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {patient.authId ? (
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm">
-                            <Mail className="h-4 w-4 text-muted-foreground"/>
-                            <span className="font-semibold">Email de Acesso:</span>
-                            <span className="text-muted-foreground">{patient.authEmail}</span>
-                        </div>
-                        <Button variant="outline">
-                            <Send className="mr-2 h-4 w-4"/>
-                            Reenviar Credenciais
-                        </Button>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-start gap-4">
-                        <p className="text-sm text-muted-foreground">Este paciente ainda não tem acesso ao portal.</p>
-                        <Dialog open={isCreateAccessOpen} onOpenChange={setIsCreateAccessOpen}>
-                            <DialogTrigger asChild>
-                                <Button>
-                                    <KeyRound className="mr-2 h-4 w-4"/>
-                                    Criar Acesso
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Criar Acesso para {patient.fullName}</DialogTitle>
-                                    <DialogDescription>
-                                        Defina o e-mail e a senha para que o paciente possa acessar o portal.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <Form {...form}>
-                                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="email"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>E-mail do Paciente</FormLabel>
-                                                    <FormControl>
-                                                        <Input type="email" placeholder="email@paciente.com" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                         <FormField
-                                            control={form.control}
-                                            name="password"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Senha</FormLabel>
-                                                    <FormControl>
-                                                        <Input type="password" placeholder="••••••••" {...field} />
-                                                    </FormControl>
-                                                     <FormDescription className="text-xs">
-                                                        A senha deve ter pelo menos 6 caracteres.
-                                                     </FormDescription>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <DialogFooter>
-                                            <DialogClose asChild>
-                                                <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
-                                            </DialogClose>
-                                            <Button type="submit" disabled={isSubmitting}>
-                                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Criando...</> : 'Criar e Salvar'}
-                                            </Button>
-                                        </DialogFooter>
-                                    </form>
-                                </Form>
-                            </DialogContent>
-                        </Dialog>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
-
 
 function InfoCard({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number | null }) {
     if (value === null || value === undefined) return null;

@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   Award,
@@ -47,7 +47,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { resetAllData } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
 import { AuthGuard } from '@/firebase/auth/auth-guard';
 
@@ -108,6 +107,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     await signOut();
     router.push('/login');
   };
+
+  // If we are on login or registration pages, don't show the layout
+  if (pathname === '/login' || pathname.startsWith('/cadastro')) {
+    return <>{children}</>;
+  }
 
   return (
     <AuthGuard>

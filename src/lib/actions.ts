@@ -5,8 +5,6 @@
 import { calculateBmi } from "./utils";
 import fs from 'fs';
 import path from 'path';
-import { doc, setDoc, getFirestore } from 'firebase/firestore';
-import { app } from '@/firebase/config';
 
 // --- Data Persistence Setup ---
 const dataDir = path.join(process.cwd(), 'db');
@@ -142,8 +140,6 @@ export type Patient = {
   pointHistory: PointTransaction[];
   consentGiven: boolean;
   consentDate?: Date;
-  authId?: string;
-  authEmail?: string;
 };
 
 export type NewPatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>> & {
@@ -645,34 +641,4 @@ export const resetAllData = async (): Promise<void> => {
     };
     writeData(emptyData);
     await new Promise(resolve => setTimeout(resolve, 100));
-}
-
-
-export const linkPatientToAuth = async (patientId: string, authId: string, authEmail: string): Promise<Patient> => {
-    const data = readData();
-    const patientIndex = data.patients.findIndex(p => p.id === patientId);
-
-    if (patientIndex === -1) {
-        throw new Error("Patient not found");
-    }
-
-    const db = getFirestore(app);
-    const userDocRef = doc(db, 'users', authId);
-    
-    const userProfile = {
-        uid: authId,
-        email: authEmail,
-        patientId: patientId,
-        displayName: data.patients[patientIndex].fullName
-    }
-    
-    // This is an async operation but we won't wait for it on the server
-    setDoc(userDocRef, userProfile);
-
-    data.patients[patientIndex].authId = authId;
-    data.patients[patientIndex].authEmail = authEmail;
-    
-    writeData(data);
-
-    return data.patients[patientIndex];
 }

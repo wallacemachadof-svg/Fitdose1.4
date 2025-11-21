@@ -1,41 +1,64 @@
 
 'use client';
-import { useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { useFirebase } from '@/firebase/provider';
-import { doc, getDoc } from 'firebase/firestore';
 
-export interface UserProfile {
-    uid: string;
-    email?: string | null;
-    displayName?: string | null;
-    photoURL?: string | null;
-    patientId?: string;
+import { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import { onAuthStateChanged, type User, signOut as firebaseSignOut, type Auth } from 'firebase/auth';
+import { useFirebase } from '../provider';
+
+interface AuthContextValue {
+  user: User | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
+  auth: Auth;
 }
 
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};
+
 export const useUser = () => {
-    const { auth, db } = useFirebase();
+  const { user, loading } = useAuth();
+  return { user, loading };
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+    const { auth } = useFirebase();
     const [user, setUser] = useState<User | null>(null);
-    const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
             setUser(user);
-            if (user) {
-                const userDocRef = doc(db, 'users', user.uid);
-                const userDoc = await getDoc(userDocRef);
-                if (userDoc.exists()) {
-                    setProfile(userDoc.data() as UserProfile);
-                }
-            } else {
-                setProfile(null);
-            }
             setLoading(false);
         });
 
         return () => unsubscribe();
-    }, [auth, db]);
+    }, [auth]);
 
-    return { user, profile, loading };
-};
+    const signOut = async () => {
+        try {
+            await firebaseSignOut(auth);
+        } catch (error) {
+            console.error("Error signing out: ", error);
+        }
+    };
+
+    const value = useMemo(() => ({
+        user,
+        loading,
+        signOut,
+        auth,
+    }), [user, loading, auth]);
+
+    return (
+        <AuthContext.Provider value={value}>
+            {children}
+        </AuthContext.Provider>
+    );
+}

@@ -4,25 +4,13 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { useUser } from '@/firebase';
 
 export default function RootPage() {
   const router = useRouter();
-  const { user, profile, loading } = useUser();
 
   useEffect(() => {
-    if (!loading) {
-      if (user) {
-        if (profile?.patientId) {
-            router.replace('/portal');
-        } else {
-            router.replace('/dashboard');
-        }
-      } else {
-        router.replace('/login');
-      }
-    }
-  }, [user, profile, loading, router]);
+    router.replace('/dashboard');
+  }, [router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">

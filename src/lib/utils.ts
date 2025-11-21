@@ -116,7 +116,7 @@ export function generateWhatsAppLink(patient: Patient, dose: Dose): string {
     }
 
     const encodedMessage = encodeURIComponent(message);
-    const cleanPhoneNumber = patient.phone.replace(/\D/g, ''); // Remove non-digit characters
+    const cleanPhoneNumber = patient.phone?.replace(/\D/g, '') || '';
 
     return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
 }

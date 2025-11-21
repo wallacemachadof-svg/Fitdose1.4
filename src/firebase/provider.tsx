@@ -1,51 +1,38 @@
 
 'use client';
-import React, { createContext, useContext } from 'react';
-import { app } from './config';
-import { Auth, getAuth } from 'firebase/auth';
-import { Firestore, getFirestore } from 'firebase/firestore';
 
-interface FirebaseContextType {
-    auth: Auth;
-    db: Firestore;
+import React, { createContext, useContext } from 'react';
+import type { FirebaseApp } from 'firebase/app';
+import type { Auth } from 'firebase/auth';
+import type { Firestore } from 'firebase/firestore';
+import { FirebaseClientProvider } from './client-provider';
+import { firebaseApp, auth, firestore } from '.';
+
+interface FirebaseContextValue {
+  firebaseApp: FirebaseApp;
+  auth: Auth;
+  firestore: Firestore;
 }
 
-const FirebaseContext = createContext<FirebaseContextType | null>(null);
+const FirebaseContext = createContext<FirebaseContextValue | null>(null);
 
-export const FirebaseProvider = ({ children }: { children: React.ReactNode }) => {
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    return (
-        <FirebaseContext.Provider value={{ auth, db }}>
-            {children}
-        </FirebaseContext.Provider>
-    );
-};
+export function FirebaseProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <FirebaseContext.Provider value={{ firebaseApp, auth, firestore }}>
+      <FirebaseClientProvider {...{ firebaseApp, auth, firestore }}>
+        {children}
+      </FirebaseClientProvider>
+    </FirebaseContext.Provider>
+  );
+}
 
 export const useFirebase = () => {
-    const context = useContext(FirebaseContext);
-    if (!context) {
-        throw new Error('useFirebase must be used within a FirebaseProvider');
-    }
-    return context;
+  const context = useContext(FirebaseContext);
+  if (!context) {
+    throw new Error('useFirebase must be used within a FirebaseProvider');
+  }
+  return context;
 };
 
-// Add a new context for auth functions
-interface AuthContextType {
-    user: any;
-    loading: boolean;
-    signIn: (email: string, pass: string) => Promise<any>;
-    signOut: () => Promise<void>;
-    createUser: (email: string, pass: string) => Promise<any>;
-}
-
-export const AuthContext = createContext<AuthContextType | null>(null);
-
-export const useAuthContext = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error("useAuthContext must be used within an AuthProvider");
-    }
-    return context;
-}
+export const useFirebaseApp = () => useFirebase().firebaseApp;
+export const useFirestore = () => useFirebase().firestore;
