@@ -24,6 +24,9 @@ import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
+
 
 const dosePriceSchema = z.object({
   dose: z.string().min(1, "A dose é obrigatória."),
@@ -41,6 +44,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoHeight, setLogoHeight] = useState<number>(50);
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsFormSchema),
@@ -67,6 +71,10 @@ export default function AdminPage() {
         const storedLogo = localStorage.getItem('customLogo');
         if (storedLogo) {
             setLogoPreview(storedLogo);
+        }
+        const storedHeight = localStorage.getItem('customLogoHeight');
+        if (storedHeight) {
+            setLogoHeight(parseInt(storedHeight, 10));
         }
       } catch (error) {
         console.error("Failed to load settings:", error);
@@ -99,9 +107,23 @@ export default function AdminPage() {
     }
   };
   
+  const handleSizeChange = (value: number[]) => {
+    setLogoHeight(value[0]);
+  }
+
+  const handleSizeCommit = (value: number[]) => {
+    localStorage.setItem('customLogoHeight', value[0].toString());
+    window.dispatchEvent(new Event('logo-updated'));
+    toast({
+        title: "Tamanho do logotipo salvo!",
+    })
+  }
+  
   const removeLogo = () => {
       localStorage.removeItem('customLogo');
+      localStorage.removeItem('customLogoHeight');
       setLogoPreview(null);
+      setLogoHeight(50); // Reset to default
       toast({
         title: "Logotipo Removido",
       });
@@ -159,26 +181,47 @@ export default function AdminPage() {
                     <CardDescription>Altere o logotipo que aparece no topo do menu e nas páginas públicas.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center gap-4">
-                    <div className="w-48 h-24 flex items-center justify-center rounded-md border border-dashed bg-muted/50">
+                    <div className="w-full h-32 flex items-center justify-center rounded-md border border-dashed bg-muted/50 p-2">
                         {logoPreview ? (
-                            <Image src={logoPreview} alt="Logo Preview" width={160} height={80} className="object-contain h-20" />
+                            <Image 
+                                src={logoPreview} 
+                                alt="Logo Preview" 
+                                width={200}
+                                height={logoHeight}
+                                className="object-contain" 
+                                style={{ height: `${logoHeight}px`}}
+                            />
                         ) : (
                             <span className="text-sm text-muted-foreground">Sem logotipo</span>
                         )}
                     </div>
-                     <div className="flex gap-2">
-                        <Button asChild variant="outline">
-                            <label htmlFor="logo-upload" className="cursor-pointer">
-                                <Upload className="mr-2 h-4 w-4" />
-                                Alterar Logotipo
-                            </label>
-                        </Button>
-                        <Input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-                        {logoPreview && (
-                            <Button variant="destructive" size="icon" onClick={removeLogo}>
-                                <Trash2 className="h-4 w-4"/>
+                     <div className="w-full space-y-4">
+                        <div className="space-y-2">
+                             <Label htmlFor="logo-size">Ajustar Tamanho (Altura)</Label>
+                            <Slider
+                                id="logo-size"
+                                min={20}
+                                max={100}
+                                step={1}
+                                value={[logoHeight]}
+                                onValueChange={handleSizeChange}
+                                onValueCommit={handleSizeCommit}
+                            />
+                        </div>
+                        <div className="flex gap-2">
+                            <Button asChild variant="outline" className="flex-1">
+                                <label htmlFor="logo-upload" className="cursor-pointer">
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    Alterar Logotipo
+                                </label>
                             </Button>
-                        )}
+                            <Input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                            {logoPreview && (
+                                <Button variant="destructive" size="icon" onClick={removeLogo}>
+                                    <Trash2 className="h-4 w-4"/>
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </CardContent>
             </Card>

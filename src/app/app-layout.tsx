@@ -53,18 +53,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const router = useRouter();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoHeight, setLogoHeight] = useState<number>(50);
 
   const updateLogo = () => {
     // Ensure this runs only on the client
     const storedLogo = localStorage.getItem('customLogo');
     setLogoUrl(storedLogo);
+    const storedHeight = localStorage.getItem('customLogoHeight');
+    setLogoHeight(storedHeight ? parseInt(storedHeight, 10) : 50);
   };
 
   useEffect(() => {
     updateLogo();
 
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'customLogo') {
+      if (event.key === 'customLogo' || event.key === 'customLogoHeight') {
         updateLogo();
       }
     };
@@ -113,9 +116,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarProvider>
         <Sidebar>
           <SidebarHeader>
-            <div className="flex items-center justify-center p-4 h-20">
+            <div className="flex items-center justify-center p-4 h-24">
               {logoUrl ? (
-                <Image src={logoUrl} alt="FitDose Logo" width={120} height={50} className="object-contain h-12"/>
+                <Image 
+                    src={logoUrl} 
+                    alt="FitDose Logo" 
+                    width={200}
+                    height={logoHeight}
+                    className="object-contain"
+                    style={{ height: `${logoHeight}px` }}
+                />
               ) : (
                 <h1 className="text-2xl font-bold text-primary">FitDose</h1>
               )}
