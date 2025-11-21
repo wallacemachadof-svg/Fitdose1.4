@@ -103,28 +103,25 @@ export function getStockStatusVariant(quantity: number) {
 }
 
 export function generateWhatsAppLink(patient: Patient, dose: Dose): string {
-    const status = getDoseStatus(dose, patient.doses);
     const patientFirstName = patient.fullName.split(' ')[0];
     const doseDate = formatDate(dose.date);
-    let message = '';
+    const doseTime = dose.time || '[Insira o Horário Aqui]';
 
-    switch (status.messageType) {
-        case 'overdue':
-            message = `Olá, ${patientFirstName}! Passando para lembrar que sua dose de número ${dose.doseNumber} está vencida. Vamos reagendar?`;
-            break;
-        case 'urgent':
-            message = `Olá, ${patientFirstName}! Sua dose de número ${dose.doseNumber} vence em ${status.days === 0 ? 'hoje' : `${status.days} dia(s)`} (${doseDate}). Não se esqueça!`;
-            break;
-        case 'upcoming':
-            message = `Olá, ${patientFirstName}! Um lembrete amigável de que sua próxima dose (Nº ${dose.doseNumber}) está agendada para ${doseDate}.`;
-            break;
-        case 'scheduled':
-             message = `Olá, ${patientFirstName}! Tudo bem? Passando para confirmar que sua dose Nº ${dose.doseNumber} está agendada para ${doseDate}.`;
-            break;
-        default:
-            message = `Olá, ${patientFirstName}! Como você está?`;
-            break;
-    }
+    const message = `✨ Oi, ${patientFirstName}.
+
+Passando para deixar um lembrete super importante e garantir que você continue no caminho certo para os seus resultados de Emagrecimento & Estética!
+
+Sua Próxima Dose (Nº ${dose.doseNumber}) está chegando:
+
+🗓️ Data: ${doseDate}
+⏰ Horário: ${doseTime}
+
+Seu próximo passo é simples:
+
+👉 Tudo certo para essa data e horário? Se sim, é só aguardar!
+⚠️ Precisa mudar? Por favor, nos chame o quanto antes para que possamos ajustar seu agendamento sem perder seu progresso!
+
+Estamos aqui para cuidar de você! Qualquer dúvida, é só nos chamar. 💖`;
 
     const encodedMessage = encodeURIComponent(message);
     const cleanPhoneNumber = patient.phone?.replace(/\D/g, '') || '';
