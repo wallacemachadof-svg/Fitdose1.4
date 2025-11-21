@@ -426,6 +426,27 @@ export const addBioimpedanceEntry = async (patientId: string, date: Date, bioimp
         patient.evolutions = [];
     }
     patient.evolutions.push(newEvolution);
+
+    // --- Auto-administer next pending dose ---
+    const nextPendingDoseIndex = patient.doses.findIndex(d => d.status === 'pending');
+    
+    if(nextPendingDoseIndex !== -1) {
+        const doseToUpdate = patient.doses[nextPendingDoseIndex];
+        doseToUpdate.status = 'administered';
+        doseToUpdate.date = date; // Update dose date to bioimpedance date
+        if (bioimpedance.weight) {
+            doseToUpdate.weight = bioimpedance.weight;
+        }
+        if (bioimpedance.bmi) {
+            doseToUpdate.bmi = bioimpedance.bmi;
+        }
+        patient.doses[nextPendingDoseIndex] = doseToUpdate;
+    }
+    
+    // Ensure doses are always in chronological order
+    patient.doses.sort((a,b) => a.date.getTime() - b.date.getTime());
+
+
     data.patients[patientIndex] = patient;
     writeData(data);
 
@@ -445,7 +466,7 @@ export const deleteBioimpedanceEntry = async (patientId: string, evolutionId: st
     
     patient.evolutions = patient.evolutions.filter(e => e.id !== evolutionId);
 
-    if(patient.evolutions.length === initialLength){
+    if(patient.evolutions.length === initialLength && evolutionId !== 'initial-record'){
         throw new Error("Evolution entry not found");
     }
 
