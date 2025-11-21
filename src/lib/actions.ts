@@ -80,11 +80,23 @@ const writeData = (data: MockData) => {
 
 // --- Type Definitions ---
 
-const generateDoseSchedule = (startDate: Date): Dose[] => {
-  const doses: Dose[] = [];
-  let currentDate = new Date(startDate);
-  for (let i = 1; i <= 12; i++) {
-    doses.push({
+const generateDoseSchedule = (startDate: Date, totalDoses = 12, startDoseNumber = 1, administeredDoses: Dose[] = []): Dose[] => {
+  const newDoses: Dose[] = [];
+  
+  // Determine the starting point for the new schedule
+  const lastAdministeredDose = administeredDoses.length > 0 
+      ? administeredDoses.sort((a,b) => b.doseNumber - a.doseNumber)[0]
+      : null;
+
+  let currentDate = lastAdministeredDose ? new Date(lastAdministeredDose.date) : new Date(startDate);
+  if (lastAdministeredDose) {
+      currentDate.setDate(currentDate.getDate() + 7);
+  }
+
+  const startingDoseNumber = lastAdministeredDose ? lastAdministeredDose.doseNumber + 1 : startDoseNumber;
+
+  for (let i = startingDoseNumber; i <= totalDoses; i++) {
+    newDoses.push({
       id: i,
       doseNumber: i,
       date: new Date(currentDate),
@@ -96,7 +108,8 @@ const generateDoseSchedule = (startDate: Date): Dose[] => {
     });
     currentDate.setDate(currentDate.getDate() + 7);
   }
-  return doses;
+  
+  return [...administeredDoses, ...newDoses].sort((a,b) => a.doseNumber - b.doseNumber);
 };
 
 export type PointTransaction = {
@@ -316,6 +329,15 @@ export const updatePatient = async (id: string, patientData: UpdatePatientData):
             ...patientData.address,
         }
     };
+    
+    const oldFirstDoseDate = originalPatient.firstDoseDate ? new Date(originalPatient.firstDoseDate).getTime() : 0;
+    const newFirstDoseDate = updatedPatient.firstDoseDate ? new Date(updatedPatient.firstDoseDate).getTime() : 0;
+
+    if (newFirstDoseDate !== oldFirstDoseDate) {
+        const administeredDoses = originalPatient.doses.filter(d => d.status === 'administered');
+        updatedPatient.doses = generateDoseSchedule(new Date(newFirstDoseDate), 12, 1, administeredDoses);
+    }
+
 
     data.patients[patientIndex] = updatedPatient;
     writeData(data);
@@ -444,7 +466,7 @@ export const addBioimpedanceEntry = async (patientId: string, date: Date, bioimp
     }
     
     // Ensure doses are always in chronological order
-    patient.doses.sort((a,b) => a.date.getTime() - b.date.getTime());
+    patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
 
 
     data.patients[patientIndex] = patient;
