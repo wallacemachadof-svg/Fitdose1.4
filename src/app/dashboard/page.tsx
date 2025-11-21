@@ -1,21 +1,25 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getPatients, getSales, type Dose, type Sale } from "@/lib/actions";
 import { getDoseStatus, formatDate, formatCurrency, getDaysUntilDose, getOverdueDays } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Syringe, User, BellDot, BarChart3, PieChart, TrendingUp, DollarSign, Link as LinkIcon, Copy, Check, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock } from "lucide-react";
+import { Syringe, User, BellDot, BarChart3, PieChart, TrendingUp, DollarSign, Link as LinkIcon, Copy, Check, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock, Calendar as CalendarIcon } from "lucide-react";
 import Link from 'next/link';
-import { differenceInDays, subDays, format as formatDateFns, startOfToday } from "date-fns";
+import { differenceInDays, subDays, format as formatDateFns, startOfToday, startOfMonth, startOfYear, isWithinInterval } from "date-fns";
 import { ptBR } from 'date-fns/locale';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Pie, PieChart as RechartsPieChart, Cell, Legend } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { DateRange } from 'react-day-picker';
+import { cn } from '@/lib/utils';
 
 type UpcomingDose = Dose & {
   patientId: string;
@@ -30,6 +34,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const [registrationLink, setRegistrationLink] = useState('');
+  
+  const [salesDateFilter, setSalesDateFilter] = useState<'30d' | '6m' | '1y' | 'today' | 'custom'>('30d');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 29),
+    to: new Date(),
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,6 +63,58 @@ export default function DashboardPage() {
       description: "O link de cadastro foi copiado para a área de transferência.",
     });
   };
+  
+  const { filteredSales, salesChartData, totalFilteredRevenue, filterTitle } = useMemo(() => {
+    const today = startOfToday();
+    let startDate: Date;
+    let endDate: Date = new Date();
+    let title: string;
+
+    switch (salesDateFilter) {
+        case 'today':
+            startDate = today;
+            endDate = today;
+            title = 'Vendas de Hoje';
+            break;
+        case '6m':
+            startDate = subDays(today, 180);
+            title = 'Vendas (Últimos 6 meses)';
+            break;
+        case '1y':
+            startDate = subDays(today, 365);
+            title = 'Vendas (Último ano)';
+            break;
+        case 'custom':
+            startDate = dateRange?.from || today;
+            endDate = dateRange?.to || today;
+            title = `Vendas (${formatDate(startDate)} - ${formatDate(endDate)})`;
+            break;
+        case '30d':
+        default:
+            startDate = subDays(today, 29);
+            title = 'Vendas (Últimos 30 dias)';
+            break;
+    }
+    
+    const filtered = sales.filter(s => {
+        const saleDate = new Date(s.saleDate);
+        return isWithinInterval(saleDate, { start: startDate, end: addDays(endDate, 1) }); // addDays to include the end date
+    });
+    
+    const total = filtered.reduce((acc, sale) => acc + sale.total, 0);
+
+    const salesByDay = filtered.reduce((acc, sale) => {
+        const day = formatDateFns(new Date(sale.saleDate), 'dd/MM');
+        acc[day] = (acc[day] || 0) + sale.total;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const chartData = Object.entries(salesByDay).map(([name, total]) => ({ name, total })).reverse();
+
+    return { filteredSales: filtered, salesChartData: chartData, totalFilteredRevenue: total, filterTitle: title };
+
+  }, [sales, salesDateFilter, dateRange]);
+
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -79,20 +141,7 @@ export default function DashboardPage() {
 
   const totalPatients = patients.length;
   
-  const thirtyDaysAgo = subDays(today, 30);
-  const recentSales = sales.filter(s => new Date(s.saleDate) >= thirtyDaysAgo);
-  
-  const totalRevenueLast30Days = recentSales.reduce((acc, sale) => acc + sale.total, 0);
-
-  const salesByDay = recentSales.reduce((acc, sale) => {
-    const day = formatDateFns(new Date(sale.saleDate), 'dd/MM');
-    acc[day] = (acc[day] || 0) + sale.total;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const salesByDayChartData = Object.entries(salesByDay).map(([name, total]) => ({ name, total })).reverse();
-
-  const salesByDose = recentSales.reduce((acc, sale) => {
+  const salesByDose = filteredSales.reduce((acc, sale) => {
     const dose = `${sale.soldDose} mg`;
     acc[dose] = (acc[dose] || 0) + 1;
     return acc;
@@ -249,46 +298,112 @@ export default function DashboardPage() {
        <div className="grid gap-6 md:grid-cols-2">
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />Vendas nos Últimos 30 Dias</CardTitle>
-                    <CardDescription>Receita total de {formatCurrency(totalRevenueLast30Days)}</CardDescription>
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                        <div>
+                            <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />{filterTitle}</CardTitle>
+                            <CardDescription>Receita total de {formatCurrency(totalFilteredRevenue)}</CardDescription>
+                        </div>
+                         <div className="flex items-center gap-2">
+                            <Button variant={salesDateFilter === 'today' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('today')}>Hoje</Button>
+                            <Button variant={salesDateFilter === '30d' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('30d')}>30d</Button>
+                            <Button variant={salesDateFilter === '6m' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('6m')}>6m</Button>
+                            <Button variant={salesDateFilter === '1y' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('1y')}>1 ano</Button>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                    id="date"
+                                    variant={"outline"}
+                                    size="sm"
+                                    className={cn(
+                                        "justify-start text-left font-normal",
+                                        !dateRange && "text-muted-foreground",
+                                        salesDateFilter === 'custom' && "bg-secondary"
+                                    )}
+                                    >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {dateRange?.from ? (
+                                        dateRange.to ? (
+                                        <>
+                                            {formatDateFns(dateRange.from, "LLL dd, y")} -{" "}
+                                            {formatDateFns(dateRange.to, "LLL dd, y")}
+                                        </>
+                                        ) : (
+                                        formatDateFns(dateRange.from, "LLL dd, y")
+                                        )
+                                    ) : (
+                                        <span>Escolha a data</span>
+                                    )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="end">
+                                    <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={dateRange?.from}
+                                    selected={dateRange}
+                                    onSelect={(range) => {
+                                        setDateRange(range);
+                                        if (range?.from && range?.to) {
+                                            setSalesDateFilter('custom');
+                                        }
+                                    }}
+                                    numberOfMonths={2}
+                                    locale={ptBR}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={salesByDayChartData}>
-                            <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false}/>
-                            <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value}`}/>
-                            <Tooltip formatter={(value) => formatCurrency(value as number)} cursor={{fill: 'hsl(var(--muted))'}} />
-                            <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
+                    {salesChartData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={salesChartData}>
+                                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false}/>
+                                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value}`}/>
+                                <Tooltip formatter={(value) => formatCurrency(value as number)} cursor={{fill: 'hsl(var(--muted))'}} />
+                                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                            Nenhuma venda encontrada para este período.
+                        </div>
+                    )}
                 </CardContent>
             </Card>
              <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><PieChart className="h-5 w-5" />Vendas por Dose (Últimos 30 dias)</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><PieChart className="h-5 w-5" />Vendas por Dose ({filterTitle.split('(')[1] || 'período selecionado)'})</CardTitle>
                      <CardDescription>Distribuição das doses mais vendidas.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                     <ResponsiveContainer width="100%" height={300}>
-                        <RechartsPieChart>
-                            <Pie data={salesByDoseChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-                                const radius = innerRadius + (outerRadius - innerRadius) * 1.2;
-                                const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-                                const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-                                return (
-                                <text x={x} y={y} fill="currentColor" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs">
-                                    {`${(percent * 100).toFixed(0)}%`}
-                                </text>
-                                );
-                            }}>
-                                {salesByDoseChartData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Pie>
-                             <Legend iconSize={10} />
-                            <Tooltip formatter={(value, name) => [`${value} vendas`, name]} />
-                        </RechartsPieChart>
-                    </ResponsiveContainer>
+                    {salesByDoseChartData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={300}>
+                            <RechartsPieChart>
+                                <Pie data={salesByDoseChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                                    const radius = innerRadius + (outerRadius - innerRadius) * 1.2;
+                                    const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+                                    const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+                                    return (
+                                    <text x={x} y={y} fill="currentColor" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs">
+                                        {`${(percent * 100).toFixed(0)}%`}
+                                    </text>
+                                    );
+                                }}>
+                                    {salesByDoseChartData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Legend iconSize={10} />
+                                <Tooltip formatter={(value, name) => [`${value} vendas`, name]} />
+                            </RechartsPieChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                            Nenhuma venda encontrada para este período.
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
@@ -320,5 +435,3 @@ function DashboardSkeleton() {
     </div>
   );
 }
-
-    
