@@ -693,7 +693,7 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
 }
 
 const evolutionFormSchema = z.object({
-    notes: z.string().min(1, "As anotações são obrigatórias."),
+    notes: z.string().optional(),
     photoUrl: z.string().optional(),
     bioimpedance: z.object({
         fatPercentage: z.coerce.number().optional(),
@@ -828,7 +828,7 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
                             name="notes"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Anotações da Evolução</FormLabel>
+                                    <FormLabel>Anotações da Evolução (Opcional)</FormLabel>
                                     <FormControl>
                                         <Textarea placeholder="Descreva a evolução do paciente, observações, etc." rows={3} {...field} />
                                     </FormControl>
@@ -922,7 +922,7 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
                                     </CardHeader>
                                     <CardContent className="p-4 pt-0 grid md:grid-cols-3 gap-6">
                                         <div className="md:col-span-2">
-                                            <p className="text-sm text-muted-foreground">{evo.notes}</p>
+                                            {evo.notes && <p className="text-sm text-muted-foreground mb-4">{evo.notes}</p>}
                                             {evo.bioimpedance && (
                                                 <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
                                                     <BioimpedanceItem icon={Activity} label="% Gordura" value={evo.bioimpedance.fatPercentage} unit="%" />
@@ -966,4 +966,3 @@ function BioimpedanceItem({ icon: Icon, label, value, unit }: { icon: React.Elem
         </div>
     )
 }
-

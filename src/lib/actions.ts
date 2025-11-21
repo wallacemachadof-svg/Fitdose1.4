@@ -399,6 +399,32 @@ export const addPatientEvolution = async (patientId: string, evolutionData: NewE
     return patient;
 };
 
+export const addBioimpedanceEntry = async (patientId: string, date: Date, bioimpedance: Bioimpedance): Promise<Patient> => {
+    const data = readData();
+    const patientIndex = data.patients.findIndex(p => p.id === patientId);
+    if (patientIndex === -1) {
+        throw new Error("Patient not found");
+    }
+
+    const patient = data.patients[patientIndex];
+    const newEvolution: Evolution = {
+        id: `evo-${Date.now()}`,
+        date: date,
+        notes: "Registro de bioimpedância via IA.",
+        bioimpedance: bioimpedance,
+    };
+
+    if (!patient.evolutions) {
+        patient.evolutions = [];
+    }
+    patient.evolutions.push(newEvolution);
+    data.patients[patientIndex] = patient;
+    writeData(data);
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return patient;
+}
+
 
 export const getSales = async (): Promise<Sale[]> => {
   const { sales } = readData();

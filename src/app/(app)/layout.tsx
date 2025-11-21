@@ -16,6 +16,7 @@ import {
   Eraser,
   Trash2,
   User as UserIcon,
+  HeartPulse,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -158,6 +159,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link href="/patients">
                   <Users />
                   <span>Pacientes</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive('/bioimpedance')}
+                tooltip="Bioimpedância"
+              >
+                <Link href="/bioimpedance">
+                  <HeartPulse />
+                  <span>Bioimpedância</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
