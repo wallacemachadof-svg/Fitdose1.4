@@ -23,9 +23,6 @@ import {
   formatCurrency,
   getPaymentStatusVariant
 } from '@/lib/utils';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
@@ -78,10 +75,6 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -89,33 +82,11 @@ import { format as formatDateFns } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
 
-const doseManagementSchema = z.object({
-  date: z.date({ required_error: "A data é obrigatória." }),
-  time: z.string().optional(),
-  status: z.enum(['administered', 'pending']),
-  weight: z.coerce.number().optional(),
-  administeredDose: z.coerce.number().optional(),
-  paymentStatus: z.enum(['pago', 'pendente']),
-}).refine(data => {
-    if (data.status === 'administered') {
-        return !!data.weight && !!data.administeredDose;
-    }
-    return true;
-}, {
-    message: "Peso e dose aplicada são obrigatórios para doses administradas.",
-    path: ["status"],
-});
-
-type DoseManagementFormValues = z.infer<typeof doseManagementSchema>;
-
-
 export default function PatientDetailPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(false);
-  const [selectedDose, setSelectedDose] = useState<Dose | null>(null);
-  const [isDoseModalOpen, setIsDoseModalOpen] = useState(false);
   const [evolutionToDelete, setEvolutionToDelete] = useState<Evolution | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
@@ -158,20 +129,32 @@ export default function PatientDetailPage() {
     }
   };
 
-  const handleManageDoseClick = (dose: Dose) => {
-    setSelectedDose(dose);
-    setIsDoseModalOpen(true);
-  }
+  const handleRescheduleDose = async (doseId: number, newDate: Date) => {
+    if (!patient) return;
+    try {
+      const updatedPatient = await updateDose(patient.id, doseId, { date: newDate });
+      if (updatedPatient) {
+        setPatient(updatedPatient);
+        toast({
+          title: "Dose Reagendada!",
+          description: `A dose ${doseId} e as subsequentes foram reagendadas.`,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to reschedule dose", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao reagendar",
+        description: "Não foi possível reagendar a dose.",
+      });
+    }
+  };
 
   const handleNotifyClick = (patient: Patient, dose: Dose) => {
     const whatsappUrl = generateWhatsAppLink(patient, dose);
     window.open(whatsappUrl, '_blank');
   };
   
-  const onDoseUpdate = (updatedPatient: Patient) => {
-    setPatient(updatedPatient);
-  }
-
   const handleDeleteEvolutionClick = (evolution: Evolution) => {
     setEvolutionToDelete(evolution);
     setIsDeleteDialogOpen(true);
@@ -417,12 +400,10 @@ export default function PatientDetailPage() {
                             <TableCell>{(evo as any).fatPercentage?.toFixed(2) ?? '-'}</TableCell>
                             <TableCell>{(evo as any).skeletalMusclePercentage?.toFixed(2) ?? '-'}</TableCell>
                             <TableCell className="text-right">
-                                {!evo.isInitial && (
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteEvolutionClick(evo as Evolution)}>
-                                        <Trash2 className="h-4 w-4" />
-                                        <span className="sr-only">Excluir registro</span>
-                                    </Button>
-                                )}
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteEvolutionClick(evo as Evolution)}>
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Excluir registro</span>
+                                </Button>
                             </TableCell>
                         </TableRow>
                     ))
@@ -531,7 +512,32 @@ export default function PatientDetailPage() {
                 return (
                   <TableRow key={dose.id}>
                     <TableCell className="font-semibold">{dose.doseNumber}</TableCell>
-                    <TableCell>{formatDate(dose.date)}</TableCell>
+                    <TableCell>
+                      {dose.status === 'pending' ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="ghost" className={cn("p-1 h-auto justify-start font-normal -ml-2", !dose.date && "text-muted-foreground")}>
+                              {formatDate(dose.date)}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={new Date(dose.date)}
+                              onSelect={(newDate) => {
+                                if (newDate) {
+                                  handleRescheduleDose(dose.id, newDate);
+                                }
+                              }}
+                              initialFocus
+                              locale={ptBR}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        formatDate(dose.date)
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
                     </TableCell>
@@ -540,10 +546,6 @@ export default function PatientDetailPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleManageDoseClick(dose)}>
-                          <Pencil className="h-4 w-4" />
-                          <span className="sr-only">Gerenciar Dose</span>
-                        </Button>
                         {dose.status === 'pending' && (
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-600" onClick={() => handleNotifyClick(patient, dose)}>
                             <FaWhatsapp className="h-5 w-5" />
@@ -559,16 +561,6 @@ export default function PatientDetailPage() {
           </Table>
         </CardContent>
       </Card>
-      
-      {selectedDose && (
-        <DoseManagementDialog 
-            isOpen={isDoseModalOpen}
-            setIsOpen={setIsDoseModalOpen}
-            dose={selectedDose}
-            patientId={patient.id}
-            onDoseUpdate={onDoseUpdate}
-        />
-      )}
       
        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <AlertDialogContent>
@@ -686,211 +678,13 @@ function PatientDetailSkeleton() {
   );
 }
 
-interface DoseManagementDialogProps {
-    isOpen: boolean;
-    setIsOpen: (isOpen: boolean) => void;
-    dose: Dose;
-    patientId: string;
-    onDoseUpdate: (patient: Patient) => void;
-}
-
-function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate }: DoseManagementDialogProps) {
-    const { toast } = useToast();
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const form = useForm<DoseManagementFormValues>({
-        resolver: zodResolver(doseManagementSchema),
-        defaultValues: {
-            date: new Date(dose.date),
-            time: dose.time || '',
-            status: dose.status,
-            weight: dose.weight || undefined,
-            administeredDose: dose.administeredDose || undefined,
-            paymentStatus: dose.payment?.status || 'pendente',
-        },
-    });
-
-    useEffect(() => {
-        form.reset({
-            date: new Date(dose.date),
-            time: dose.time || '',
-            status: dose.status,
-            weight: dose.weight || undefined,
-            administeredDose: dose.administeredDose || undefined,
-            paymentStatus: dose.payment?.status || 'pendente',
-        });
-    }, [dose, form]);
-
-    const watchStatus = form.watch("status");
-    const watchPaymentStatus = form.watch("paymentStatus");
-
-    async function onSubmit(data: DoseManagementFormValues) {
-        setIsSubmitting(true);
-        try {
-            const updatedPatient = await updateDose(patientId, dose.id, {
-                date: data.date,
-                time: data.time,
-                status: data.status,
-                weight: data.weight,
-                administeredDose: data.administeredDose,
-                payment: {
-                    ...dose.payment,
-                    status: data.paymentStatus,
-                    amount: dose.payment?.amount || 0
-                },
-            });
-
-            if (updatedPatient) {
-                toast({
-                    title: "Dose Atualizada!",
-                    description: `A dose ${dose.doseNumber} foi atualizada com sucesso.`,
-                });
-                onDoseUpdate(updatedPatient);
-                setIsOpen(false);
-            } else {
-                throw new Error("Patient not found after update");
-            }
-        } catch (error) {
-            console.error("Failed to update dose", error);
-            toast({
-                variant: "destructive",
-                title: "Erro ao salvar",
-                description: "Não foi possível atualizar a dose. Tente novamente.",
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
-    }
-
-    return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent className="max-w-xl">
-                <DialogHeader>
-                    <DialogTitle>Gerenciar Dose N° {dose.doseNumber}</DialogTitle>
-                    <DialogDescription>
-                        Atualize ou reagende a dose.
-                    </DialogDescription>
-                </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="date"
-                                render={({ field }) => (
-                                <FormItem className="flex flex-col"><FormLabel>Data da Aplicação</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                {field.value ? formatDateFns(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                        </PopoverContent>
-                                    </Popover>
-                                <FormMessage />
-                                </FormItem>
-                            )}/>
-                             <FormField control={form.control} name="time" render={({ field }) => (
-                                <FormItem><FormLabel>Horário</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                        </div>
-                        
-                        <FormField
-                            control={form.control}
-                            name="status"
-                            render={({ field }) => (
-                                <FormItem className="space-y-3">
-                                    <FormLabel>Status da Aplicação</FormLabel>
-                                    <FormControl>
-                                        <RadioGroup
-                                            onValueChange={field.onChange}
-                                            defaultValue={field.value}
-                                            className="flex items-center gap-6"
-                                        >
-                                            <FormItem className="flex items-center space-x-3 space-y-0">
-                                                <FormControl><RadioGroupItem value="pending" /></FormControl>
-                                                <FormLabel className="font-normal">Pendente</FormLabel>
-                                            </FormItem>
-                                            <FormItem className="flex items-center space-x-3 space-y-0">
-                                                <FormControl><RadioGroupItem value="administered" /></FormControl>
-                                                <FormLabel className="font-normal">Administrada</FormLabel>
-                                            </FormItem>
-                                        </RadioGroup>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        {watchStatus === 'administered' && (
-                           <div className="p-4 border rounded-md space-y-4">
-                               <h4 className="text-sm font-semibold">Dados da Aplicação</h4>
-                                <div className="grid grid-cols-2 gap-4">
-                                     <FormField control={form.control} name="weight" render={({ field }) => (
-                                        <FormItem><FormLabel>Peso (kg)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 84.5" {...field} /></FormControl><FormMessage /></FormItem>
-                                    )}/>
-                                     <FormField control={form.control} name="administeredDose" render={({ field }) => (
-                                        <FormItem><FormLabel>Dose Aplicada (mg)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 2.5" {...field} /></FormControl><FormMessage /></FormItem>
-                                    )}/>
-                                </div>
-                            </div>
-                        )}
-                        <div className="p-4 border rounded-md space-y-4">
-                            <h4 className="text-sm font-semibold">Dados Financeiros</h4>
-                            <FormField
-                                control={form.control}
-                                name="paymentStatus"
-                                render={({ field }) => (
-                                    <FormItem className="space-y-3">
-                                        <FormLabel>Status do Pagamento</FormLabel>
-                                        <FormControl>
-                                            <RadioGroup
-                                                onValueChange={field.onChange}
-                                                defaultValue={field.value}
-                                                className="flex items-center gap-6"
-                                            >
-                                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                                    <FormControl><RadioGroupItem value="pendente" /></FormControl>
-                                                    <FormLabel className="font-normal">Pendente</FormLabel>
-                                                </FormItem>
-                                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                                    <FormControl><RadioGroupItem value="pago" /></FormControl>
-                                                    <FormLabel className="font-normal">Pago</FormLabel>
-                                                </FormItem>
-                                            </RadioGroup>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        <DialogFooter>
-                            <DialogClose asChild>
-                                <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
-                            </DialogClose>
-                            <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : 'Salvar'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
 const isSameDay = (date1: Date, date2: Date) =>
   date1.getFullYear() === date2.getFullYear() &&
   date1.getMonth() === date2.getMonth() &&
   date1.getDate() === date2.getDate();
 
     
+
 
 
 

@@ -402,44 +402,33 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     const doseIndex = patient.doses.findIndex(d => d.id === doseId);
 
     if (doseIndex === -1) return null;
-
-    const originalDose = patient.doses[doseIndex];
     
-    const updatedDose: Dose = {
-        ...originalDose,
+    // Create the updated dose object
+    patient.doses[doseIndex] = {
+        ...patient.doses[doseIndex],
         ...doseData,
-        date: doseData.date ? new Date(doseData.date) : originalDose.date,
+        date: doseData.date ? new Date(doseData.date) : patient.doses[doseIndex].date,
         payment: {
-            ...originalDose.payment,
+            ...patient.doses[doseIndex].payment,
             ...doseData.payment,
         }
     };
     
-    if (updatedDose.status === 'administered' && updatedDose.weight) {
-        updatedDose.bmi = calculateBmi(updatedDose.weight, patient.height / 100);
-    }
-    
-    if (updatedDose.payment.status === 'pendente' && doseData.payment?.status === 'pendente') {
-        updatedDose.payment.date = undefined;
-    }
-
-
-    patient.doses[doseIndex] = updatedDose;
-    
-    // Sort doses by their doseNumber to ensure the sequence is correct before recalculating.
+    // Sort doses by number to ensure correct order
     patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
 
     // Recalculate dates for subsequent pending doses
     for (let i = 0; i < patient.doses.length; i++) {
         const currentDose = patient.doses[i];
         
-        // Only reschedule PENDING doses that are AFTER the one we just edited.
-        if (currentDose.status === 'pending' && currentDose.doseNumber > updatedDose.doseNumber) {
-            const prevDose = patient.doses[i - 1];
-            if (prevDose) {
-                const nextDate = new Date(prevDose.date);
-                nextDate.setDate(nextDate.getDate() + 7);
-                currentDose.date = nextDate;
+        // Find the previous dose in the sorted list
+        if (i > 0) {
+            const prevDose = patient.doses[i-1];
+            // If the current dose is pending, reschedule it 7 days after the previous one
+            if (currentDose.status === 'pending') {
+                const newDate = new Date(prevDose.date);
+                newDate.setDate(newDate.getDate() + 7);
+                currentDose.date = newDate;
             }
         }
     }
