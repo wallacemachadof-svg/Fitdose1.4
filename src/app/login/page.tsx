@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,11 +45,36 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       router.push('/dashboard');
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro de Login',
-        description: 'E-mail ou senha inválidos. Por favor, tente novamente.',
-      });
+        if (error.code === 'auth/user-not-found') {
+            // If user does not exist, create a new account
+            try {
+                await createUserWithEmailAndPassword(auth, data.email, data.password);
+                toast({
+                    title: 'Conta Criada!',
+                    description: 'Sua conta de administrador foi criada com sucesso. Você já está logado.',
+                });
+                router.push('/dashboard');
+            } catch (creationError: any) {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Erro ao Criar Conta',
+                    description: 'Não foi possível criar sua conta. Verifique os dados e tente novamente.',
+                });
+            }
+        } else if (error.code === 'auth/wrong-password') {
+             toast({
+                variant: 'destructive',
+                title: 'Senha Incorreta',
+                description: 'A senha está incorreta. Por favor, tente novamente.',
+            });
+        }
+        else {
+            toast({
+                variant: 'destructive',
+                title: 'Erro de Login',
+                description: 'Ocorreu um erro inesperado. Por favor, tente novamente.',
+            });
+        }
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +101,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Acesse sua conta para continuar.</CardDescription>
+          <CardDescription>Acesse ou crie sua conta de administrador.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(handleEmailLogin)} className="space-y-4">
@@ -103,7 +128,7 @@ export default function LoginPage() {
             </div>
             <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Entrar com E-mail
+              Entrar ou Cadastrar
             </Button>
           </form>
           <div className="relative my-4">
