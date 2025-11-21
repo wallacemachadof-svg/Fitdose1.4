@@ -424,7 +424,7 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
         
         // If the current dose is pending and its date is before or at the same day as the previous one
         // or if the updated dose is the previous one, we need to reschedule
-        if (currentDose.status === 'pending' && (prevDose.id === doseId || currentDose.date <= prevDose.date)) {
+        if (currentDose.status === 'pending') {
             const newDate = new Date(prevDose.date);
             newDate.setDate(newDate.getDate() + 7);
             currentDose.date = newDate;
@@ -650,9 +650,16 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
 
     // --- Update Patient Doses Payment Status ---
     if (saleData.paymentStatus === 'pago') {
+        // Ensure all doses have a payment object
+        patient.doses.forEach(dose => {
+            if (!dose.payment) {
+                dose.payment = { status: 'pendente' };
+            }
+        });
+
         const pendingPaymentDoses = patient.doses
             .filter(d => d.payment.status === 'pendente')
-            .sort((a,b) => a.date.getTime() - b.date.getTime());
+            .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         
         for (let i = 0; i < saleData.quantity; i++) {
             if (i < pendingPaymentDoses.length) {
@@ -662,6 +669,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
                     patient.doses[doseIndex].payment.status = 'pago';
                     patient.doses[doseIndex].payment.date = saleData.paymentDate || saleData.saleDate;
                     patient.doses[doseIndex].payment.amount = saleData.price / saleData.quantity; // individual price
+                    patient.doses[doseIndex].payment.method = saleData.paymentMethod;
                 }
             }
         }
@@ -732,6 +740,7 @@ export const deleteCashFlowEntry = async (id: string): Promise<void> => {
     } else {
         throw new Error("Lançamento não encontrado no fluxo de caixa");
     }
+    writeData({ cashFlowEntries: data.cashFlowEntries });
     await new Promise(resolve => setTimeout(resolve, 100));
 };
 
