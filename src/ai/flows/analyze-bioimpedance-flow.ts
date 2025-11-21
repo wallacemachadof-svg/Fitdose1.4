@@ -20,23 +20,23 @@ const AnalyzeBioimpedanceInputSchema = z.object({
 export type AnalyzeBioimpedanceInput = z.infer<typeof AnalyzeBioimpedanceInputSchema>;
 
 const AnalyzeBioimpedanceOutputSchema = z.object({
-    weight: z.number().optional().describe('O valor do "Peso(Kg)".'),
-    bmi: z.number().optional().describe('O valor do "IMC".'),
-    fatPercentage: z.number().optional().describe('O valor da "Gordura(%)".'),
-    fatWeight: z.number().optional().describe('O valor do "Peso da gordura(Kg)".'),
-    skeletalMusclePercentage: z.number().optional().describe('O valor do "Percentual da massa muscular esquelética(%)".'),
-    skeletalMuscleWeight: z.number().optional().describe('O valor do "Peso da massa muscular esquelética(Kg)".'),
-    muscleMassPercentage: z.number().optional().describe('O valor do "Registro de massa muscular(%)".'),
-    muscleMassWeight: z.number().optional().describe('O valor do "Peso da massa muscular(Kg)".'),
-    visceralFat: z.number().optional().describe('O valor da "Gordura visceral".'),
-    hydration: z.number().optional().describe('O valor da "Água(%)".'),
-    waterWeight: z.number().optional().describe('O valor do "peso da água(Kg)".'),
-    metabolism: z.number().optional().describe('O valor do "Metabolismo(kcal / dia)".'),
-    obesityPercentage: z.number().optional().describe('O valor da "Obesidade(%)".'),
-    boneMass: z.number().optional().describe('O valor da "Ossos(Kg)".'),
-    protein: z.number().optional().describe('O valor da "Proteina(%)".'),
-    lbm: z.number().optional().describe('O valor da "LBM(Kg)".'),
-    metabolicAge: z.number().optional().describe('O valor da "Idade metabólica".'),
+    weight: z.number().optional().describe('The value for "Peso(Kg)".'),
+    bmi: z.number().optional().describe('The value for "IMC".'),
+    fatPercentage: z.number().optional().describe('The value for "Gordura(%)".'),
+    fatWeight: z.number().optional().describe('The value for "Peso da gordura(Kg)".'),
+    skeletalMusclePercentage: z.number().optional().describe('The value for "Percentual da massa muscular esquelética(%)".'),
+    skeletalMuscleWeight: z.number().optional().describe('The value for "Peso da massa muscular esquelética(Kg)".'),
+    muscleMassPercentage: z.number().optional().describe('The value for "Registro de massa muscular(%)".'),
+    muscleMassWeight: z.number().optional().describe('The value for "Peso da massa muscular(Kg)".'),
+    visceralFat: z.number().optional().describe('The value for "Gordura visceral".'),
+    hydration: z.number().optional().describe('The value for "Água(%)".'),
+    waterWeight: z.number().optional().describe('The value for "peso da água(Kg)".'),
+    metabolism: z.number().optional().describe('The value for "Metabolismo(kcal / dia)".'),
+    obesityPercentage: z.number().optional().describe('The value for "Obesidade(%)".'),
+    boneMass: z.number().optional().describe('The value for "Ossos(Kg)".'),
+    protein: z.number().optional().describe('The value for "Proteina(%)".'),
+    lbm: z.number().optional().describe('The value for "LBM(Kg)".'),
+    metabolicAge: z.number().optional().describe('The value for "Idade metabólica".'),
 });
 export type AnalyzeBioimpedanceOutput = z.infer<typeof AnalyzeBioimpedanceOutputSchema>;
 
@@ -50,7 +50,7 @@ const prompt = ai.definePrompt({
   input: {schema: AnalyzeBioimpedanceInputSchema},
   output: {schema: AnalyzeBioimpedanceOutputSchema},
   prompt: `You are an expert AI assistant that extracts health metrics from screenshots of a bioimpedance scale application.
-The language in the image is Brazilian Portuguese. Analyze the provided image and extract the following values based on their labels.
+The language in the image is Brazilian Portuguese. Analyze the provided image and extract ONLY THE NUMERICAL VALUE for each of the following labels.
 
 - "Peso(Kg)"
 - "IMC"
@@ -70,7 +70,7 @@ The language in the image is Brazilian Portuguese. Analyze the provided image an
 - "LBM(Kg)"
 - "Idade metabólica"
 
-Return the extracted data in the specified JSON format. If a value is not present or not clear, omit it.
+Return the extracted numerical data in the specified JSON format. If a value is not present or not clear, omit it.
 
 Image to analyze: {{media url=photoDataUri}}`,
 });
