@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useRouter, useParams } from "next/navigation";
 import Link from 'next/link';
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -19,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, ArrowLeft, CalendarIcon } from "lucide-react";
+import { Loader2, ArrowLeft, CalendarIcon, User as UserIcon, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getPatientById, updatePatient, type Patient, type UpdatePatientData } from "@/lib/actions";
@@ -78,6 +79,7 @@ const patientEditFormSchema = z.object({
   monjauroTime: z.string().optional(),
   indicationSource: z.enum(['yes', 'no']).optional(),
   indicationName: z.string().optional(),
+  avatarUrl: z.string().optional(),
 }).refine(data => {
     if (data.usedMonjauro === 'yes') {
         return !!data.monjauroDose && !!data.monjauroTime;
@@ -106,6 +108,7 @@ export default function PatientEditPage() {
     const [patient, setPatient] = useState<Patient | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
 
     const form = useForm<PatientEditFormValues>({
         resolver: zodResolver(patientEditFormSchema),
@@ -120,6 +123,7 @@ export default function PatientEditPage() {
             setPatient(fetchedPatient);
             
             if (fetchedPatient) {
+                setImagePreview(fetchedPatient.avatarUrl || null);
                 // Parse healthContraindications back into form fields
                 const hcString = fetchedPatient.healthContraindications || '';
                 const conditions = healthConditions.filter(c => hcString.includes(c.label)).map(c => c.id);
@@ -153,7 +157,8 @@ export default function PatientEditPage() {
                     monjauroDose: fetchedPatient.monjauroDose,
                     monjauroTime: fetchedPatient.monjauroTime,
                     indicationSource: fetchedPatient.indication?.name ? 'yes' : 'no',
-                    indicationName: fetchedPatient.indication?.name
+                    indicationName: fetchedPatient.indication?.name,
+                    avatarUrl: fetchedPatient.avatarUrl,
                 });
             }
             setLoading(false);
@@ -206,6 +211,7 @@ export default function PatientEditPage() {
                 usedMonjauro: data.usedMonjauro,
                 monjauroDose: data.monjauroDose,
                 monjauroTime: data.monjauroTime,
+                avatarUrl: data.avatarUrl,
             };
             
             await updatePatient(patient.id, patientDataForApi);
@@ -226,6 +232,19 @@ export default function PatientEditPage() {
             setIsSubmitting(false);
         }
     }
+    
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const dataUrl = reader.result as string;
+                setImagePreview(dataUrl);
+                form.setValue("avatarUrl", dataUrl);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
     
     if (loading) {
         return (
@@ -279,16 +298,50 @@ export default function PatientEditPage() {
             <CardContent>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                         <h3 className="text-lg font-semibold -mb-2">Informações Pessoais e de Contato</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <FormField control={form.control} name="fullName" render={({ field }) => (
-                                <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input placeholder="Nome completo do paciente" {...field} /></FormControl><FormMessage /></FormItem>
+                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                             <div className="md:col-span-2 space-y-8">
+                                <h3 className="text-lg font-semibold -mb-2">Informações Pessoais</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <FormField control={form.control} name="fullName" render={({ field }) => (
+                                        <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input placeholder="Seu nome completo" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )}/>
+                                    <FormField control={form.control} name="phone" render={({ field }) => (
+                                        <FormItem><FormLabel>Telefone (WhatsApp)</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )}/>
+                                </div>
+                            </div>
+                             <FormField control={form.control} name="avatarUrl" render={({ field }) => (
+                            <FormItem className="flex flex-col items-center justify-center gap-2">
+                                <FormLabel htmlFor="picture" className="cursor-pointer">
+                                    <div className="w-32 h-32 rounded-full bg-muted flex items-center justify-center border-2 border-dashed border-gray-300 relative">
+                                        {imagePreview ? (
+                                            <Image src={imagePreview} alt="Avatar Preview" layout="fill" className="rounded-full object-cover" />
+                                        ) : (
+                                            <div className="flex flex-col items-center text-muted-foreground">
+                                                <UserIcon className="w-12 h-12" />
+                                                <span className="text-sm mt-1">Foto de Perfil</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </FormLabel>
+                                <FormControl>
+                                    <Input
+                                        id="picture"
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleImageChange}
+                                    />
+                                </FormControl>
+                                <Button type="button" size="sm" variant="outline" onClick={() => document.getElementById('picture')?.click()}>
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    Alterar Foto
+                                </Button>
+                                <FormMessage />
+                            </FormItem>
                             )}/>
-                            <FormField control={form.control} name="phone" render={({ field }) => (
-                                <FormItem><FormLabel>Telefone (WhatsApp)</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                        </div>
-                        
+                         </div>
+
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
                             <FormField control={form.control} name="age" render={({ field }) => (
                                 <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
@@ -296,7 +349,7 @@ export default function PatientEditPage() {
                             <FormField control={form.control} name="height" render={({ field }) => (
                                 <FormItem><FormLabel>Altura (cm)</FormLabel><FormControl><Input type="number" placeholder="Ex: 175" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
-                            <FormField control={form.control} name="initialWeight" render={({ field }) => (
+                             <FormField control={form.control} name="initialWeight" render={({ field }) => (
                                 <FormItem><FormLabel>Peso Inicial (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="desiredWeight" render={({ field }) => (

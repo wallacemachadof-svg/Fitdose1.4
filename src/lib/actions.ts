@@ -147,7 +147,7 @@ export type NewPatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions'
     initialWeight: number;
     height: number;
 };
-export type UpdatePatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate' | 'avatarUrl'>>;
+export type UpdatePatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>>;
 
 
 export type Dose = {
