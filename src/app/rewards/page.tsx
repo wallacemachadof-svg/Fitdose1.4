@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Award, Gift, Star, Ticket, Info, Trophy } from "lucide-react";
+import { Award, Gift, Star, Ticket, Info } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -88,7 +88,7 @@ export default function RewardsPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Ranking - Top 1 Paciente</CardTitle>
-                        <Trophy className="h-4 w-4 text-yellow-500" />
+                        <Award className="h-4 w-4 text-yellow-500" />
                     </CardHeader>
                     <CardContent>
                         {topPatient ? (
@@ -189,4 +189,3 @@ export default function RewardsPage() {
         </div>
     );
 }
-
