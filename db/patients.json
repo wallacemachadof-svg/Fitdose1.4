@@ -204,23 +204,6 @@
           "boneMass": 2.2,
           "protein": 11.4
         }
-      },
-      {
-        "id": "evo-manual-1763762509132",
-        "date": "2025-08-08T03:00:00.000Z",
-        "notes": "Registro de bioimpedância manual.",
-        "bioimpedance": {
-          "weight": 86.45,
-          "bmi": 35.1,
-          "fatPercentage": 34.5,
-          "skeletalMusclePercentage": 3.3,
-          "visceralFat": 19,
-          "hydration": 49.8,
-          "metabolism": 1681.4,
-          "obesityPercentage": 60.4,
-          "boneMass": 2.2,
-          "protein": 13.1
-        }
       }
     ],
     "dailyMedications": "ALEXIA 12/40 1X AO DIA ",

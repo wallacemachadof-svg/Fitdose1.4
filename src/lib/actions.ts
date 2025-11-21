@@ -424,6 +424,7 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
         const currentDose = patient.doses[i];
         const prevDose = patient.doses[i-1];
         
+        // Only update subsequent pending doses
         if (currentDose.status === 'pending') {
             const newDate = new Date(prevDose.date);
             newDate.setDate(newDate.getDate() + 7);
@@ -490,31 +491,6 @@ export const addBioimpedanceEntry = async (patientId: string, date: Date, bioimp
         patient.evolutions = [];
     }
     patient.evolutions.push(newEvolution);
-
-    // --- Auto-administer next pending dose ---
-    const nextPendingDoseIndex = patient.doses.findIndex(d => d.status === 'pending');
-    
-    if(nextPendingDoseIndex !== -1) {
-        const doseToUpdate = patient.doses[nextPendingDoseIndex];
-        doseToUpdate.status = 'administered';
-        doseToUpdate.date = date; // Update dose date to bioimpedance date
-        if (bioimpedance.weight) {
-            doseToUpdate.weight = bioimpedance.weight;
-        }
-        if (bioimpedance.bmi) {
-            doseToUpdate.bmi = bioimpedance.bmi;
-        }
-        patient.doses[nextPendingDoseIndex] = doseToUpdate;
-        
-        // Reschedule subsequent doses
-        for (let i = nextPendingDoseIndex + 1; i < patient.doses.length; i++) {
-            const prevDose = patient.doses[i-1];
-            const newDate = new Date(prevDose.date);
-            newDate.setDate(newDate.getDate() + 7);
-            patient.doses[i].date = newDate;
-        }
-
-    }
     
     data.patients[patientIndex] = patient;
     writeData({ patients: data.patients });
@@ -613,6 +589,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         patient.evolutions.push(newEvolution);
 
         // Auto-administer next pending dose
+        patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
         const nextPendingDoseIndex = patient.doses.findIndex(d => d.status === 'pending');
         if (nextPendingDoseIndex !== -1) {
             patient.doses[nextPendingDoseIndex].status = 'administered';
@@ -657,15 +634,8 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
 
     // --- Update Patient Doses Payment Status ---
     if (saleData.paymentStatus === 'pago') {
-        // Ensure all doses have a payment object
-        patient.doses.forEach(dose => {
-            if (!dose.payment) {
-                dose.payment = { status: 'pendente' };
-            }
-        });
-
         const pendingPaymentDoses = patient.doses
-            .filter(d => d.payment.status === 'pendente')
+            .filter(d => d.payment?.status === 'pendente')
             .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         
         for (let i = 0; i < saleData.quantity; i++) {
@@ -673,9 +643,12 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
                 const doseToUpdate = pendingPaymentDoses[i];
                 const doseIndex = patient.doses.findIndex(d => d.id === doseToUpdate.id);
                 if (doseIndex !== -1) {
+                    if (!patient.doses[doseIndex].payment) {
+                        patient.doses[doseIndex].payment = { status: 'pendente' };
+                    }
                     patient.doses[doseIndex].payment.status = 'pago';
                     patient.doses[doseIndex].payment.date = saleData.paymentDate || saleData.saleDate;
-                    patient.doses[doseIndex].payment.amount = saleData.price / saleData.quantity; // individual price
+                    patient.doses[doseIndex].payment.amount = (saleData.price - (saleData.discount || 0)) / saleData.quantity; // individual price
                     patient.doses[doseIndex].payment.method = saleData.paymentMethod;
                 }
             }
