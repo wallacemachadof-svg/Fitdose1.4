@@ -163,10 +163,6 @@ export default function PatientDetailPage() {
     setPatient(updatedPatient);
   }
 
-  const onEvolutionAdded = (updatedPatient: Patient) => {
-    setPatient(updatedPatient);
-  }
-
   const weightChartData = useMemo(() => {
     if (!patient) return [];
     
@@ -365,7 +361,53 @@ export default function PatientDetailPage() {
         </CardContent>
       </Card>
       
-      <EvolutionSection patient={patient} onEvolutionAdded={onEvolutionAdded} />
+      <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><HeartPulse className="h-5 w-5"/> Histórico de Evolução</CardTitle>
+            <CardDescription>Visualize a evolução do paciente, incluindo bioimpedância.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            {patient.evolutions && patient.evolutions.length > 0 ? (
+            <div className="space-y-6">
+                {patient.evolutions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(evo => (
+                    <Card key={evo.id} className="bg-muted/50">
+                        <CardHeader className="p-4 flex-row justify-between items-center">
+                            <CardTitle className="text-base">{formatDate(evo.date)}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0 grid md:grid-cols-3 gap-6">
+                            <div className="md:col-span-2">
+                                {evo.notes && <p className="text-sm text-muted-foreground mb-4">{evo.notes}</p>}
+                                {evo.bioimpedance && Object.keys(evo.bioimpedance).length > 0 ? (
+                                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
+                                        <BioimpedanceItem icon={Weight} label="Peso" value={evo.bioimpedance.weight} unit="kg" />
+                                        <BioimpedanceItem icon={Activity} label="IMC" value={evo.bioimpedance.bmi} />
+                                        <BioimpedanceItem icon={Activity} label="% Gordura" value={evo.bioimpedance.fatPercentage} unit="%" />
+                                        <BioimpedanceItem icon={UserCheck} label="% M. Muscular" value={evo.bioimpedance.muscleMassPercentage} unit="%" />
+                                        <BioimpedanceItem icon={HeartPulse} label="Gord. Visceral" value={evo.bioimpedance.visceralFat} />
+                                        <BioimpedanceItem icon={Droplets} label="Água" value={evo.bioimpedance.hydration} unit="%" />
+                                        <BioimpedanceItem icon={Flame} label="Metabolismo" value={evo.bioimpedance.metabolism} unit=" kcal" />
+                                        <BioimpedanceItem icon={Bone} label="Massa Óssea" value={evo.bioimpedance.boneMass} unit=" kg" />
+                                        <BioimpedanceItem icon={Beef} label="Proteína" value={evo.bioimpedance.protein} unit="%" />
+                                        <BioimpedanceItem icon={CalendarIcon} label="Idade Metab." value={evo.bioimpedance.metabolicAge} unit=" anos" />
+                                    </div>
+                                ) : (
+                                    !evo.notes && <p className="text-sm text-muted-foreground">Nenhum dado de bioimpedância para esta data.</p>
+                                )}
+                            </div>
+                            {evo.photoUrl && (
+                                <div className="relative w-full aspect-square rounded-md border overflow-hidden">
+                                    <Image src={evo.photoUrl} alt={`Evolução em ${formatDate(evo.date)}`} layout="fill" className="object-cover"/>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+            ) : (
+            <p className="text-sm text-center text-muted-foreground py-8">Nenhuma evolução registrada ainda. Adicione uma na aba <Link href="/bioimpedance" className="text-primary hover:underline font-semibold">Bioimpedância</Link>.</p>
+            )}
+        </CardContent>
+    </Card>
 
       <Card>
         <CardHeader>
@@ -693,276 +735,6 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                 </Form>
             </DialogContent>
         </Dialog>
-    );
-}
-
-const evolutionFormSchema = z.object({
-    notes: z.string().optional(),
-    photoUrl: z.string().optional(),
-    bioimpedance: z.object({
-        weight: z.coerce.number().optional(),
-        bmi: z.coerce.number().optional(),
-        fatPercentage: z.coerce.number().optional(),
-        fatWeight: z.coerce.number().optional(),
-        skeletalMusclePercentage: z.coerce.number().optional(),
-        skeletalMuscleWeight: z.coerce.number().optional(),
-        muscleMassPercentage: z.coerce.number().optional(),
-        muscleMassWeight: z.coerce.number().optional(),
-        visceralFat: z.coerce.number().optional(),
-        hydration: z.coerce.number().optional(),
-        waterWeight: z.coerce.number().optional(),
-        metabolism: z.coerce.number().optional(),
-        obesityPercentage: z.coerce.number().optional(),
-        boneMass: z.coerce.number().optional(),
-        protein: z.coerce.number().optional(),
-        lbm: z.coerce.number().optional(),
-        metabolicAge: z.coerce.number().optional(),
-    }).optional(),
-});
-
-type EvolutionFormValues = z.infer<typeof evolutionFormSchema>;
-
-interface EvolutionSectionProps {
-    patient: Patient;
-    onEvolutionAdded: (patient: Patient) => void;
-}
-
-function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) {
-    const { toast } = useToast();
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
-
-    const form = useForm<EvolutionFormValues>({
-        resolver: zodResolver(evolutionFormSchema),
-        defaultValues: {
-            notes: "",
-            photoUrl: "",
-            bioimpedance: {}
-        },
-    });
-    
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const dataUrl = reader.result as string;
-                setImagePreview(dataUrl);
-                form.setValue("photoUrl", dataUrl);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-    
-    const handleAnalyzeImage = async () => {
-        if (!imagePreview) {
-            toast({
-                variant: 'destructive',
-                title: 'Nenhuma imagem selecionada',
-                description: 'Por favor, adicione uma foto da bioimpedância para analisar.',
-            });
-            return;
-        }
-
-        setIsAnalyzing(true);
-        try {
-            const result: AnalyzeBioimpedanceOutput = await analyzeBioimpedanceImage({ photoDataUri: imagePreview });
-            
-            // Set all fields from the analysis result
-            Object.keys(result).forEach(key => {
-                const formKey = `bioimpedance.${key}` as keyof EvolutionFormValues;
-                const value = result[key as keyof typeof result];
-                if (value !== undefined) {
-                    form.setValue(formKey, value);
-                }
-            });
-
-            toast({
-                title: 'Análise Concluída!',
-                description: 'Os dados da bioimpedância foram preenchidos.',
-            });
-
-        } catch (error) {
-            console.error("Failed to analyze image", error);
-            toast({
-                variant: "destructive",
-                title: "Erro na Análise",
-                description: "Não foi possível extrair os dados da imagem. Tente novamente ou preencha manualmente.",
-            });
-        } finally {
-            setIsAnalyzing(false);
-        }
-    };
-
-    async function onSubmit(data: EvolutionFormValues) {
-        setIsSubmitting(true);
-        try {
-            const updatedPatient = await addPatientEvolution(patient.id, data);
-            toast({
-                title: "Evolução Adicionada!",
-                description: "O registro de evolução foi salvo com sucesso.",
-            });
-            onEvolutionAdded(updatedPatient);
-            form.reset();
-            setImagePreview(null);
-        } catch (error) {
-            console.error("Failed to add evolution", error);
-            toast({
-                variant: "destructive",
-                title: "Erro ao salvar",
-                description: "Não foi possível salvar a evolução.",
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
-    }
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><HeartPulse className="h-5 w-5"/> Evolução de Desempenho</CardTitle>
-                <CardDescription>Adicione e visualize a evolução do paciente, incluindo bioimpedância.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mb-6">
-                        <FormField
-                            control={form.control}
-                            name="notes"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Anotações da Evolução (Opcional)</FormLabel>
-                                    <FormControl>
-                                        <Textarea placeholder="Descreva a evolução do paciente, observações, etc." rows={3} {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        
-                        <div>
-                            <h4 className="text-sm font-medium mb-2">Dados de Bioimpedância (Opcional)</h4>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <FormField control={form.control} name="bioimpedance.weight" render={({ field }) => (
-                                    <FormItem><FormLabel>Peso (Kg)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 80.7" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name="bioimpedance.bmi" render={({ field }) => (
-                                    <FormItem><FormLabel>IMC</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 28.9" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name="bioimpedance.fatPercentage" render={({ field }) => (
-                                    <FormItem><FormLabel>Gordura (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 28.4" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name="bioimpedance.muscleMassPercentage" render={({ field }) => (
-                                    <FormItem><FormLabel>Massa Muscular (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 68.2" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name="bioimpedance.visceralFat" render={({ field }) => (
-                                    <FormItem><FormLabel>Gordura Visceral</FormLabel><FormControl><Input type="number" placeholder="Ex: 14" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name="bioimpedance.hydration" render={({ field }) => (
-                                    <FormItem><FormLabel>Água (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 51.9" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                 <FormField control={form.control} name="bioimpedance.metabolism" render={({ field }) => (
-                                    <FormItem><FormLabel>Metabolismo (kcal)</FormLabel><FormControl><Input type="number" placeholder="Ex: 1680" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                 <FormField control={form.control} name="bioimpedance.boneMass" render={({ field }) => (
-                                    <FormItem><FormLabel>Massa Óssea (Kg)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 2.7" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name="bioimpedance.protein" render={({ field }) => (
-                                    <FormItem><FormLabel>Proteína (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 16.4" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name="bioimpedance.metabolicAge" render={({ field }) => (
-                                    <FormItem><FormLabel>Idade Metabólica</FormLabel><FormControl><Input type="number" placeholder="Ex: 36" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                            </div>
-                        </div>
-
-
-                        <FormField
-                            control={form.control}
-                            name="photoUrl"
-                            render={({ field }) => (
-                                <FormItem>
-                                     <FormLabel>Foto da Bioimpedância (Opcional)</FormLabel>
-                                     <div className="flex items-center gap-4">
-                                        {imagePreview && (
-                                            <div className="relative w-24 h-24 rounded-md border">
-                                                <Image src={imagePreview} alt="Preview" layout="fill" className="object-cover rounded-md" />
-                                            </div>
-                                        )}
-                                        <div className="flex flex-col gap-2">
-                                            <input
-                                                id="evolution-photo"
-                                                type="file"
-                                                className="hidden"
-                                                accept="image/*"
-                                                onChange={handleImageChange}
-                                            />
-                                            <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('evolution-photo')?.click()}>
-                                                <Camera className="mr-2 h-4 w-4" />
-                                                {imagePreview ? 'Trocar Foto' : 'Adicionar Foto'}
-                                            </Button>
-                                            {imagePreview && (
-                                                <Button type="button" size="sm" onClick={handleAnalyzeImage} disabled={isAnalyzing}>
-                                                    {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                                                    Analisar com IA
-                                                </Button>
-                                            )}
-                                        </div>
-                                     </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <div className="flex justify-end">
-                            <Button type="submit" disabled={isSubmitting || isAnalyzing}>
-                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : <><BookPlus className="mr-2 h-4 w-4" /> Salvar Evolução</>}
-                            </Button>
-                        </div>
-                    </form>
-                </Form>
-                <div className="space-y-4 pt-6 border-t">
-                    <h4 className="font-semibold text-md">Histórico de Evolução</h4>
-                     {patient.evolutions && patient.evolutions.length > 0 ? (
-                        <div className="space-y-6">
-                            {patient.evolutions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(evo => (
-                                <Card key={evo.id} className="bg-muted/50">
-                                    <CardHeader className="p-4 flex-row justify-between items-center">
-                                        <CardTitle className="text-base">{formatDate(evo.date)}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="p-4 pt-0 grid md:grid-cols-3 gap-6">
-                                        <div className="md:col-span-2">
-                                            {evo.notes && <p className="text-sm text-muted-foreground mb-4">{evo.notes}</p>}
-                                            {evo.bioimpedance && (
-                                                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
-                                                    <BioimpedanceItem icon={Weight} label="Peso" value={evo.bioimpedance.weight} unit="kg" />
-                                                    <BioimpedanceItem icon={Activity} label="IMC" value={evo.bioimpedance.bmi} />
-                                                    <BioimpedanceItem icon={Activity} label="% Gordura" value={evo.bioimpedance.fatPercentage} unit="%" />
-                                                    <BioimpedanceItem icon={UserCheck} label="% M. Muscular" value={evo.bioimpedance.muscleMassPercentage} unit="%" />
-                                                    <BioimpedanceItem icon={HeartPulse} label="Gord. Visceral" value={evo.bioimpedance.visceralFat} />
-                                                    <BioimpedanceItem icon={Droplets} label="Água" value={evo.bioimpedance.hydration} unit="%" />
-                                                    <BioimpedanceItem icon={Flame} label="Metabolismo" value={evo.bioimpedance.metabolism} unit=" kcal" />
-                                                    <BioimpedanceItem icon={Bone} label="Massa Óssea" value={evo.bioimpedance.boneMass} unit=" kg" />
-                                                    <BioimpedanceItem icon={Beef} label="Proteína" value={evo.bioimpedance.protein} unit="%" />
-                                                    <BioimpedanceItem icon={CalendarIcon} label="Idade Metab." value={evo.bioimpedance.metabolicAge} unit=" anos" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        {evo.photoUrl && (
-                                            <div className="relative w-full aspect-square rounded-md border overflow-hidden">
-                                                <Image src={evo.photoUrl} alt={`Evolução em ${formatDate(evo.date)}`} layout="fill" className="object-cover"/>
-                                            </div>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                     ) : (
-                        <p className="text-sm text-center text-muted-foreground py-8">Nenhuma evolução registrada ainda.</p>
-                     )}
-                </div>
-            </CardContent>
-        </Card>
     );
 }
 
