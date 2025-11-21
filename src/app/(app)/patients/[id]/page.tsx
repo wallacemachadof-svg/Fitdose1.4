@@ -44,6 +44,7 @@ import {
     Pencil,
     Bot,
     TrendingDown,
+    TrendingUp,
     Pill,
     Stethoscope,
     CircleSlash,
@@ -62,7 +63,10 @@ import {
     Bone,
     Flame,
     Beef,
-    Sparkles
+    Sparkles,
+    ArrowDown,
+    ArrowUp,
+    Minus,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -77,7 +81,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { format as formatDateFns } from 'date-fns';
+import { format as formatDateFns, differenceInDays as fnsDifferenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
@@ -163,30 +167,31 @@ export default function PatientDetailPage() {
     setPatient(updatedPatient);
   }
 
-  const weightChartData = useMemo(() => {
-    if (!patient) return [];
+  const evolutionChartData = useMemo(() => {
+    if (!patient || !patient.evolutions) return [];
     
-    const data = patient.evolutions
-      .filter(e => e.date && e.bioimpedance?.weight) 
-      .map(e => ({
-        date: formatDate(e.date),
-        peso: e.bioimpedance?.weight,
-      }));
+    const dataPoints = patient.evolutions
+        .filter(e => e.date && e.bioimpedance)
+        .map(e => ({
+            date: new Date(e.date),
+            ...e.bioimpedance
+        }));
 
     if (patient.initialWeight && patient.firstDoseDate) {
-        const initialData = { date: formatDate(patient.firstDoseDate), peso: patient.initialWeight };
-        if (data.length > 0) {
-            // This assumes evolutions are sorted by date, which they should be.
-            const firstEvoDate = new Date(patient.evolutions[0].date);
-            if (new Date(patient.firstDoseDate) < firstEvoDate) {
-                 return [initialData, ...data]
-            }
+        const initialDate = new Date(patient.firstDoseDate);
+        if (!dataPoints.some(dp => isSameDay(dp.date, initialDate))) {
+            dataPoints.push({
+                date: initialDate,
+                weight: patient.initialWeight,
+                bmi: calculateBmi(patient.initialWeight, patient.height / 100),
+            });
         }
-        return [initialData];
     }
-      
-    return data;
+    
+    return dataPoints.sort((a,b) => a.date.getTime() - b.date.getTime());
+
   }, [patient]);
+
 
   if (loading || !patient) {
     return <PatientDetailSkeleton />;
@@ -218,6 +223,18 @@ export default function PatientDetailPage() {
     );
   };
   
+  const chartMetrics: { key: keyof Bioimpedance, label: string, icon: React.ElementType, unit?: string }[] = [
+      { key: 'weight', label: 'Peso', icon: Weight, unit: 'kg' },
+      { key: 'bmi', label: 'IMC', icon: Activity },
+      { key: 'fatPercentage', label: 'Gordura', icon: Activity, unit: '%' },
+      { key: 'muscleMassPercentage', label: 'Massa Muscular', icon: UserCheck, unit: '%' },
+      { key: 'visceralFat', label: 'Gordura Visceral', icon: HeartPulse },
+      { key: 'hydration', label: 'Água', icon: Droplets, unit: '%' },
+      { key: 'metabolism', label: 'Metabolismo', icon: Flame, unit: 'kcal' },
+      { key: 'boneMass', label: 'Massa Óssea', icon: Bone, unit: 'kg' },
+      { key: 'protein', label: 'Proteína', icon: Beef, unit: '%' },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-4">
@@ -271,24 +288,47 @@ export default function PatientDetailPage() {
         </div>
       </div>
       
-       {weightChartData.length > 0 && (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" /> Evolução de Peso</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={weightChartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" stroke="#888888" fontSize={12} />
-                        <YAxis stroke="#888888" fontSize={12} domain={['dataMin - 2', 'dataMax + 2']} tickFormatter={(value) => `${value}kg`} />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Line type="monotone" dataKey="peso" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                    </LineChart>
-                </ResponsiveContainer>
-            </CardContent>
-        </Card>
-      )}
+       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" /> Evolução da Bioimpedância</CardTitle>
+          <CardDescription>Visualize o progresso de cada métrica ao longo do tempo.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {evolutionChartData.length > 1 ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {chartMetrics.map(metric => {
+                const data = evolutionChartData
+                  .map(e => ({
+                    date: formatDate(e.date),
+                    value: e[metric.key] as number
+                  }))
+                  .filter(item => item.value !== undefined && item.value !== null);
+
+                if (data.length < 2) return null;
+
+                const firstValue = data[0].value;
+                const lastValue = data[data.length - 1].value;
+                const change = lastValue - firstValue;
+
+                return (
+                  <EvolutionChartCard
+                    key={metric.key}
+                    title={metric.label}
+                    icon={metric.icon}
+                    data={data}
+                    change={change}
+                    unit={metric.unit}
+                  />
+                );
+              })}
+             </div>
+          ) : (
+            <p className="text-sm text-center text-muted-foreground py-8">
+              É necessário pelo menos dois registros de bioimpedância para gerar os gráficos. Adicione um na aba <Link href="/bioimpedance" className="text-primary hover:underline font-semibold">Bioimpedância</Link>.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -361,54 +401,6 @@ export default function PatientDetailPage() {
         </CardContent>
       </Card>
       
-      <Card>
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2"><HeartPulse className="h-5 w-5"/> Histórico de Evolução</CardTitle>
-            <CardDescription>Visualize a evolução do paciente, incluindo bioimpedância.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            {patient.evolutions && patient.evolutions.length > 0 ? (
-            <div className="space-y-6">
-                {patient.evolutions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(evo => (
-                    <Card key={evo.id} className="bg-muted/50">
-                        <CardHeader className="p-4 flex-row justify-between items-center">
-                            <CardTitle className="text-base">{formatDate(evo.date)}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0 grid md:grid-cols-3 gap-6">
-                            <div className="md:col-span-2">
-                                {evo.notes && <p className="text-sm text-muted-foreground mb-4">{evo.notes}</p>}
-                                {evo.bioimpedance && Object.keys(evo.bioimpedance).length > 0 ? (
-                                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
-                                        <BioimpedanceItem icon={Weight} label="Peso" value={evo.bioimpedance.weight} unit="kg" />
-                                        <BioimpedanceItem icon={Activity} label="IMC" value={evo.bioimpedance.bmi} />
-                                        <BioimpedanceItem icon={Activity} label="% Gordura" value={evo.bioimpedance.fatPercentage} unit="%" />
-                                        <BioimpedanceItem icon={UserCheck} label="% M. Muscular" value={evo.bioimpedance.muscleMassPercentage} unit="%" />
-                                        <BioimpedanceItem icon={HeartPulse} label="Gord. Visceral" value={evo.bioimpedance.visceralFat} />
-                                        <BioimpedanceItem icon={Droplets} label="Água" value={evo.bioimpedance.hydration} unit="%" />
-                                        <BioimpedanceItem icon={Flame} label="Metabolismo" value={evo.bioimpedance.metabolism} unit=" kcal" />
-                                        <BioimpedanceItem icon={Bone} label="Massa Óssea" value={evo.bioimpedance.boneMass} unit=" kg" />
-                                        <BioimpedanceItem icon={Beef} label="Proteína" value={evo.bioimpedance.protein} unit="%" />
-                                        <BioimpedanceItem icon={CalendarIcon} label="Idade Metab." value={evo.bioimpedance.metabolicAge} unit=" anos" />
-                                    </div>
-                                ) : (
-                                    !evo.notes && <p className="text-sm text-muted-foreground">Nenhum dado de bioimpedância para esta data.</p>
-                                )}
-                            </div>
-                            {evo.photoUrl && (
-                                <div className="relative w-full aspect-square rounded-md border overflow-hidden">
-                                    <Image src={evo.photoUrl} alt={`Evolução em ${formatDate(evo.date)}`} layout="fill" className="object-cover"/>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-            ) : (
-            <p className="text-sm text-center text-muted-foreground py-8">Nenhuma evolução registrada ainda. Adicione uma na aba <Link href="/bioimpedance" className="text-primary hover:underline font-semibold">Bioimpedância</Link>.</p>
-            )}
-        </CardContent>
-    </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>Agenda de Doses</CardTitle>
@@ -489,18 +481,49 @@ function InfoCard({ icon: Icon, label, value }: { icon: React.ElementType, label
     )
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
+function EvolutionChartCard({ title, icon: Icon, data, change, unit='' }: { title: string, icon: React.ElementType, data: {date: string, value: number}[], change: number, unit?: string}) {
+    const TrendIcon = change === 0 ? Minus : change > 0 ? ArrowUp : ArrowDown;
+    const trendColor = change === 0 ? "text-muted-foreground" : change > 0 ? "text-green-500" : "text-red-500";
+    
     return (
-      <div className="bg-background/80 backdrop-blur-sm p-2 border rounded-md shadow-lg">
-        <p className="label font-bold">{`Data: ${label}`}</p>
-        <p className="intro text-primary">{`Peso: ${payload[0].value} kg`}</p>
-      </div>
-    );
-  }
-
-  return null;
-};
+        <Card className="flex flex-col">
+            <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-medium flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                        {title}
+                    </CardTitle>
+                    <div className={`flex items-center font-bold text-sm ${trendColor}`}>
+                        <span>{change.toFixed(1)}{unit}</span>
+                        <TrendIcon className="h-4 w-4" />
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1 -mb-4">
+                <ResponsiveContainer width="100%" height={100}>
+                    <LineChart data={data}>
+                        <Tooltip
+                            content={({ active, payload, label }) => {
+                                if (active && payload && payload.length) {
+                                return (
+                                    <div className="bg-background/80 backdrop-blur-sm p-2 border rounded-md shadow-lg">
+                                    <p className="label text-sm">{`${label}`}</p>
+                                    <p className="intro font-bold text-primary">{`${payload[0].value?.toFixed(1)} ${unit}`}</p>
+                                    </div>
+                                );
+                                }
+                                return null;
+                            }}
+                        />
+                        <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                        <XAxis dataKey="date" hide/>
+                        <YAxis domain={['dataMin - 1', 'dataMax + 1']} hide/>
+                    </LineChart>
+                </ResponsiveContainer>
+            </CardContent>
+        </Card>
+    )
+}
 
 function PatientDetailSkeleton() {
   return (
@@ -738,15 +761,8 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
     );
 }
 
-function BioimpedanceItem({ icon: Icon, label, value, unit }: { icon: React.ElementType, label: string, value?: number | null, unit?: string }) {
-    if (value === undefined || value === null) return null;
-    return (
-        <div className="flex items-center gap-2 p-1.5 bg-background/50 rounded">
-            <Icon className="h-4 w-4 text-muted-foreground"/>
-            <div className="flex justify-between items-baseline w-full">
-                <span className="font-medium text-foreground/80">{label}:</span>
-                <span className="font-semibold text-foreground">{value}{unit}</span>
-            </div>
-        </div>
-    )
-}
+const isSameDay = (date1: Date, date2: Date) =>
+  date1.getFullYear() === date2.getFullYear() &&
+  date1.getMonth() === date2.getMonth() &&
+  date1.getDate() === date2.getDate();
+
