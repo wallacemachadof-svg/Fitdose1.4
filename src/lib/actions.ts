@@ -418,20 +418,19 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
 
     // Recalculate dates for subsequent pending doses
-    for (let i = 0; i < patient.doses.length; i++) {
-        // Find the previous dose in the sorted list
-        if (i > 0) {
-            const currentDose = patient.doses[i];
-            const prevDose = patient.doses[i-1];
-            
-            // If the current dose is pending, reschedule it 7 days after the previous one
-            if (currentDose.status === 'pending') {
-                const newDate = new Date(prevDose.date);
-                newDate.setDate(newDate.getDate() + 7);
-                currentDose.date = newDate;
-            }
+    for (let i = 1; i < patient.doses.length; i++) {
+        const currentDose = patient.doses[i];
+        const prevDose = patient.doses[i-1];
+        
+        // If the current dose is pending and its date is before or at the same day as the previous one
+        // or if the updated dose is the previous one, we need to reschedule
+        if (currentDose.status === 'pending' && (prevDose.id === doseId || currentDose.date <= prevDose.date)) {
+            const newDate = new Date(prevDose.date);
+            newDate.setDate(newDate.getDate() + 7);
+            currentDose.date = newDate;
         }
     }
+
 
     data.patients[patientIndex] = patient;
     writeData({ patients: data.patients });
@@ -651,14 +650,19 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
 
     // --- Update Patient Doses Payment Status ---
     if (saleData.paymentStatus === 'pago') {
-        const pendingDoses = patient.doses.filter(d => d.payment.status === 'pendente').sort((a,b) => a.date.getTime() - b.date.getTime());
-        for(let i = 0; i < saleData.quantity && i < pendingDoses.length; i++) {
-            const doseToUpdate = pendingDoses[i];
-            const doseIndex = patient.doses.findIndex(d => d.id === doseToUpdate.id);
-            if (doseIndex !== -1) {
-                patient.doses[doseIndex].payment.status = 'pago';
-                patient.doses[doseIndex].payment.date = saleData.paymentDate || saleData.saleDate;
-                patient.doses[doseIndex].payment.amount = saleData.price / saleData.quantity; // individual price
+        const pendingPaymentDoses = patient.doses
+            .filter(d => d.payment.status === 'pendente')
+            .sort((a,b) => a.date.getTime() - b.date.getTime());
+        
+        for (let i = 0; i < saleData.quantity; i++) {
+            if (i < pendingPaymentDoses.length) {
+                const doseToUpdate = pendingPaymentDoses[i];
+                const doseIndex = patient.doses.findIndex(d => d.id === doseToUpdate.id);
+                if (doseIndex !== -1) {
+                    patient.doses[doseIndex].payment.status = 'pago';
+                    patient.doses[doseIndex].payment.date = saleData.paymentDate || saleData.saleDate;
+                    patient.doses[doseIndex].payment.amount = saleData.price / saleData.quantity; // individual price
+                }
             }
         }
     }
