@@ -3,3 +3,4 @@ config();
 
 import '@/ai/flows/summarize-health-data.ts';
 import '@/ai/flows/personalized-dosage-recommendations.ts';
+import '@/ai/flows/analyze-bioimpedance-flow.ts';

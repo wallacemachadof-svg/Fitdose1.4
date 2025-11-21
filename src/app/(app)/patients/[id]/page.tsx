@@ -61,11 +61,13 @@ import {
     CheckSquare,
     Bone,
     Flame,
-    Beef
+    Beef,
+    Sparkles
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
 import { summarizeHealthData } from '@/ai/flows/summarize-health-data';
+import { analyzeBioimpedanceImage } from '@/ai/flows/analyze-bioimpedance-flow';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -715,6 +717,7 @@ interface EvolutionSectionProps {
 function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
 
     const form = useForm<EvolutionFormValues>({
@@ -745,6 +748,46 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
                 form.setValue("photoUrl", dataUrl);
             };
             reader.readAsDataURL(file);
+        }
+    };
+    
+    const handleAnalyzeImage = async () => {
+        if (!imagePreview) {
+            toast({
+                variant: 'destructive',
+                title: 'Nenhuma imagem selecionada',
+                description: 'Por favor, adicione uma foto da bioimpedância para analisar.',
+            });
+            return;
+        }
+
+        setIsAnalyzing(true);
+        try {
+            const result = await analyzeBioimpedanceImage({ photoDataUri: imagePreview });
+            
+            if (result.fatPercentage) form.setValue('bioimpedance.fatPercentage', result.fatPercentage);
+            if (result.muscleMass) form.setValue('bioimpedance.muscleMass', result.muscleMass);
+            if (result.visceralFat) form.setValue('bioimpedance.visceralFat', result.visceralFat);
+            if (result.hydration) form.setValue('bioimpedance.hydration', result.hydration);
+            if (result.metabolism) form.setValue('bioimpedance.metabolism', result.metabolism);
+            if (result.boneMass) form.setValue('bioimpedance.boneMass', result.boneMass);
+            if (result.protein) form.setValue('bioimpedance.protein', result.protein);
+            if (result.metabolicAge) form.setValue('bioimpedance.metabolicAge', result.metabolicAge);
+
+            toast({
+                title: 'Análise Concluída!',
+                description: 'Os dados da bioimpedância foram preenchidos.',
+            });
+
+        } catch (error) {
+            console.error("Failed to analyze image", error);
+            toast({
+                variant: "destructive",
+                title: "Erro na Análise",
+                description: "Não foi possível extrair os dados da imagem. Tente novamente ou preencha manualmente.",
+            });
+        } finally {
+            setIsAnalyzing(false);
         }
     };
 
@@ -830,35 +873,39 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
                             name="photoUrl"
                             render={({ field }) => (
                                 <FormItem>
-                                     <FormLabel>Foto da Evolução (Opcional)</FormLabel>
+                                     <FormLabel>Foto da Bioimpedância (Opcional)</FormLabel>
                                      <div className="flex items-center gap-4">
                                         {imagePreview && (
                                             <div className="relative w-24 h-24 rounded-md border">
                                                 <Image src={imagePreview} alt="Preview" layout="fill" className="object-cover rounded-md" />
                                             </div>
                                         )}
-                                        <FormControl>
-                                            <div>
-                                                <input
-                                                    id="evolution-photo"
-                                                    type="file"
-                                                    className="hidden"
-                                                    accept="image/*"
-                                                    onChange={handleImageChange}
-                                                />
-                                                <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('evolution-photo')?.click()}>
-                                                    <Camera className="mr-2 h-4 w-4" />
-                                                    {imagePreview ? 'Trocar Foto' : 'Adicionar Foto'}
+                                        <div className="flex flex-col gap-2">
+                                            <input
+                                                id="evolution-photo"
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={handleImageChange}
+                                            />
+                                            <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('evolution-photo')?.click()}>
+                                                <Camera className="mr-2 h-4 w-4" />
+                                                {imagePreview ? 'Trocar Foto' : 'Adicionar Foto'}
+                                            </Button>
+                                            {imagePreview && (
+                                                <Button type="button" size="sm" onClick={handleAnalyzeImage} disabled={isAnalyzing}>
+                                                    {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                                    Analisar com IA
                                                 </Button>
-                                            </div>
-                                        </FormControl>
+                                            )}
+                                        </div>
                                      </div>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
                         <div className="flex justify-end">
-                            <Button type="submit" disabled={isSubmitting}>
+                            <Button type="submit" disabled={isSubmitting || isAnalyzing}>
                                 {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : <><BookPlus className="mr-2 h-4 w-4" /> Salvar Evolução</>}
                             </Button>
                         </div>
@@ -919,3 +966,4 @@ function BioimpedanceItem({ icon: Icon, label, value, unit }: { icon: React.Elem
         </div>
     )
 }
+
