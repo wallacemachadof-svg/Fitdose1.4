@@ -9,7 +9,7 @@ import { getDoseStatus, formatDate, formatCurrency, getDaysUntilDose, getOverdue
 import { Badge } from "@/components/ui/badge";
 import { Syringe, User, BellDot, BarChart3, PieChart, TrendingUp, DollarSign, Link as LinkIcon, Copy, Check, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock, Calendar as CalendarIcon } from "lucide-react";
 import Link from 'next/link';
-import { differenceInDays, subDays, format as formatDateFns, startOfToday, startOfMonth, startOfYear, isWithinInterval } from "date-fns";
+import { differenceInDays, subDays, format as formatDateFns, startOfToday, startOfMonth, startOfYear, isWithinInterval, addDays } from "date-fns";
 import { ptBR } from 'date-fns/locale';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Pie, PieChart as RechartsPieChart, Cell, Legend } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -435,3 +435,6 @@ function DashboardSkeleton() {
     </div>
   );
 }
+
+
+    
