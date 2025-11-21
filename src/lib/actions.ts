@@ -191,7 +191,7 @@ export type Dose = {
   payment: {
     status: 'pago' | 'pendente';
     date?: Date;
-    method?: "cash" | "pix" | "debit" | "credit" | "payment_link";
+    method?: "dinheiro" | "pix" | "debito" | "credito" | "payment_link";
     installments?: number;
     amount?: number;
   };

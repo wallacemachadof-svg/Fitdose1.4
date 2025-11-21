@@ -95,7 +95,7 @@ const doseManagementSchema = z.object({
   status: z.enum(['administered', 'pending']),
   weight: z.coerce.number().optional(),
   administeredDose: z.coerce.number().optional(),
-  paymentMethod: z.enum(['cash', 'pix', 'debit', 'credit', 'payment_link']).optional(),
+  paymentMethod: z.enum(['dinheiro', 'pix', 'debito', 'credito', 'payment_link']).optional(),
   installments: z.coerce.number().optional(),
   paymentStatus: z.enum(['pago', 'pendente']),
   paymentDate: z.date().optional(),
@@ -915,10 +915,10 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                                                         </SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent>
-                                                        <SelectItem value="cash">Dinheiro</SelectItem>
+                                                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
                                                         <SelectItem value="pix">PIX</SelectItem>
-                                                        <SelectItem value="debit">Débito</SelectItem>
-                                                        <SelectItem value="credit">Crédito</SelectItem>
+                                                        <SelectItem value="debito">Débito</SelectItem>
+                                                        <SelectItem value="credito">Crédito</SelectItem>
                                                         <SelectItem value="payment_link">Link de Pagamento</SelectItem>
                                                     </SelectContent>
                                                 </Select>
@@ -926,7 +926,7 @@ function DoseManagementDialog({ isOpen, setIsOpen, dose, patientId, onDoseUpdate
                                             </FormItem>
                                         )}
                                     />
-                                    {watchPaymentMethod === 'credit' && (
+                                    {watchPaymentMethod === 'credito' && (
                                         <FormField control={form.control} name="installments" render={({ field }) => (
                                             <FormItem><FormLabel>Parcelas</FormLabel><FormControl><Input type="number" placeholder="Ex: 2" {...field} /></FormControl><FormMessage /></FormItem>
                                         )}/>
@@ -956,3 +956,4 @@ const isSameDay = (date1: Date, date2: Date) =>
   date1.getDate() === date2.getDate();
 
     
+
