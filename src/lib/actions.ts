@@ -107,22 +107,22 @@ export type PointTransaction = {
 export type Patient = {
   id: string;
   fullName: string;
-  age: number;
+  age?: number;
   initialWeight: number;
   height: number;
-  desiredWeight: number;
-  firstDoseDate: Date;
+  desiredWeight?: number;
+  firstDoseDate?: Date;
   address: {
-    zip: string;
-    street: string;
-    number: string;
+    zip?: string;
+    street?: string;
+    number?: string;
     complement?: string;
-    city: string;
-    state: string;
+    city?: string;
+    state?: string;
   };
-  phone: string;
-  healthContraindications: string;
-  avatarUrl: string;
+  phone?: string;
+  healthContraindications?: string;
+  avatarUrl?: string;
   doses: Dose[];
   evolutions: Evolution[];
   dailyMedications?: string;
@@ -141,7 +141,11 @@ export type Patient = {
   consentDate?: Date;
 };
 
-export type NewPatientData = Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>;
+export type NewPatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>> & {
+    fullName: string;
+    initialWeight: number;
+    height: number;
+};
 export type UpdatePatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>>;
 
 
@@ -169,6 +173,9 @@ export type Bioimpedance = {
     visceralFat?: number;
     metabolicAge?: number;
     hydration?: number;
+    boneMass?: number;
+    metabolism?: number;
+    protein?: number;
 }
 
 export type Evolution = {
@@ -245,40 +252,39 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
     const data = readData();
     const newId = (data.patients.length > 0 ? Math.max(...data.patients.map(p => parseInt(p.id, 10))) : 0) + 1;
     
-    // Set first dose date to the registration date
-    const firstDoseDate = new Date();
+    const firstDoseDate = patientData.firstDoseDate || new Date();
 
     const doses = generateDoseSchedule(firstDoseDate);
 
     const newPatient: Patient = {
         id: String(newId),
         fullName: patientData.fullName,
-        age: patientData.age || 0,
+        age: patientData.age,
         initialWeight: patientData.initialWeight,
         height: patientData.height,
-        desiredWeight: patientData.desiredWeight || 0,
+        desiredWeight: patientData.desiredWeight,
         firstDoseDate: firstDoseDate,
         address: {
-            zip: patientData.address.zip || '',
-            street: patientData.address.street || '',
-            number: patientData.address.number || '',
-            city: patientData.address.city || '',
-            state: patientData.address.state || '',
+            zip: patientData.address?.zip,
+            street: patientData.address?.street,
+            number: patientData.address?.number,
+            city: patientData.address?.city,
+            state: patientData.address?.state,
         },
-        phone: patientData.phone || '',
+        phone: patientData.phone,
         healthContraindications: patientData.healthContraindications ?? "Nenhuma observação.",
         avatarUrl: patientData.avatarUrl || `https://i.pravatar.cc/150?u=${newId}`,
         doses: doses,
         evolutions: [],
-        dailyMedications: patientData.dailyMedications ?? '',
+        dailyMedications: patientData.dailyMedications,
         oralContraceptive: patientData.oralContraceptive,
         usedMonjauro: patientData.usedMonjauro,
-        monjauroDose: patientData.monjauroDose ?? '',
-        monjauroTime: patientData.monjauroTime ?? '',
+        monjauroDose: patientData.monjauroDose,
+        monjauroTime: patientData.monjauroTime,
         indication: patientData.indication,
         points: 0,
         pointHistory: [],
-        consentGiven: patientData.consentGiven,
+        consentGiven: patientData.consentGiven || false,
         consentDate: patientData.consentGiven ? new Date() : undefined,
     };
 
@@ -601,4 +607,3 @@ export const resetAllData = async (): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 100));
 }
 
-    

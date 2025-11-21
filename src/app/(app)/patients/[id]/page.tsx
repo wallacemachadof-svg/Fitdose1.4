@@ -58,7 +58,10 @@ import {
     Droplets,
     FileText,
     ArrowLeft,
-    CheckSquare
+    CheckSquare,
+    Bone,
+    Flame,
+    Beef
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -165,15 +168,23 @@ export default function PatientDetailPage() {
   const weightChartData = useMemo(() => {
     if (!patient) return [];
     
-    const data = patient.doses
-      .filter(d => d.status === 'administered' && d.weight)
-      .map(d => ({
-        date: formatDate(d.date),
-        peso: d.weight,
+    const data = patient.evolutions
+      .filter(e => e.date)
+      .map(e => ({
+        date: formatDate(e.date),
+        peso: e.bioimpedance?.fatPercentage, // Example, should be weight from somewhere
       }));
 
-    if (data.length === 0 && patient.initialWeight) {
-        return [{ date: formatDate(patient.firstDoseDate), peso: patient.initialWeight }];
+    if (patient.initialWeight && patient.firstDoseDate) {
+        const initialData = { date: formatDate(patient.firstDoseDate), peso: patient.initialWeight };
+        if (data.length > 0) {
+            // This assumes evolutions are sorted by date, which they should be.
+            const firstEvoDate = new Date(patient.evolutions[0].date);
+            if (new Date(patient.firstDoseDate) < firstEvoDate) {
+                 return [initialData, ...data]
+            }
+        }
+        return [initialData];
     }
       
     return data;
@@ -185,7 +196,7 @@ export default function PatientDetailPage() {
   
   const currentWeight = patient.doses.findLast(d => d.status === 'administered' && d.weight)?.weight ?? patient.initialWeight;
   const currentBmi = calculateBmi(currentWeight, patient.height / 100);
-  const weightToLose = currentWeight - patient.desiredWeight;
+  const weightToLose = patient.desiredWeight ? currentWeight - patient.desiredWeight : 0;
   const patientNameInitial = patient.fullName.charAt(0).toUpperCase();
 
   const totalPaid = patient.doses
@@ -230,7 +241,7 @@ export default function PatientDetailPage() {
               <AvatarFallback className="text-3xl">{patientNameInitial}</AvatarFallback>
             </Avatar>
             <CardTitle>{patient.fullName}</CardTitle>
-            <CardDescription>{patient.age} anos</CardDescription>
+            {patient.age && <CardDescription>{patient.age} anos</CardDescription>}
             {patient.indication?.name && (
                 <CardDescription>
                     {patient.indication.type === 'indicado' ? 'Indicado(a) por ' : 'Indicou '} 
@@ -243,17 +254,17 @@ export default function PatientDetailPage() {
             )}
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div className="flex items-center gap-3"><Phone className="w-4 h-4 text-muted-foreground" /> <span>{patient.phone}</span></div>
-            <div className="flex items-start gap-3"><MapPin className="w-4 h-4 text-muted-foreground mt-1" /> <span>{`${patient.address.street}, ${patient.address.number} - ${patient.address.city}, ${patient.address.state}`}</span></div>
-             <div className="flex items-center gap-3"><CalendarIcon className="w-4 h-4 text-muted-foreground" /> <span>Início: {formatDate(patient.firstDoseDate)}</span></div>
+            {patient.phone && <div className="flex items-center gap-3"><Phone className="w-4 h-4 text-muted-foreground" /> <span>{patient.phone}</span></div>}
+            {patient.address?.street && <div className="flex items-start gap-3"><MapPin className="w-4 h-4 text-muted-foreground mt-1" /> <span>{`${patient.address.street}, ${patient.address.number} - ${patient.address.city}, ${patient.address.state}`}</span></div>}
+            {patient.firstDoseDate && <div className="flex items-center gap-3"><CalendarIcon className="w-4 h-4 text-muted-foreground" /> <span>Início: {formatDate(patient.firstDoseDate)}</span></div>}
           </CardContent>
         </Card>
         <div className="w-full md:w-2/3 grid grid-cols-2 lg:grid-cols-3 gap-4">
             <InfoCard icon={Weight} label="Peso Atual" value={`${currentWeight.toFixed(1)} kg`} />
             <InfoCard icon={Activity} label="IMC Atual" value={currentBmi} />
             <InfoCard icon={Ruler} label="Altura" value={`${patient.height} cm`} />
-            <InfoCard icon={Target} label="Meta de Peso" value={`${patient.desiredWeight} kg`} />
-            <InfoCard icon={TrendingDown} label="Faltam Perder" value={`${weightToLose > 0 ? weightToLose.toFixed(1) : 0} kg`} />
+            {patient.desiredWeight && <InfoCard icon={Target} label="Meta de Peso" value={`${patient.desiredWeight} kg`} /> }
+            {patient.desiredWeight && <InfoCard icon={TrendingDown} label="Faltam Perder" value={`${weightToLose > 0 ? weightToLose.toFixed(1) : 0} kg`} /> }
             <InfoCard icon={DollarSign} label="Total Pago" value={formatCurrency(totalPaid)} />
         </div>
       </div>
@@ -284,6 +295,7 @@ export default function PatientDetailPage() {
               <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5"/>Ficha de Avaliação de Saúde</CardTitle>
               <CardDescription>Observações, contraindicações e histórico do paciente.</CardDescription>
             </div>
+            {patient.healthContraindications && (
             <Dialog>
                 <DialogTrigger asChild>
                     <Button variant="outline" size="sm" onClick={handleSummarize}>
@@ -301,6 +313,7 @@ export default function PatientDetailPage() {
                     {summaryLoading ? <Skeleton className="h-24 w-full" /> : <p className="text-sm text-muted-foreground">{summary}</p>}
                 </DialogContent>
             </Dialog>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -318,7 +331,7 @@ export default function PatientDetailPage() {
                             : (patient.usedMonjauro === 'no' ? 'Não' : 'Não informado')
                         } 
                     />
-                    {patient.consentGiven && (
+                    {patient.consentGiven && patient.consentDate && (
                          <HealthInfoItem 
                             icon={CheckSquare}
                             label="Termo de Consentimento"
@@ -329,7 +342,7 @@ export default function PatientDetailPage() {
                 <div className="space-y-4">
                     <h4 className="font-semibold">Condições e Contraindicações</h4>
                     <div className="text-sm text-muted-foreground space-y-2">
-                        {patient.healthContraindications.split(', ').map((item, index) => {
+                        {patient.healthContraindications && patient.healthContraindications.split(', ').map((item, index) => {
                             if (!item.trim()) return null;
                             return (
                             <p key={index} className={`flex items-start gap-2 ${item.startsWith('[CONTRAINDICADO]') ? 'text-destructive font-medium' : ''}`}>
@@ -414,6 +427,7 @@ export default function PatientDetailPage() {
 }
 
 function InfoCard({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number | null }) {
+    if (value === null || value === undefined) return null;
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -421,7 +435,7 @@ function InfoCard({ icon: Icon, label, value }: { icon: React.ElementType, label
                 <Icon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{value ?? '-'}</div>
+                <div className="text-2xl font-bold">{value}</div>
             </CardContent>
         </Card>
     )
@@ -685,6 +699,9 @@ const evolutionFormSchema = z.object({
         visceralFat: z.coerce.number().optional(),
         metabolicAge: z.coerce.number().optional(),
         hydration: z.coerce.number().optional(),
+        boneMass: z.coerce.number().optional(),
+        metabolism: z.coerce.number().optional(),
+        protein: z.coerce.number().optional(),
     }).optional(),
 });
 
@@ -711,6 +728,9 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
                 visceralFat: undefined,
                 metabolicAge: undefined,
                 hydration: undefined,
+                boneMass: undefined,
+                metabolism: undefined,
+                protein: undefined,
             }
         },
     });
@@ -776,21 +796,30 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
                         
                         <div>
                             <h4 className="text-sm font-medium mb-2">Dados de Bioimpedância (Opcional)</h4>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <FormField control={form.control} name="bioimpedance.fatPercentage" render={({ field }) => (
                                     <FormItem><FormLabel>% Gordura</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 25.5" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="bioimpedance.muscleMass" render={({ field }) => (
-                                    <FormItem><FormLabel>Massa Musc. (kg)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 58.2" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Massa Musc. (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 35.5" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="bioimpedance.visceralFat" render={({ field }) => (
                                     <FormItem><FormLabel>Gordura Visceral</FormLabel><FormControl><Input type="number" placeholder="Ex: 8" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
+                                <FormField control={form.control} name="bioimpedance.hydration" render={({ field }) => (
+                                    <FormItem><FormLabel>Água (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 55.3" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                 <FormField control={form.control} name="bioimpedance.metabolism" render={({ field }) => (
+                                    <FormItem><FormLabel>Metabolismo</FormLabel><FormControl><Input type="number" placeholder="Ex: 1753" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                 <FormField control={form.control} name="bioimpedance.boneMass" render={({ field }) => (
+                                    <FormItem><FormLabel>Massa Óssea</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 2.7" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="bioimpedance.protein" render={({ field }) => (
+                                    <FormItem><FormLabel>Proteína (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 13.2" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
                                 <FormField control={form.control} name="bioimpedance.metabolicAge" render={({ field }) => (
                                     <FormItem><FormLabel>Idade Metab.</FormLabel><FormControl><Input type="number" placeholder="Ex: 35" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name="bioimpedance.hydration" render={({ field }) => (
-                                    <FormItem><FormLabel>Hidratação (%)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 55.3" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                             </div>
                         </div>
@@ -849,11 +878,14 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
                                             <p className="text-sm text-muted-foreground">{evo.notes}</p>
                                             {evo.bioimpedance && (
                                                 <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
-                                                    <BioimpedanceItem label="% Gordura" value={evo.bioimpedance.fatPercentage} unit="%" />
-                                                    <BioimpedanceItem label="Massa Muscular" value={evo.bioimpedance.muscleMass} unit="kg" />
-                                                    <BioimpedanceItem label="Gordura Visceral" value={evo.bioimpedance.visceralFat} />
-                                                    <BioimpedanceItem label="Idade Metabólica" value={evo.bioimpedance.metabolicAge} unit=" anos" />
-                                                    <BioimpedanceItem label="Hidratação" value={evo.bioimpedance.hydration} unit="%" />
+                                                    <BioimpedanceItem icon={Activity} label="% Gordura" value={evo.bioimpedance.fatPercentage} unit="%" />
+                                                    <BioimpedanceItem icon={UserCheck} label="Massa Muscular" value={evo.bioimpedance.muscleMass} unit="%" />
+                                                    <BioimpedanceItem icon={HeartPulse} label="Gordura Visceral" value={evo.bioimpedance.visceralFat} />
+                                                    <BioimpedanceItem icon={Droplets} label="Água" value={evo.bioimpedance.hydration} unit="%" />
+                                                    <BioimpedanceItem icon={Flame} label="Metabolismo" value={evo.bioimpedance.metabolism} unit=" kcal" />
+                                                    <BioimpedanceItem icon={Bone} label="Massa Óssea" value={evo.bioimpedance.boneMass} unit=" kg" />
+                                                    <BioimpedanceItem icon={Beef} label="Proteína" value={evo.bioimpedance.protein} unit="%" />
+                                                    <BioimpedanceItem icon={CalendarIcon} label="Idade Metabólica" value={evo.bioimpedance.metabolicAge} unit=" anos" />
                                                 </div>
                                             )}
                                         </div>
@@ -875,12 +907,15 @@ function EvolutionSection({ patient, onEvolutionAdded }: EvolutionSectionProps) 
     );
 }
 
-function BioimpedanceItem({ label, value, unit }: { label: string, value?: number, unit?: string }) {
+function BioimpedanceItem({ icon: Icon, label, value, unit }: { icon: React.ElementType, label: string, value?: number, unit?: string }) {
     if (value === undefined || value === null) return null;
     return (
-        <div className="flex justify-between items-baseline p-1.5 bg-background/50 rounded">
-            <span className="font-medium text-foreground/80">{label}:</span>
-            <span className="font-semibold text-foreground">{value}{unit}</span>
+        <div className="flex items-center gap-2 p-1.5 bg-background/50 rounded">
+            <Icon className="h-4 w-4 text-muted-foreground"/>
+            <div className="flex justify-between items-baseline w-full">
+                <span className="font-medium text-foreground/80">{label}:</span>
+                <span className="font-semibold text-foreground">{value}{unit}</span>
+            </div>
         </div>
     )
 }
