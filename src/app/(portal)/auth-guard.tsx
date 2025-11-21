@@ -7,16 +7,21 @@ import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 export function PortalAuthGuard({ children }: { children: React.ReactNode }) {
-    const { user, loading } = useUser();
+    const { user, profile, loading } = useUser();
     const router = useRouter();
 
     useEffect(() => {
-        if (!loading && !user) {
-            router.push('/portal/acesso');
+        if (!loading) {
+            if (!user) {
+                router.push('/login');
+            } else if (!profile?.patientId) {
+                // This is an admin or other non-patient user, redirect them away from patient portal
+                router.push('/dashboard');
+            }
         }
-    }, [user, loading, router]);
+    }, [user, profile, loading, router]);
 
-    if (loading || !user) {
+    if (loading || !user || !profile?.patientId) {
         return (
             <div className="flex items-center justify-center h-screen">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />

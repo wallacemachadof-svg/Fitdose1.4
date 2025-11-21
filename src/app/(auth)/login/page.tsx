@@ -33,7 +33,7 @@ export default function LoginPage() {
     const router = useRouter();
     const { toast } = useToast();
     const { signIn } = useAuth();
-    const { user, loading: userLoading } = useUser();
+    const { user, profile, loading: userLoading } = useUser();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
@@ -50,9 +50,13 @@ export default function LoginPage() {
 
     useEffect(() => {
         if (!userLoading && user) {
-            router.replace('/dashboard');
+             if (profile?.patientId) {
+                router.replace('/portal/dashboard');
+            } else {
+                router.replace('/dashboard');
+            }
         }
-    }, [user, userLoading, router]);
+    }, [user, profile, userLoading, router]);
 
     async function onSubmit(data: LoginFormValues) {
         setIsSubmitting(true);
@@ -62,7 +66,7 @@ export default function LoginPage() {
                 title: "Login bem-sucedido!",
                 description: "Redirecionando para o painel...",
             });
-            router.push("/dashboard");
+            // The useEffect will handle the redirection
         } catch (error: any) {
             console.error("Failed to sign in", error);
             const message = error.code === 'auth/invalid-credential' 
@@ -97,8 +101,8 @@ export default function LoginPage() {
                             <h1 className="text-3xl font-bold text-primary">FitDose</h1>
                         )}
                     </div>
-                    <CardTitle>Bem-vindo de Volta</CardTitle>
-                    <CardDescription>Acesse seu painel para gerenciar seus pacientes.</CardDescription>
+                    <CardTitle>Acessar Painel</CardTitle>
+                    <CardDescription>Use suas credenciais para entrar.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
@@ -134,9 +138,6 @@ export default function LoginPage() {
                             </Button>
                         </form>
                     </Form>
-                     <p className="mt-4 text-center text-sm text-muted-foreground">
-                        É um paciente? <a href="#" className="font-semibold text-primary hover:underline">Acesse o portal do paciente.</a>
-                    </p>
                 </CardContent>
             </Card>
         </div>
