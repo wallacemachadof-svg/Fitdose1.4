@@ -590,7 +590,7 @@
     "initialWeight": 71.3,
     "height": 158,
     "desiredWeight": 50,
-    "firstDoseDate": "2025-11-21T20:41:06.545Z",
+    "firstDoseDate": "2025-10-21T03:00:00.000Z",
     "address": {
       "zip": "",
       "street": "",
@@ -665,7 +665,7 @@
       {
         "id": 5,
         "doseNumber": 5,
-        "date": "2025-12-19T20:41:06.545Z",
+        "date": "2025-11-25T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -675,7 +675,7 @@
       {
         "id": 6,
         "doseNumber": 6,
-        "date": "2025-12-26T20:41:06.545Z",
+        "date": "2025-12-02T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -685,7 +685,7 @@
       {
         "id": 7,
         "doseNumber": 7,
-        "date": "2026-01-02T20:41:06.545Z",
+        "date": "2025-12-09T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -695,7 +695,7 @@
       {
         "id": 8,
         "doseNumber": 8,
-        "date": "2026-01-09T20:41:06.545Z",
+        "date": "2025-12-16T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -705,7 +705,7 @@
       {
         "id": 9,
         "doseNumber": 9,
-        "date": "2026-01-16T20:41:06.545Z",
+        "date": "2025-12-23T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -715,7 +715,7 @@
       {
         "id": 10,
         "doseNumber": 10,
-        "date": "2026-01-23T20:41:06.545Z",
+        "date": "2025-12-30T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -725,7 +725,7 @@
       {
         "id": 11,
         "doseNumber": 11,
-        "date": "2026-01-30T20:41:06.545Z",
+        "date": "2026-01-06T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -735,7 +735,7 @@
       {
         "id": 12,
         "doseNumber": 12,
-        "date": "2026-02-06T20:41:06.545Z",
+        "date": "2026-01-13T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
