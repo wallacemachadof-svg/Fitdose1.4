@@ -21,20 +21,13 @@ const initialBioimpedanceState: Bioimpedance = {
     weight: undefined,
     bmi: undefined,
     fatPercentage: undefined,
-    fatWeight: undefined,
     skeletalMusclePercentage: undefined,
-    skeletalMuscleWeight: undefined,
-    muscleMassPercentage: undefined,
-    muscleMassWeight: undefined,
     visceralFat: undefined,
     hydration: undefined,
-    waterWeight: undefined,
     metabolism: undefined,
     obesityPercentage: undefined,
     boneMass: undefined,
     protein: undefined,
-    lbm: undefined,
-    metabolicAge: undefined,
 };
 
 export default function BioimpedancePage() {
@@ -97,20 +90,13 @@ export default function BioimpedancePage() {
     { key: 'weight', label: 'Peso(Kg)' },
     { key: 'bmi', label: 'IMC' },
     { key: 'fatPercentage', label: 'Gordura(%)' },
-    { key: 'fatWeight', label: 'Peso da gordura(Kg)' },
     { key: 'skeletalMusclePercentage', label: 'Percentual da massa muscular esquelética(%)' },
-    { key: 'skeletalMuscleWeight', label: 'Peso da massa muscular esquelética(Kg)' },
-    { key: 'muscleMassPercentage', label: 'Registro de massa muscular(%)' },
-    { key: 'muscleMassWeight', label: 'Peso da massa muscular(Kg)' },
     { key: 'visceralFat', label: 'Gordura visceral' },
     { key: 'hydration', label: 'Água(%)' },
-    { key: 'waterWeight', label: 'peso da água(Kg)' },
     { key: 'metabolism', label: 'Metabolismo(kcal / dia)' },
     { key: 'obesityPercentage', label: 'Obesidade(%)' },
     { key: 'boneMass', label: 'Ossos(Kg)' },
     { key: 'protein', label: 'Proteina(%)' },
-    { key: 'lbm', label: 'LBM(Kg)' },
-    { key: 'metabolicAge', label: 'Idade metabólica' },
   ];
 
   const isFormFilled = Object.values(bioimpedanceData).some(value => value !== undefined && value !== '');

@@ -172,20 +172,13 @@ export type Bioimpedance = {
     weight?: number;
     bmi?: number;
     fatPercentage?: number;
-    fatWeight?: number;
     skeletalMusclePercentage?: number;
-    skeletalMuscleWeight?: number;
-    muscleMassPercentage?: number;
-    muscleMassWeight?: number;
     visceralFat?: number;
     hydration?: number;
-    waterWeight?: number;
     metabolism?: number;
     obesityPercentage?: number;
     boneMass?: number;
     protein?: number;
-    lbm?: number;
-    metabolicAge?: number;
 };
 
 export type Evolution = {
