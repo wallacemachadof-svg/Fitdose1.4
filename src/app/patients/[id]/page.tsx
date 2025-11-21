@@ -184,7 +184,7 @@ export default function PatientDetailPage() {
     if (!evolutionToDelete || !patient) return;
 
     try {
-        const updatedPatient = await deleteBioimpedanceEntry(patient.id, evolutionToDelete.id, evolutionToDelete.id === 'initial-record');
+        const updatedPatient = await deleteBioimpedanceEntry(patient.id, evolutionToDelete.id);
         setPatient(updatedPatient);
         toast({
             title: "Registro Excluído",

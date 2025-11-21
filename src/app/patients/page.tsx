@@ -237,9 +237,9 @@ function PatientsPageContent() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuItem asChild>
-                                                        <Link href={`/patients/${patient.id}`}>
+                                                        <Link href={`/patients/${patient.id}/edit`}>
                                                             <Edit className="mr-2 h-4 w-4" />
-                                                            Ver / Editar
+                                                            Editar
                                                         </Link>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => handleDeleteClick(patient)} className="text-destructive">
