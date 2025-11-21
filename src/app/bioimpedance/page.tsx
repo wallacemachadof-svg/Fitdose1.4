@@ -154,21 +154,23 @@ export default function BioimpedancePage() {
                 <CardContent className="space-y-4">
                      <div className="space-y-2">
                         <Label htmlFor="picture">Imagem da Bioimpedância</Label>
-                        <div className="w-full h-64 rounded-md bg-muted flex items-center justify-center border-2 border-dashed border-gray-300 relative">
-                            {imagePreview ? (
-                                <>
-                                <Image src={imagePreview} alt="Preview" layout="fill" className="rounded-md object-contain" />
-                                 <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={clearImage}>
-                                    <X className="h-4 w-4" />
-                                </Button>
-                                </>
-                            ) : (
-                                <div className="flex flex-col items-center text-muted-foreground text-center p-4">
-                                <Upload className="w-12 h-12 mb-2" />
-                                <span className="text-sm">Clique ou arraste a imagem aqui</span>
-                                </div>
-                            )}
-                        </div>
+                        <label htmlFor="picture" className="cursor-pointer">
+                            <div className="w-full h-64 rounded-md bg-muted flex items-center justify-center border-2 border-dashed border-gray-300 relative">
+                                {imagePreview ? (
+                                    <>
+                                    <Image src={imagePreview} alt="Preview" layout="fill" className="rounded-md object-contain" />
+                                    <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={(e) => { e.preventDefault(); e.stopPropagation(); clearImage(); }}>
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center text-muted-foreground text-center p-4">
+                                    <Upload className="w-12 h-12 mb-2" />
+                                    <span className="text-sm">Clique ou arraste a imagem aqui</span>
+                                    </div>
+                                )}
+                            </div>
+                        </label>
                         <Input id="picture" type="file" className="sr-only" accept="image/*" onChange={handleImageChange} />
                          <Button type="button" className="w-full" onClick={() => document.getElementById('picture')?.click()}>
                             <Upload className="w-4 h-4 mr-2" />
@@ -232,7 +234,7 @@ export default function BioimpedancePage() {
                                     id={field.key}
                                     type="text"
                                     value={extractedData?.[field.key as keyof AnalyzeBioimpedanceOutput] ?? ''}
-                                    onChange={(e) => setExtractedData(prev => ({...prev, [field.key]: e.target.value }))}
+                                    onChange={(e) => setExtractedData(prev => ({...prev as object, [field.key]: e.target.value }))}
                                     placeholder="-"
                                 />
                             )}
@@ -253,4 +255,3 @@ export default function BioimpedancePage() {
     </div>
   );
 }
-
