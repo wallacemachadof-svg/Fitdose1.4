@@ -22,23 +22,43 @@
         "administeredDose": 2.5,
         "payment": {
           "method": "pix",
-          "amount": 0
+          "amount": 0,
+          "status": "pago",
+          "date": "2025-07-18T03:00:00.000Z"
         },
         "bmi": 30.01
       },
       {
         "id": 2,
         "doseNumber": 2,
-        "date": "2025-11-25T03:00:00.000Z",
-        "status": "pending",
-        "time": "10:00"
+        "date": "2025-07-27T03:00:00.000Z",
+        "status": "administered",
+        "time": "10:00",
+        "weight": 89.1,
+        "administeredDose": 2.5,
+        "payment": {
+          "status": "pago",
+          "date": "2025-08-02T03:00:00.000Z",
+          "method": "pix",
+          "amount": 0
+        },
+        "bmi": 29.09
       },
       {
         "id": 3,
         "doseNumber": 3,
-        "date": "2025-12-02T03:00:00.000Z",
-        "status": "pending",
-        "time": "10:00"
+        "date": "2025-08-10T03:00:00.000Z",
+        "status": "administered",
+        "time": "10:00",
+        "weight": 86.5,
+        "administeredDose": 2.5,
+        "payment": {
+          "status": "pago",
+          "date": "2025-08-10T03:00:00.000Z",
+          "method": "pix",
+          "amount": 0
+        },
+        "bmi": 28.24
       },
       {
         "id": 4,

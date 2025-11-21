@@ -222,7 +222,10 @@ export type Sale = {
   pointsUsed?: number;
 };
 
-export type NewSaleData = Omit<Sale, 'id' | 'patientName'>;
+export type NewSaleData = Omit<Sale, 'id' | 'patientName'> & {
+    bioimpedance?: Bioimpedance;
+};
+
 
 export type CashFlowEntry = {
   id: string;
@@ -490,11 +493,16 @@ export const deleteBioimpedanceEntry = async (patientId: string, evolutionId: st
     }
 
     const patient = data.patients[patientIndex];
+    
+    if (evolutionId === 'initial-record') {
+        throw new Error("Cannot delete the initial weight record via this function. Edit the patient profile instead.");
+    }
+    
     const initialLength = patient.evolutions.length;
     
     patient.evolutions = patient.evolutions.filter(e => e.id !== evolutionId);
 
-    if(patient.evolutions.length === initialLength && evolutionId !== 'initial-record'){
+    if(patient.evolutions.length === initialLength){
         throw new Error("Evolution entry not found");
     }
 
@@ -553,6 +561,37 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         patientName: patient.fullName,
         total: total,
     };
+
+    // --- Handle Bioimpedance and Dose Administration ---
+    const hasBioimpedance = saleData.bioimpedance && Object.values(saleData.bioimpedance).some(v => v !== undefined);
+
+    if (hasBioimpedance) {
+        const bioimpedance = { ...saleData.bioimpedance };
+        if (!bioimpedance.bmi && bioimpedance.weight && patient.height) {
+            bioimpedance.bmi = calculateBmi(bioimpedance.weight, patient.height / 100);
+        }
+        
+        const newEvolution: Evolution = {
+            id: `evo-sale-${newSale.id}`,
+            date: newSale.saleDate,
+            notes: "Registro de bioimpedância no momento da venda.",
+            bioimpedance: bioimpedance,
+        };
+        patient.evolutions.push(newEvolution);
+
+        // Auto-administer next pending dose
+        const nextPendingDoseIndex = patient.doses.findIndex(d => d.status === 'pending');
+        if (nextPendingDoseIndex !== -1) {
+            const doseToUpdate = patient.doses[nextPendingDoseIndex];
+            doseToUpdate.status = 'administered';
+            doseToUpdate.date = newSale.saleDate;
+            doseToUpdate.weight = bioimpedance.weight;
+            doseToUpdate.bmi = bioimpedance.bmi;
+            doseToUpdate.administeredDose = parseFloat(saleData.soldDose) || undefined;
+            patient.doses[nextPendingDoseIndex] = doseToUpdate;
+        }
+    }
+
 
     // --- Handle Points ---
     const uiPerMg = 4;
