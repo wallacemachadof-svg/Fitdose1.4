@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { User as UserIcon, Upload, Loader2, ArrowRight } from "lucide-react";
 import { cn, calculateBmi } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { addPatient } from "@/lib/actions";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -99,9 +99,10 @@ const patientFormSchema = z.object({
 
 type PatientFormValues = z.infer<typeof patientFormSchema>;
 
-export default function PatientRegistrationPage() {
+function PatientRegistrationForm() {
     const router = useRouter();
     const { toast } = useToast();
+    const searchParams = useSearchParams();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [bmi, setBmi] = useState<number | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -109,6 +110,11 @@ export default function PatientRegistrationPage() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
     useEffect(() => {
+        const source = searchParams.get('source');
+        if (source === 'internal') {
+            setShowForm(true);
+        }
+
         const storedLogo = localStorage.getItem('customLogo');
         if (storedLogo) {
           setLogoUrl(storedLogo);
@@ -122,7 +128,7 @@ export default function PatientRegistrationPage() {
         return () => {
           window.removeEventListener('storage', handleStorageChange);
         };
-    }, []);
+    }, [searchParams]);
 
 
     const form = useForm<PatientFormValues>({
@@ -711,4 +717,10 @@ Após receber todas as informações necessárias de forma clara, ética e técn
     )
 }
 
-    
+export default function PatientRegistrationPage() {
+    return (
+        <Suspense fallback={<div>Carregando...</div>}>
+            <PatientRegistrationForm />
+        </Suspense>
+    )
+}

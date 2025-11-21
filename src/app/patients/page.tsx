@@ -149,7 +149,7 @@ function PatientsPageContent() {
                         />
                     </div>
                     <Button asChild>
-                        <Link href="/cadastro">
+                        <Link href="/cadastro?source=internal">
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Novo Paciente
                         </Link>
