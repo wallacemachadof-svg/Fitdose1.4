@@ -45,6 +45,7 @@ export default function SchedulePage() {
         patientName: p.fullName,
         patientId: p.id,
         dose: d,
+        allDoses: p.doses,
       }))
     );
   }, [patients]);
@@ -68,7 +69,7 @@ export default function SchedulePage() {
           {formatDateFns(date, 'd')}
           <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex space-x-1">
             {dayEvents.slice(0, 3).map(event => {
-                const status = getDoseStatus(event.dose);
+                const status = getDoseStatus(event.dose, event.allDoses);
                 let colorClass = 'bg-gray-400';
                 if (status.color.includes('red')) colorClass = 'bg-red-500';
                 else if (status.color.includes('orange')) colorClass = 'bg-orange-500';
@@ -130,7 +131,7 @@ export default function SchedulePage() {
             {selectedDayEvents.length > 0 ? (
               <ul className="space-y-4">
                 {selectedDayEvents.map(event => {
-                  const status = getDoseStatus(event.dose);
+                  const status = getDoseStatus(event.dose, event.allDoses);
                   const patient = patients.find(p => p.id === event.patientId);
 
                   return (
@@ -166,4 +167,3 @@ export default function SchedulePage() {
     </div>
   );
 }
-

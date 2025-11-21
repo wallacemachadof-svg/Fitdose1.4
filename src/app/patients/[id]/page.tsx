@@ -183,19 +183,8 @@ export default function PatientDetailPage() {
   const handleConfirmDeleteEvolution = async () => {
     if (!evolutionToDelete || !patient) return;
 
-    if (evolutionToDelete.id === 'initial-record') {
-        toast({
-            variant: "destructive",
-            title: "Ação não permitida",
-            description: "Não é possível excluir o registro de peso inicial. Para alterá-lo, edite o perfil do paciente.",
-        });
-        setIsDeleteDialogOpen(false);
-        setEvolutionToDelete(null);
-        return;
-    }
-
     try {
-        const updatedPatient = await deleteBioimpedanceEntry(patient.id, evolutionToDelete.id);
+        const updatedPatient = await deleteBioimpedanceEntry(patient.id, evolutionToDelete.id, evolutionToDelete.id === 'initial-record');
         setPatient(updatedPatient);
         toast({
             title: "Registro Excluído",
@@ -538,7 +527,7 @@ export default function PatientDetailPage() {
             </TableHeader>
             <TableBody>
               {patient.doses.map((dose) => {
-                const status = getDoseStatus(dose);
+                const status = getDoseStatus(dose, patient.doses);
                 const paymentStatus = getPaymentStatusVariant(dose.payment?.status ?? 'pendente');
                 return (
                   <TableRow key={dose.id}>

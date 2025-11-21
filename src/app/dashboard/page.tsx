@@ -78,11 +78,9 @@ export default function DashboardPage() {
     })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  const overdueDosesCount = allDoses.filter(d => {
-    const doseDate = new Date(d.date);
-    doseDate.setHours(0, 0, 0, 0);
-    return differenceInDays(doseDate, today) < 0;
-  }).length;
+  const overdueDosesCount = patients.filter(p => 
+    p.doses.some(d => getDoseStatus(d, p.doses).messageType === 'overdue')
+  ).length;
 
   const thirtyDaysAgo = subDays(today, 30);
   const recentSales = sales.filter(s => new Date(s.saleDate) >= thirtyDaysAgo);
@@ -184,7 +182,7 @@ export default function DashboardPage() {
                 <CardContent>
                     <div className="text-2xl font-bold text-destructive">{overdueDosesCount}</div>
                     <p className="text-xs text-muted-foreground">
-                    Doses pendentes de aplicação
+                    Pacientes com doses pendentes
                     </p>
                 </CardContent>
             </Card>
@@ -254,7 +252,8 @@ export default function DashboardPage() {
             <TableBody>
               {upcomingDoses.length > 0 ? (
                 upcomingDoses.map((dose) => {
-                  const status = getDoseStatus(dose);
+                  const patient = patients.find(p => p.id === dose.patientId);
+                  const status = getDoseStatus(dose, patient?.doses);
                   return (
                     <TableRow key={`${dose.patientId}-${dose.id}`}>
                       <TableCell>

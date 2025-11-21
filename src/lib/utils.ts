@@ -1,7 +1,8 @@
 
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { format, differenceInDays, parseISO } from "date-fns";
+import { format, differenceInDays, parseISO, addDays } from "date-fns";
 import type { Dose, Sale, CashFlowEntry, Patient } from "@/lib/actions";
 
 export function cn(...inputs: ClassValue[]) {
@@ -26,7 +27,7 @@ export function formatCurrency(value: number) {
 }
 
 
-export function getDoseStatus(dose: Dose) {
+export function getDoseStatus(dose: Dose, allDoses: Dose[] = []) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const doseDate = new Date(dose.date);
@@ -36,17 +37,27 @@ export function getDoseStatus(dose: Dose) {
     return { label: "Administrada", color: "bg-gray-500", textColor: "text-white", days: null, messageType: "info" };
   }
   
+  const lastAdministeredDose = allDoses
+      .filter(d => d.status === 'administered')
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+
+  const overdueThreshold = lastAdministeredDose ? addDays(new Date(lastAdministeredDose.date), 7) : addDays(doseDate, 7);
+  overdueThreshold.setHours(0,0,0,0);
+  
+  if (today > overdueThreshold) {
+      const daysOverdue = differenceInDays(today, overdueThreshold);
+      return { label: "Vencida", color: "bg-red-500", textColor: "text-white", days: -daysOverdue, messageType: "overdue" };
+  }
+
   const daysUntilDose = differenceInDays(doseDate, today);
 
-  if (daysUntilDose < 0) {
-    return { label: "Vencida", color: "bg-red-500", textColor: "text-white", days: daysUntilDose, messageType: "overdue" };
-  }
-  if (daysUntilDose <= 2) {
+  if (daysUntilDose <= 2 && daysUntilDose >= 0) {
     return { label: "Vencendo", color: "bg-orange-500", textColor: "text-white", days: daysUntilDose, messageType: "urgent" };
   }
-  if (daysUntilDose <= 5) {
+  if (daysUntilDose <= 5 && daysUntilDose > 2) {
     return { label: "Próxima", color: "bg-yellow-500", textColor: "text-white", days: daysUntilDose, messageType: "upcoming" };
   }
+  
   return { label: "Agendada", color: "bg-green-500", textColor: "text-white", days: daysUntilDose, messageType: "scheduled" };
 }
 
@@ -92,14 +103,14 @@ export function getStockStatusVariant(quantity: number) {
 }
 
 export function generateWhatsAppLink(patient: Patient, dose: Dose): string {
-    const status = getDoseStatus(dose);
+    const status = getDoseStatus(dose, patient.doses);
     const patientFirstName = patient.fullName.split(' ')[0];
     const doseDate = formatDate(dose.date);
     let message = '';
 
     switch (status.messageType) {
         case 'overdue':
-            message = `Olá, ${patientFirstName}! Passando para lembrar que sua dose de número ${dose.doseNumber}, que estava agendada para ${doseDate}, está vencida. Vamos regularizar?`;
+            message = `Olá, ${patientFirstName}! Passando para lembrar que sua dose de número ${dose.doseNumber} está vencida. Vamos reagendar?`;
             break;
         case 'urgent':
             message = `Olá, ${patientFirstName}! Sua dose de número ${dose.doseNumber} vence em ${status.days === 0 ? 'hoje' : `${status.days} dia(s)`} (${doseDate}). Não se esqueça!`;

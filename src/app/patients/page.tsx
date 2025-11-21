@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, Suspense } from "react";
@@ -84,7 +85,7 @@ function PatientsPageContent() {
         if (!nameMatch) return false;
 
         if (filter === 'overdue') {
-            return patient.doses.some(dose => getDoseStatus(dose).messageType === 'overdue');
+            return patient.doses.some(dose => getDoseStatus(dose, patient.doses).messageType === 'overdue');
         }
 
         return true;
