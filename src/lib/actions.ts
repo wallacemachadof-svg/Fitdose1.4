@@ -425,25 +425,21 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
 
     patient.doses[doseIndex] = updatedDose;
     
-    // Sort doses by date before rescheduling
-    patient.doses.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    // Sort doses by their original doseNumber to keep a logical order
+    patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
 
-    // Recalculate dates for subsequent pending doses
-    let lastDate = patient.doses[0].date;
+    // Recalculate dates for subsequent pending doses based on the previous dose's date
     for (let i = 1; i < patient.doses.length; i++) {
         const currentDose = patient.doses[i];
         const prevDose = patient.doses[i-1];
-        lastDate = prevDose.date;
         
+        // Only reschedule PENDING doses
         if (currentDose.status === 'pending') {
-            const nextDate = new Date(lastDate);
+            const nextDate = new Date(prevDose.date);
             nextDate.setDate(nextDate.getDate() + 7);
             currentDose.date = nextDate;
         }
     }
-    
-    // Re-sort by dose number as it might have changed
-    patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
 
     data.patients[patientIndex] = patient;
     writeData({ patients: data.patients });
@@ -820,4 +816,3 @@ export const resetAllData = async (): Promise<void> => {
 }
 
     
-
