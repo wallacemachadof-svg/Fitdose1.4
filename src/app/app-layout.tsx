@@ -151,18 +151,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={isActive('/bioimpedance')}
-                  tooltip="Bioimpedância"
-                >
-                  <Link href="/bioimpedance">
-                    <HeartPulse />
-                    <span>Bioimpedância</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
                   isActive={isActive('/rewards')}
                   tooltip="Recompensas"
                 >
@@ -176,11 +164,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <SidebarMenuButton
                   asChild
                   isActive={isActive('/sales-control')}
-                  tooltip="Controle de Vendas"
+                  tooltip="Vendas"
                 >
                   <Link href="/sales-control">
                     <ShoppingCart />
-                    <span>Controle de Vendas</span>
+                    <span>Vendas</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

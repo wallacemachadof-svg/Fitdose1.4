@@ -159,7 +159,7 @@ export default function NewSalePage() {
             <Button variant="ghost" asChild className="-ml-4">
                 <Link href="/sales-control">
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Voltar para Controle de Vendas
+                    Voltar para Vendas
                 </Link>
             </Button>
             <Card className="w-full max-w-4xl mx-auto">
