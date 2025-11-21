@@ -15,9 +15,6 @@ import {
   Warehouse,
   Eraser,
   Trash2,
-  User as UserIcon,
-  HeartPulse,
-  LogOut,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -47,15 +44,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { resetAllData } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
-import { AuthGuard } from '@/firebase/auth/auth-guard';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { toast } = useToast();
   const router = useRouter();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const { signOut } = useAuth();
 
   useEffect(() => {
     // Ensure this runs only on the client
@@ -103,18 +97,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const handleSignOut = async () => {
-    await signOut();
-    router.push('/login');
-  };
-
-  // If we are on login or registration pages, don't show the layout
-  if (pathname === '/login' || pathname.startsWith('/cadastro')) {
-    return <>{children}</>;
-  }
-
   return (
-    <AuthGuard>
       <SidebarProvider>
         <Sidebar>
           <SidebarHeader>
@@ -143,30 +126,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={isActive('/profile')}
-                  tooltip="Perfil"
-                >
-                  <Link href="/profile">
-                    <UserIcon />
-                    <span>Perfil</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/schedule')}
-                  tooltip="Minha Agenda"
-                >
-                  <Link href="/schedule">
-                    <CalendarDays />
-                    <span>Minha Agenda</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
                   isActive={isActive('/patients')}
                   tooltip="Pacientes"
                 >
@@ -179,11 +138,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
+                  isActive={isActive('/schedule')}
+                  tooltip="Agenda"
+                >
+                  <Link href="/schedule">
+                    <CalendarDays />
+                    <span>Agenda</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
                   isActive={isActive('/bioimpedance')}
                   tooltip="Bioimpedância"
                 >
                   <Link href="/bioimpedance">
-                    <HeartPulse />
+                    <Users />
                     <span>Bioimpedância</span>
                   </Link>
                 </SidebarMenuButton>
@@ -252,10 +223,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarContent>
           <SidebarFooter>
             <SidebarSeparator />
-            <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Sair
-            </Button>
             <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive">
@@ -289,6 +256,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <main className="p-4 md:p-6">{children}</main>
         </SidebarInset>
       </SidebarProvider>
-    </AuthGuard>
   );
 }

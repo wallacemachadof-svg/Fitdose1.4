@@ -2,14 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { getPatientById, type Patient } from '@/lib/actions';
-import { useAuth } from '@/firebase';
 
-export function usePatient(patientIdOverride?: string) {
-    const { user } = useAuth();
+export function usePatient(patientId?: string) {
     const [patient, setPatient] = useState<Patient | null>(null);
     const [loading, setLoading] = useState(true);
-
-    const patientId = patientIdOverride || user?.uid;
 
     useEffect(() => {
         if (!patientId) {

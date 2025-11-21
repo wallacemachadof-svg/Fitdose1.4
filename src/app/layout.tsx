@@ -3,8 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import AppLayout from "./app-layout";
-import { FirebaseProvider } from "@/firebase/provider";
-import { FirebaseErrorListener } from "@/components/FirebaseErrorListener";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,11 +19,8 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={inter.className}>
-        <FirebaseProvider>
-          <AppLayout>{children}</AppLayout>
-          <Toaster />
-          <FirebaseErrorListener />
-        </FirebaseProvider>
+        <AppLayout>{children}</AppLayout>
+        <Toaster />
       </body>
     </html>
   );
