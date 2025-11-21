@@ -30,3 +30,22 @@ export const useFirebase = () => {
     }
     return context;
 };
+
+// Add a new context for auth functions
+interface AuthContextType {
+    user: any;
+    loading: boolean;
+    signIn: (email: string, pass: string) => Promise<any>;
+    signOut: () => Promise<void>;
+    createUser: (email: string, pass: string) => Promise<any>;
+}
+
+export const AuthContext = createContext<AuthContextType | null>(null);
+
+export const useAuthContext = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error("useAuthContext must be used within an AuthProvider");
+    }
+    return context;
+}

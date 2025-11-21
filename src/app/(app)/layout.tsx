@@ -17,6 +17,7 @@ import {
   Trash2,
   User as UserIcon,
   HeartPulse,
+  LogOut,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -47,12 +48,15 @@ import { Button } from '@/components/ui/button';
 import { resetAllData } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/firebase';
+import { AuthGuard } from '@/firebase/auth/auth-guard';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { toast } = useToast();
   const router = useRouter();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const { signOut } = useAuth();
 
   useEffect(() => {
     // Ensure this runs only on the client
@@ -100,176 +104,187 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/login');
+  };
+
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader>
-          <div className="flex items-center justify-center p-4 h-20">
-            {logoUrl ? (
-              <Image src={logoUrl} alt="FitDose Logo" width={120} height={50} className="object-contain h-12"/>
-            ) : (
-              <h1 className="text-2xl font-bold text-primary">FitDose</h1>
-            )}
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/dashboard')}
-                tooltip="Dashboard"
-              >
-                <Link href="/dashboard">
-                  <LayoutDashboard />
-                  <span>Dashboard</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/profile')}
-                tooltip="Perfil"
-              >
-                <Link href="/profile">
-                  <UserIcon />
-                  <span>Perfil</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/schedule')}
-                tooltip="Minha Agenda"
-              >
-                <Link href="/schedule">
-                  <CalendarDays />
-                  <span>Minha Agenda</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/patients')}
-                tooltip="Pacientes"
-              >
-                <Link href="/patients">
-                  <Users />
-                  <span>Pacientes</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/bioimpedance')}
-                tooltip="Bioimpedância"
-              >
-                <Link href="/bioimpedance">
-                  <HeartPulse />
-                  <span>Bioimpedância</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/rewards')}
-                tooltip="Recompensas"
-              >
-                <Link href="/rewards">
-                  <Award />
-                  <span>Recompensas</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/sales-control')}
-                tooltip="Controle de Vendas"
-              >
-                <Link href="/sales-control">
-                  <ShoppingCart />
-                  <span>Controle de Vendas</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/cash-flow')}
-                tooltip="Fluxo de Caixa"
-              >
-                <Link href="/cash-flow">
-                  <DollarSign />
-                  <span>Fluxo de Caixa</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/stock-control')}
-                tooltip="Controle de Estoque"
-              >
-                <Link href="/stock-control">
-                  <Warehouse />
-                  <span>Controle de Estoque</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive('/ai-personalization')}
-                tooltip="Personalização AI"
-              >
-                <Link href="/ai-personalization">
-                  <FlaskConical />
-                  <span>Personalização AI</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-          <SidebarSeparator />
-           <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive">
-                    <Eraser className="mr-2 h-4 w-4" />
-                    Zerar Dados
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta ação não pode ser desfeita. Isso excluirá permanentemente todos os dados de pacientes, vendas, estoque e fluxo de caixa.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleResetData} className="bg-destructive hover:bg-destructive/90">
-                    <Trash2 className="mr-2 h-4 w-4"/>
-                    Sim, zerar todos os dados
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset>
-        <header className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10 md:justify-end">
-            <SidebarTrigger className="md:hidden" />
-            <div>{/* User Menu can be added here */}</div>
-        </header>
-        <main className="p-4 md:p-6">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <AuthGuard>
+      <SidebarProvider>
+        <Sidebar>
+          <SidebarHeader>
+            <div className="flex items-center justify-center p-4 h-20">
+              {logoUrl ? (
+                <Image src={logoUrl} alt="FitDose Logo" width={120} height={50} className="object-contain h-12"/>
+              ) : (
+                <h1 className="text-2xl font-bold text-primary">FitDose</h1>
+              )}
+            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/dashboard')}
+                  tooltip="Dashboard"
+                >
+                  <Link href="/dashboard">
+                    <LayoutDashboard />
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/profile')}
+                  tooltip="Perfil"
+                >
+                  <Link href="/profile">
+                    <UserIcon />
+                    <span>Perfil</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/schedule')}
+                  tooltip="Minha Agenda"
+                >
+                  <Link href="/schedule">
+                    <CalendarDays />
+                    <span>Minha Agenda</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/patients')}
+                  tooltip="Pacientes"
+                >
+                  <Link href="/patients">
+                    <Users />
+                    <span>Pacientes</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/bioimpedance')}
+                  tooltip="Bioimpedância"
+                >
+                  <Link href="/bioimpedance">
+                    <HeartPulse />
+                    <span>Bioimpedância</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/rewards')}
+                  tooltip="Recompensas"
+                >
+                  <Link href="/rewards">
+                    <Award />
+                    <span>Recompensas</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/sales-control')}
+                  tooltip="Controle de Vendas"
+                >
+                  <Link href="/sales-control">
+                    <ShoppingCart />
+                    <span>Controle de Vendas</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/cash-flow')}
+                  tooltip="Fluxo de Caixa"
+                >
+                  <Link href="/cash-flow">
+                    <DollarSign />
+                    <span>Fluxo de Caixa</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/stock-control')}
+                  tooltip="Controle de Estoque"
+                >
+                  <Link href="/stock-control">
+                    <Warehouse />
+                    <span>Controle de Estoque</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/ai-personalization')}
+                  tooltip="Personalização AI"
+                >
+                  <Link href="/ai-personalization">
+                    <FlaskConical />
+                    <span>Personalização AI</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarContent>
+          <SidebarFooter>
+            <SidebarSeparator />
+            <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sair
+            </Button>
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive">
+                      <Eraser className="mr-2 h-4 w-4" />
+                      Zerar Dados
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Isso excluirá permanentemente todos os dados de pacientes, vendas, estoque e fluxo de caixa.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleResetData} className="bg-destructive hover:bg-destructive/90">
+                      <Trash2 className="mr-2 h-4 w-4"/>
+                      Sim, zerar todos os dados
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+          </SidebarFooter>
+        </Sidebar>
+        <SidebarInset>
+          <header className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10 md:justify-end">
+              <SidebarTrigger className="md:hidden" />
+              <div>{/* User Menu can be added here */}</div>
+          </header>
+          <main className="p-4 md:p-6">{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
+    </AuthGuard>
   );
 }

@@ -139,6 +139,8 @@ export type Patient = {
   pointHistory: PointTransaction[];
   consentGiven: boolean;
   consentDate?: Date;
+  authId?: string;
+  authEmail?: string;
 };
 
 export type NewPatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>> & {
@@ -419,7 +421,7 @@ export const addBioimpedanceEntry = async (patientId: string, date: Date, bioimp
     const newEvolution: Evolution = {
         id: `evo-ia-${Date.now()}`,
         date: date,
-        notes: "Registro de bioimpedância via IA.",
+        notes: "Registro de bioimpedância manual.",
         bioimpedance: bioimpedance,
     };
 
