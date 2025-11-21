@@ -127,13 +127,13 @@ export default function BioimpedancePage() {
     { key: 'bmi', label: 'IMC' },
     { key: 'fatPercentage', label: 'Gordura(%)' },
     { key: 'fatWeight', label: 'Peso da gordura(Kg)' },
-    { key: 'skeletalMusclePercentage', label: 'Massa muscular esquelética(%)' },
+    { key: 'skeletalMusclePercentage', label: 'Percentual da massa muscular esquelética(%)' },
     { key: 'skeletalMuscleWeight', label: 'Peso da massa muscular esquelética(Kg)' },
     { key: 'muscleMassPercentage', label: 'Registro de massa muscular(%)' },
     { key: 'muscleMassWeight', label: 'Peso da massa muscular(Kg)' },
     { key: 'visceralFat', label: 'Gordura visceral' },
     { key: 'hydration', label: 'Água(%)' },
-    { key: 'waterWeight', label: 'Peso da água(Kg)' },
+    { key: 'waterWeight', label: 'peso da água(Kg)' },
     { key: 'metabolism', label: 'Metabolismo(kcal / dia)' },
     { key: 'obesityPercentage', label: 'Obesidade(%)' },
     { key: 'boneMass', label: 'Ossos(Kg)' },
@@ -239,7 +239,7 @@ export default function BioimpedancePage() {
                                 <Input
                                     id={field.key}
                                     type="text"
-                                    value={extractedData?.[field.key as keyof AnalyzeBioimpedanceOutput] ?? ''}
+                                    value={(extractedData?.[field.key as keyof AnalyzeBioimpedanceOutput] as any) ?? ''}
                                     onChange={(e) => setExtractedData(prev => ({...prev as object, [field.key]: e.target.value }))}
                                     placeholder="-"
                                 />
