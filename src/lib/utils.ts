@@ -38,20 +38,9 @@ export function getOverdueDays(dose: Dose, allDoses: Dose[]): number {
     const doseDate = new Date(dose.date);
     doseDate.setHours(0, 0, 0, 0);
 
-    const lastAdministeredDose = allDoses
-        .filter(d => d.status === 'administered' && new Date(d.date) < doseDate)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-
-    const effectiveDate = lastAdministeredDose ? new Date(lastAdministeredDose.date) : doseDate;
-
-    // A dose está vencida se a data de hoje for 8 dias ou mais após a última dose administrada (ou a data agendada inicial)
-    const daysSinceEffectiveDate = differenceInDays(today, effectiveDate);
+    const daysDifference = differenceInDays(today, doseDate);
     
-    if (daysSinceEffectiveDate >= 8) {
-        return daysSinceEffectiveDate - 7;
-    }
-    
-    return 0;
+    return daysDifference > 0 ? daysDifference : 0;
 }
 
 
@@ -64,15 +53,11 @@ export function getDoseStatus(dose: Dose, allDoses: Dose[] = []) {
     return { label: "Administrada", color: "bg-gray-500", textColor: "text-white" };
   }
   
-  const overdueDays = getOverdueDays(dose, allDoses);
-  if (overdueDays > 0) {
-      return { label: `Vencida há ${overdueDays}d`, color: "bg-red-500", textColor: "text-white" };
-  }
-
   const daysUntilDose = differenceInDays(doseDate, today);
 
   if (daysUntilDose < 0) {
-      return { label: "Vencida", color: "bg-red-500", textColor: "text-white" };
+      const overdueDays = Math.abs(daysUntilDose);
+      return { label: `Vencida há ${overdueDays}d`, color: "bg-red-500", textColor: "text-white" };
   }
   if (daysUntilDose === 0) {
     return { label: "Vence Hoje", color: "bg-amber-500", textColor: "text-white" };
