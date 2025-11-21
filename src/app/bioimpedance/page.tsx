@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -79,6 +80,16 @@ function BioimpedanceForm() {
         defaultValues: {
             date: new Date(),
             patientId: patientIdFromQuery || undefined,
+            weight: undefined,
+            bmi: undefined,
+            fatPercentage: undefined,
+            skeletalMusclePercentage: undefined,
+            visceralFat: undefined,
+            hydration: undefined,
+            metabolism: undefined,
+            obesityPercentage: undefined,
+            boneMass: undefined,
+            protein: undefined,
         },
     });
     
@@ -215,7 +226,7 @@ function BioimpedanceForm() {
                                                 <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
                                             </PopoverContent>
                                         </Popover>
-                                        <FormMessage />
+                                    <FormMessage />
                                     </FormItem>
                                 )}/>
                             </div>
@@ -249,7 +260,7 @@ function BioimpedanceForm() {
                                                 <FormItem>
                                                     <FormLabel className="text-xs">{field.label}</FormLabel>
                                                     <FormControl>
-                                                        <Input type="number" step="0.1" placeholder="-" {...formField} />
+                                                        <Input type="number" step="0.1" placeholder="-" {...formField} value={formField.value ?? ''} />
                                                     </FormControl>
                                                 </FormItem>
                                             )}

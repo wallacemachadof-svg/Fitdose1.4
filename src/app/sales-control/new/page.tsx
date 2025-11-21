@@ -109,7 +109,22 @@ export default function NewSalePage() {
             pointsUsed: 0,
             paymentStatus: "pendente",
             deliveryStatus: "em agendamento",
-            price: 380,
+            price: 0,
+            soldDose: "",
+            total: 0,
+            observations: "",
+            bioimpedance: {
+                weight: undefined,
+                bmi: undefined,
+                fatPercentage: undefined,
+                skeletalMusclePercentage: undefined,
+                visceralFat: undefined,
+                hydration: undefined,
+                metabolism: undefined,
+                obesityPercentage: undefined,
+                boneMass: undefined,
+                protein: undefined,
+            }
         },
     });
     
@@ -132,7 +147,7 @@ export default function NewSalePage() {
                 setValue("soldDose", defaultDose);
                 
                 const dosePriceInfo = dosePrices.find(dp => dp.dose === defaultDose);
-                const priceToSet = patient?.defaultPrice ?? dosePriceInfo?.price ?? 380;
+                const priceToSet = patient?.defaultPrice ?? dosePriceInfo?.price ?? 0;
                 setValue("price", priceToSet);
 
             } else {
@@ -247,7 +262,7 @@ export default function NewSalePage() {
                                                         <FormItem>
                                                             <FormLabel className="text-xs">{field.label}</FormLabel>
                                                             <FormControl>
-                                                                <Input type="number" step="0.1" placeholder="-" {...formField} />
+                                                                <Input type="number" step="0.1" placeholder="-" {...formField} value={formField.value ?? ''} />
                                                             </FormControl>
                                                         </FormItem>
                                                     )}
