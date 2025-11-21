@@ -420,7 +420,7 @@ export const addBioimpedanceEntry = async (patientId: string, date: Date, bioimp
     const newEvolution: Evolution = {
         id: `evo-ia-${Date.now()}`,
         date: date,
-        notes: "Registro de bioimpedância manual.",
+        notes: "Registro de bioimpedância via IA.",
         bioimpedance: bioimpedance,
     };
 

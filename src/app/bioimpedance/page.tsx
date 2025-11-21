@@ -123,17 +123,23 @@ export default function BioimpedancePage() {
   }
 
   const dataFields = [
-    { key: 'weight', label: 'Peso (Kg)' },
+    { key: 'weight', label: 'Peso(Kg)' },
     { key: 'bmi', label: 'IMC' },
-    { key: 'fatPercentage', label: 'Gordura (%)' },
-    { key: 'muscleMassPercentage', label: 'Massa Muscular (%)' },
-    { key: 'visceralFat', label: 'Gordura Visceral' },
-    { key: 'hydration', label: 'Água (%)' },
-    { key: 'metabolism', label: 'Metabolismo (kcal)' },
-    { key: 'boneMass', label: 'Ossos (Kg)' },
-    { key: 'protein', label: 'Proteína (%)' },
-    { key: 'lbm', label: 'LBM (Kg)' },
-    { key: 'metabolicAge', label: 'Idade Metabólica' },
+    { key: 'fatPercentage', label: 'Gordura(%)' },
+    { key: 'fatWeight', label: 'Peso da gordura(Kg)' },
+    { key: 'skeletalMusclePercentage', label: 'Massa muscular esquelética(%)' },
+    { key: 'skeletalMuscleWeight', label: 'Peso da massa muscular esquelética(Kg)' },
+    { key: 'muscleMassPercentage', label: 'Registro de massa muscular(%)' },
+    { key: 'muscleMassWeight', label: 'Peso da massa muscular(Kg)' },
+    { key: 'visceralFat', label: 'Gordura visceral' },
+    { key: 'hydration', label: 'Água(%)' },
+    { key: 'waterWeight', label: 'Peso da água(Kg)' },
+    { key: 'metabolism', label: 'Metabolismo(kcal / dia)' },
+    { key: 'obesityPercentage', label: 'Obesidade(%)' },
+    { key: 'boneMass', label: 'Ossos(Kg)' },
+    { key: 'protein', label: 'Proteina(%)' },
+    { key: 'lbm', label: 'LBM(Kg)' },
+    { key: 'metabolicAge', label: 'Idade metabólica' },
   ];
 
   return (
@@ -226,7 +232,7 @@ export default function BioimpedancePage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {dataFields.map(field => (
                         <div key={field.key} className="space-y-2">
-                            <Label htmlFor={field.key}>{field.label}</Label>
+                            <Label htmlFor={field.key} className="text-xs">{field.label}</Label>
                             {isLoading ? (
                                 <Skeleton className="h-10 w-full" />
                             ) : (
