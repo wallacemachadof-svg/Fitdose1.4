@@ -52,6 +52,7 @@ const contraindicationsList = [
 
 const patientEditFormSchema = z.object({
   fullName: z.string().min(3, "Nome completo é obrigatório."),
+  initialWeight: z.coerce.number().min(1, "Peso inicial é obrigatório.").positive("Peso deve ser um número positivo."),
   height: z.coerce.number().min(1, "Altura é obrigatória.").positive("Altura deve ser um número positivo."),
   age: z.coerce.number().positive("Idade deve ser um número positivo.").optional(),
   desiredWeight: z.coerce.number().positive("Peso deve ser um número positivo.").optional(),
@@ -126,6 +127,7 @@ export default function PatientEditPage() {
 
                 form.reset({
                     fullName: fetchedPatient.fullName,
+                    initialWeight: fetchedPatient.initialWeight,
                     height: fetchedPatient.height,
                     age: fetchedPatient.age,
                     desiredWeight: fetchedPatient.desiredWeight,
@@ -177,6 +179,7 @@ export default function PatientEditPage() {
 
             const patientDataForApi: UpdatePatientData = {
                 fullName: data.fullName,
+                initialWeight: data.initialWeight,
                 height: data.height,
                 age: data.age,
                 desiredWeight: data.desiredWeight,
@@ -279,8 +282,10 @@ export default function PatientEditPage() {
                         </div>
                         
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-                             <FormItem><FormLabel>Peso Inicial (kg)</FormLabel><Input type="number" value={patient.initialWeight} disabled /><FormDescription className="text-xs">Não pode ser alterado.</FormDescription></FormItem>
-                             <FormField control={form.control} name="age" render={({ field }) => (
+                            <FormField control={form.control} name="initialWeight" render={({ field }) => (
+                                <FormItem><FormLabel>Peso Inicial (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="age" render={({ field }) => (
                                 <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="height" render={({ field }) => (
@@ -514,5 +519,3 @@ export default function PatientEditPage() {
         </>
     )
 }
-
-    
