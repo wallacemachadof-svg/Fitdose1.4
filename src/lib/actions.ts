@@ -362,6 +362,11 @@ export type Settings = {
     dosePrices: DosePrice[];
 };
 
+export type StockForecast = {
+  ruptureDate: Date | null;
+  purchaseDeadline: Date | null;
+};
+
 // --- Data Access Functions ---
 
 export const getPatients = async (): Promise<Patient[]> => {
@@ -911,6 +916,49 @@ export const resetAllData = async (): Promise<void> => {
         fs.unlinkSync(migrationFilePath);
     }
     await new Promise(resolve => setTimeout(resolve, 100));
+}
+
+export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<StockForecast> => {
+    const { patients, vials } = readData();
+    let currentStockMg = vials.reduce((acc, v) => acc + v.remainingMg, 0);
+
+    if (currentStockMg <= 0) {
+        return { ruptureDate: new Date(), purchaseDeadline: new Date() };
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const futureDoses = patients
+        .flatMap(p => p.doses.map(d => ({ ...d, patient: p })))
+        .filter(d => d.status === 'pending' && d.date >= today)
+        .map(d => ({
+            date: d.date,
+            mg: parseFloat(d.patient.defaultDose || '2.5') // Fallback to 2.5mg
+        }))
+        .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    if (futureDoses.length === 0) {
+        return { ruptureDate: null, purchaseDeadline: null };
+    }
+
+    let ruptureDate: Date | null = null;
+
+    for (const dose of futureDoses) {
+        currentStockMg -= dose.mg;
+        if (currentStockMg <= 0) {
+            ruptureDate = dose.date;
+            break;
+        }
+    }
+    
+    if (ruptureDate) {
+        const purchaseDeadline = new Date(ruptureDate);
+        purchaseDeadline.setDate(purchaseDeadline.getDate() - deliveryLeadTimeDays);
+        return { ruptureDate, purchaseDeadline };
+    }
+
+    return { ruptureDate: null, purchaseDeadline: null };
 }
 
     

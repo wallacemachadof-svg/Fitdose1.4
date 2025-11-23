@@ -258,5 +258,14 @@
     "amount": 180,
     "status": "pago",
     "paymentMethod": "pix"
+  },
+  {
+    "id": "manual-2",
+    "type": "saida",
+    "purchaseDate": "2025-11-20T03:00:00.000Z",
+    "description": "Compra 1x frasco 90mg",
+    "amount": 3150,
+    "status": "pago",
+    "paymentMethod": "pix"
   }
 ]

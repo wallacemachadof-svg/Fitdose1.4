@@ -1,29 +1,36 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getVials, type Vial } from '@/lib/actions';
+import { getVials, getStockForecast, type Vial, type StockForecast } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { PlusCircle, Warehouse, Droplets, FlaskConical, AlertTriangle, Package } from 'lucide-react';
+import { PlusCircle, Warehouse, Droplets, FlaskConical, AlertTriangle, Package, CalendarClock, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
+const DELIVERY_LEAD_TIME = 22; // 22 days
 
 export default function StockControlPage() {
     const [vials, setVials] = useState<Vial[]>([]);
+    const [forecast, setForecast] = useState<StockForecast | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchVials = async () => {
+        const fetchStockData = async () => {
             setLoading(true);
-            const data = await getVials();
-            setVials(data);
+            const [vialsData, forecastData] = await Promise.all([
+                getVials(),
+                getStockForecast(DELIVERY_LEAD_TIME)
+            ]);
+            setVials(vialsData);
+            setForecast(forecastData);
             setLoading(false);
         };
-        fetchVials();
+        fetchStockData();
     }, []);
 
     const totalMg = vials.reduce((acc, vial) => acc + vial.totalMg, 0);
@@ -68,64 +75,63 @@ export default function StockControlPage() {
                 </Button>
             </div>
             
-            <Card>
-                <CardHeader>
-                    <CardTitle>Visão Geral do Estoque</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="mb-4">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium">Estoque Restante</span>
-                            <span className={`text-sm font-bold ${stockPercentage <= 25 ? 'text-red-500' : ''}`}>{stockPercentage.toFixed(1)}%</span>
-                        </div>
-                        <Progress value={stockPercentage} indicatorClassName={getProgressColor()} />
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Estoque Restante</CardTitle>
+                        <FlaskConical className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className={`text-2xl font-bold ${stockPercentage <= 25 ? 'text-red-500' : 'text-primary'}`}>{remainingMg.toFixed(1)} mg</div>
+                        <p className="text-xs text-muted-foreground">de {totalMg.toFixed(1)} mg no total</p>
+                        <Progress value={stockPercentage} indicatorClassName={getProgressColor()} className="mt-2" />
                          {stockPercentage <= 25 && (
-                            <div className="mt-2 flex items-center text-sm text-red-500">
-                                <AlertTriangle className="h-4 w-4 mr-2"/>
-                                <p>Estoque baixo! Considere comprar mais frascos.</p>
+                            <div className="mt-2 flex items-center text-xs text-red-500">
+                                <AlertTriangle className="h-4 w-4 mr-1"/>
+                                Estoque baixo!
                             </div>
                          )}
-                    </div>
-                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mt-6">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total em Estoque (mg)</CardTitle>
-                                <Warehouse className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{totalMg.toFixed(1)} mg</div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Estoque Utilizado (mg)</CardTitle>
-                                <Droplets className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{soldMg.toFixed(1)} mg</div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Estoque Restante (mg)</CardTitle>
-                                <FlaskConical className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-primary">{remainingMg.toFixed(1)} mg</div>
-                            </CardContent>
-                        </Card>
-                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Frascos em Estoque</CardTitle>
-                                <Package className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{vials.length}</div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Previsão de Compra</CardTitle>
+                        <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        {forecast?.purchaseDeadline ? (
+                            <>
+                                <div className="text-2xl font-bold text-amber-600">{formatDate(forecast.purchaseDeadline)}</div>
+                                <p className="text-xs text-muted-foreground">Data limite para fazer novo pedido</p>
+                            </>
+                        ): (
+                            <>
+                                <div className="text-2xl font-bold text-green-600">Estoque Seguro</div>
+                                <p className="text-xs text-muted-foreground">Previsão para mais de 3 meses</p>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Previsão de Ruptura</CardTitle>
+                        <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        {forecast?.ruptureDate ? (
+                            <>
+                                <div className="text-2xl font-bold text-red-600">{formatDate(forecast.ruptureDate)}</div>
+                                <p className="text-xs text-muted-foreground">Data que o estoque irá acabar</p>
+                            </>
+                        ) : (
+                             <>
+                                <div className="text-2xl font-bold">N/A</div>
+                                <p className="text-xs text-muted-foreground">Sem dados de consumo suficientes</p>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
 
             <Card>
                 <CardHeader>
