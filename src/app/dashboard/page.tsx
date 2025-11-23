@@ -20,6 +20,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
+import { Combobox } from '@/components/ui/combobox';
+
 
 type UpcomingDose = Dose & {
   patientId: string;
@@ -40,6 +42,8 @@ export default function DashboardPage() {
     from: subDays(new Date(), 29),
     to: new Date(),
   });
+  const [selectedPatientId, setSelectedPatientId] = useState<string>('all');
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,14 +67,29 @@ export default function DashboardPage() {
       description: "O link de cadastro foi copiado para a área de transferência.",
     });
   };
+
+  const patientOptions = useMemo(() => {
+    const options = patients.map(p => ({ value: p.id, label: p.fullName }));
+    options.unshift({ value: 'all', label: 'Todos os Pacientes' });
+    return options;
+  }, [patients]);
+  
   
   const { filteredSales, salesChartData, totalFilteredRevenue, filterTitle } = useMemo(() => {
     const today = startOfToday();
     let startDate: Date;
     let endDate: Date = new Date();
     let title: string;
-    let filtered: Sale[];
+    let baseFilteredSales: Sale[];
 
+    // 1. Filter by patient
+    if (selectedPatientId === 'all') {
+        baseFilteredSales = sales;
+    } else {
+        baseFilteredSales = sales.filter(s => s.patientId === selectedPatientId);
+    }
+    
+    // 2. Filter by date
     switch (salesDateFilter) {
         case 'today':
             startDate = today;
@@ -100,18 +119,19 @@ export default function DashboardPage() {
             break;
     }
     
+    let finalFilteredSales: Sale[];
     if (salesDateFilter === 'all') {
-        filtered = sales;
+        finalFilteredSales = baseFilteredSales;
     } else {
-        filtered = sales.filter(s => {
+        finalFilteredSales = baseFilteredSales.filter(s => {
             const saleDate = new Date(s.saleDate);
-            return isWithinInterval(saleDate, { start: startDate, end: addDays(endDate, 1) }); // addDays to include the end date
+            return isWithinInterval(saleDate, { start: startDate, end: addDays(endDate, 1) });
         });
     }
     
-    const total = filtered.reduce((acc, sale) => acc + sale.total, 0);
+    const total = finalFilteredSales.reduce((acc, sale) => acc + sale.total, 0);
 
-    const salesByDay = filtered.reduce((acc, sale) => {
+    const salesByDay = finalFilteredSales.reduce((acc, sale) => {
         const day = formatDateFns(new Date(sale.saleDate), 'dd/MM');
         acc[day] = (acc[day] || 0) + sale.total;
         return acc;
@@ -119,9 +139,9 @@ export default function DashboardPage() {
 
     const chartData = Object.entries(salesByDay).map(([name, total]) => ({ name, total })).reverse();
 
-    return { filteredSales: filtered, salesChartData: chartData, totalFilteredRevenue: total, filterTitle: title };
+    return { filteredSales: finalFilteredSales, salesChartData: chartData, totalFilteredRevenue: total, filterTitle: title };
 
-  }, [sales, salesDateFilter, dateRange]);
+  }, [sales, salesDateFilter, dateRange, selectedPatientId]);
 
 
   if (loading) {
@@ -311,56 +331,65 @@ export default function DashboardPage() {
                             <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />{filterTitle}</CardTitle>
                             <CardDescription>Receita total de {formatCurrency(totalFilteredRevenue)}</CardDescription>
                         </div>
-                         <div className="flex items-center gap-2 flex-wrap">
-                            <Button variant={salesDateFilter === 'today' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('today')}>Hoje</Button>
-                            <Button variant={salesDateFilter === '30d' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('30d')}>30d</Button>
-                            <Button variant={salesDateFilter === '6m' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('6m')}>6m</Button>
-                            <Button variant={salesDateFilter === '1y' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('1y')}>1 ano</Button>
-                            <Button variant={salesDateFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('all')}>Todas</Button>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                    id="date"
-                                    variant={"outline"}
-                                    size="sm"
-                                    className={cn(
-                                        "justify-start text-left font-normal",
-                                        !dateRange && "text-muted-foreground",
-                                        salesDateFilter === 'custom' && "bg-secondary"
-                                    )}
-                                    >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {dateRange?.from ? (
-                                        dateRange.to ? (
-                                        <>
-                                            {formatDateFns(dateRange.from, "LLL dd, y")} -{" "}
-                                            {formatDateFns(dateRange.to, "LLL dd, y")}
-                                        </>
+                        <div className="flex flex-col md:flex-row gap-2">
+                            <Combobox 
+                                options={patientOptions}
+                                value={selectedPatientId}
+                                onChange={(value) => setSelectedPatientId(value)}
+                                placeholder="Filtrar por paciente..."
+                                noResultsText="Nenhum paciente encontrado."
+                            />
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <Button variant={salesDateFilter === 'today' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('today')}>Hoje</Button>
+                                <Button variant={salesDateFilter === '30d' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('30d')}>30d</Button>
+                                <Button variant={salesDateFilter === '6m' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('6m')}>6m</Button>
+                                <Button variant={salesDateFilter === '1y' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('1y')}>1 ano</Button>
+                                <Button variant={salesDateFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('all')}>Todas</Button>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                        id="date"
+                                        variant={"outline"}
+                                        size="sm"
+                                        className={cn(
+                                            "justify-start text-left font-normal",
+                                            !dateRange && "text-muted-foreground",
+                                            salesDateFilter === 'custom' && "bg-secondary"
+                                        )}
+                                        >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateRange?.from ? (
+                                            dateRange.to ? (
+                                            <>
+                                                {formatDateFns(dateRange.from, "dd/MM/y")} -{" "}
+                                                {formatDateFns(dateRange.to, "dd/MM/y")}
+                                            </>
+                                            ) : (
+                                            formatDateFns(dateRange.from, "dd/MM/y")
+                                            )
                                         ) : (
-                                        formatDateFns(dateRange.from, "LLL dd, y")
-                                        )
-                                    ) : (
-                                        <span>Escolha a data</span>
-                                    )}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="end">
-                                    <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    defaultMonth={dateRange?.from}
-                                    selected={dateRange}
-                                    onSelect={(range) => {
-                                        setDateRange(range);
-                                        if (range?.from && range?.to) {
-                                            setSalesDateFilter('custom');
-                                        }
-                                    }}
-                                    numberOfMonths={2}
-                                    locale={ptBR}
-                                    />
-                                </PopoverContent>
-                            </Popover>
+                                            <span>Período</span>
+                                        )}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="end">
+                                        <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={dateRange?.from}
+                                        selected={dateRange}
+                                        onSelect={(range) => {
+                                            setDateRange(range);
+                                            if (range?.from) {
+                                                setSalesDateFilter('custom');
+                                            }
+                                        }}
+                                        numberOfMonths={2}
+                                        locale={ptBR}
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
@@ -444,3 +473,5 @@ function DashboardSkeleton() {
     </div>
   );
 }
+
+    
