@@ -135,6 +135,8 @@ export default function SalesControlPage() {
     const revenueThisMonth = salesInSelectedPeriod
         .filter(s => s.paymentStatus === 'pago')
         .reduce((acc, sale) => acc + sale.total, 0);
+        
+    const totalValueInSelectedPeriod = salesInSelectedPeriod.reduce((acc, sale) => acc + sale.total, 0);
 
     const filteredSales = salesInSelectedPeriod.filter(sale => {
         if (filter === 'all') return true;
@@ -209,7 +211,7 @@ export default function SalesControlPage() {
                         <ShoppingCart className="h-4 w-4 text-muted-foreground"/>
                     </CardHeader>
                     <CardContent>
-                        <div className={`text-2xl font-bold`}>{salesInSelectedPeriod.length}</div>
+                        <div className={`text-2xl font-bold`}>{salesInSelectedPeriod.length} <span className="text-lg font-medium text-muted-foreground">({formatCurrency(totalValueInSelectedPeriod)})</span></div>
                         <p className="text-xs text-muted-foreground">Total de vendas em {monthLabel}</p>
                     </CardContent>
                 </Card>
