@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { User as UserIcon, Upload, Loader2, ArrowRight } from "lucide-react";
+import { User as UserIcon, Upload, Loader2, ArrowRight, CalendarIcon } from "lucide-react";
 import { cn, calculateBmi } from "@/lib/utils";
 import { useEffect, useState, Suspense } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,10 @@ import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Image from "next/image";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const healthConditions = [
     { id: "hypertension", label: "Hipertensão" },
@@ -58,6 +62,7 @@ const patientFormSchema = z.object({
   height: z.coerce.number().min(1, "Altura é obrigatória.").positive("Altura deve ser um número positivo."),
   age: z.coerce.number().positive("Idade deve ser um número positivo.").optional(),
   desiredWeight: z.coerce.number().positive("Peso deve ser um número positivo.").optional(),
+  firstDoseDate: z.date().optional(),
   zip: z.string().optional(),
   street: z.string().optional(),
   number: z.string().optional(),
@@ -245,7 +250,7 @@ function PatientRegistrationForm() {
                 phone: data.phone || '',
                 healthContraindications: fullContraindications || 'Nenhuma observação.',
                 indication,
-                firstDoseDate: new Date(), // Set to registration date
+                firstDoseDate: data.firstDoseDate,
                 avatarUrl: data.avatarUrl || '',
                 dailyMedications: data.dailyMedications,
                 oralContraceptive: data.oralContraceptive,
@@ -373,18 +378,39 @@ Após receber todas as informações necessárias de forma clara, ética e técn
                             )}/>
                         </div>
                         
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-end">
                             <FormField control={form.control} name="age" render={({ field }) => (
-                                <FormItem><FormLabel>Idade <span className="text-muted-foreground text-xs">(Opcional)</span></FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Idade <span className="text-muted-foreground text-xs">(Opcional)</span></FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="initialWeight" render={({ field }) => (
-                                <FormItem><FormLabel>Seu Peso Atual (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Seu Peso Atual (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="height" render={({ field }) => (
-                                <FormItem><FormLabel>Sua Altura (cm)</FormLabel><FormControl><Input type="number" placeholder="Ex: 175" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Sua Altura (cm)</FormLabel><FormControl><Input type="number" placeholder="Ex: 175" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="desiredWeight" render={({ field }) => (
-                                <FormItem><FormLabel>Sua Meta de Peso (kg) <span className="text-muted-foreground text-xs">(Opcional)</span></FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Sua Meta de Peso (kg) <span className="text-muted-foreground text-xs">(Opcional)</span></FormLabel><FormControl><Input type="number" step="0.1" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField
+                                control={form.control}
+                                name="firstDoseDate"
+                                render={({ field }) => (
+                                <FormItem className="flex flex-col"><FormLabel>Início do Tratamento <span className="text-muted-foreground text-xs">(Opcional)</span></FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal h-10", !field.value && "text-muted-foreground")}>
+                                                {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Data de hoje</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                        </PopoverContent>
+                                    </Popover>
+                                <FormMessage />
+                                </FormItem>
                             )}/>
                              <div className="p-2 border rounded-md bg-muted/30 h-10 flex items-center justify-between">
                                 <label className="text-sm font-medium text-muted-foreground">IMC</label>
@@ -395,23 +421,23 @@ Após receber todas as informações necessárias de forma clara, ética e técn
                         <h3 className="text-lg font-semibold border-t pt-6 -mb-2">Seu Endereço <span className="text-muted-foreground text-sm font-normal">(Opcional)</span></h3>
                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField control={form.control} name="zip" render={({ field }) => (
-                                <FormItem><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                          </div>
                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField control={form.control} name="street" render={({ field }) => (
-                                <FormItem className="col-span-2"><FormLabel>Rua</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem className="col-span-2"><FormLabel>Rua</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="number" render={({ field }) => (
-                                <FormItem><FormLabel>Número</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Número</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField control={form.control} name="city" render={({ field }) => (
-                                <FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="state" render={({ field }) => (
-                                <FormItem><FormLabel>Estado (UF)</FormLabel><FormControl><Input placeholder="Ex: SP" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Estado (UF)</FormLabel><FormControl><Input placeholder="Ex: SP" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                         </div>
 

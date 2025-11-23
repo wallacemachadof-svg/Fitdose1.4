@@ -399,7 +399,7 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     if (patientIndex === -1) return null;
 
     const patient = data.patients[patientIndex];
-    const doseIndex = patient.doses.findIndex(d => d.id === doseId);
+    let doseIndex = patient.doses.findIndex(d => d.id === doseId);
 
     if (doseIndex === -1) return null;
     
@@ -416,19 +416,16 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     
     // Sort doses by number to ensure correct order before recalculating
     patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
-    const updatedDoseIndex = patient.doses.findIndex(d => d.id === doseId);
+    doseIndex = patient.doses.findIndex(d => d.id === doseId);
 
 
     // Recalculate dates for subsequent pending doses
-    for (let i = updatedDoseIndex + 1; i < patient.doses.length; i++) {
-        const currentDose = patient.doses[i];
-        const prevDose = patient.doses[i-1];
-        
-        // Only update subsequent pending doses
-        if (currentDose.status === 'pending') {
+    for (let i = doseIndex + 1; i < patient.doses.length; i++) {
+        const prevDose = patient.doses[i - 1];
+        if (patient.doses[i].status === 'pending') {
             const newDate = new Date(prevDose.date);
             newDate.setDate(newDate.getDate() + 7);
-            currentDose.date = newDate;
+            patient.doses[i].date = newDate;
         }
     }
 
@@ -799,5 +796,3 @@ export const resetAllData = async (): Promise<void> => {
     writeData(emptyData);
     await new Promise(resolve => setTimeout(resolve, 100));
 }
-
-    
