@@ -90,9 +90,10 @@ export default function SalesControlPage() {
     const pendingPayments = sales.filter(s => s.paymentStatus === 'pendente');
     const totalPendingAmount = pendingPayments.reduce((acc, sale) => acc + sale.total, 0);
     
-    const scheduledForThisMonth = pendingPayments.filter(s => 
-        s.paymentDueDate && isWithinInterval(new Date(s.paymentDueDate), { start: startOfCurrentMonth, end: endOfCurrentMonth })
-    ).reduce((acc, sale) => acc + sale.total, 0);
+    const revenueThisMonth = sales.filter(s => {
+        const dateToCheck = s.paymentStatus === 'pago' ? s.paymentDate : s.paymentDueDate;
+        return dateToCheck && isWithinInterval(new Date(dateToCheck), { start: startOfCurrentMonth, end: endOfCurrentMonth });
+    }).reduce((acc, sale) => acc + sale.total, 0);
 
     const pendingDeliveryCount = sales.filter(s => s.deliveryStatus !== 'entregue').length;
 
@@ -134,17 +135,17 @@ export default function SalesControlPage() {
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Receita Prevista (Mês Atual)</CardTitle>
+                        <CardTitle className="text-sm font-medium">Receita do Mês (Realizada + Prevista)</CardTitle>
                         <DollarSign className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-500">{formatCurrency(scheduledForThisMonth)}</div>
-                         <p className="text-xs text-muted-foreground">de pagamentos pendentes este mês</p>
+                        <div className="text-2xl font-bold text-green-500">{formatCurrency(revenueThisMonth)}</div>
+                         <p className="text-xs text-muted-foreground">Soma de valores pagos e pendentes no mês atual</p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total de Pagamentos Pendentes</CardTitle>
+                        <CardTitle className="text-sm font-medium">Pagamentos Pendentes (Total)</CardTitle>
                         <PackageX className="h-4 w-4 text-yellow-500" />
                     </CardHeader>
                     <CardContent>
