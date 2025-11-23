@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getPatients, getSales, type Patient, type Sale } from "@/lib/actions";
 import { formatCurrency } from "@/lib/utils";
-import { User, BarChart3, PieChart, DollarSign, Link as LinkIcon, Copy, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock, CalendarIcon, Building, Laptop, Handshake, UserX } from "lucide-react";
+import { User, BarChart3, PieChart, DollarSign, Link as LinkIcon, Copy, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock, CalendarIcon, Building, Laptop, Handshake, UserX, Users } from "lucide-react";
 import Link from 'next/link';
 import { subDays, format as formatDateFns, startOfToday, isWithinInterval, addDays } from "date-fns";
 import { ptBR } from 'date-fns/locale';
@@ -228,7 +227,17 @@ export default function DashboardPage() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="hover:bg-muted/50 transition-colors">
+        <Card className="hover:bg-muted/50 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Pacientes Ativos</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{patients.length}</div>
+                <p className="text-xs text-muted-foreground">total de pacientes cadastrados</p>
+            </CardContent>
+        </Card>
+        <Card className="hover:bg-muted/50 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Atend. Presencial</CardTitle>
                 <Building className="h-4 w-4 text-muted-foreground" />
@@ -237,8 +246,8 @@ export default function DashboardPage() {
                 <div className="text-2xl font-bold">{presencialCount}</div>
                 <p className="text-xs text-muted-foreground">pacientes no total</p>
             </CardContent>
-          </Card>
-          <Card className="hover:bg-muted/50 transition-colors">
+        </Card>
+        <Card className="hover:bg-muted/50 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Atend. Online</CardTitle>
                 <Laptop className="h-4 w-4 text-muted-foreground" />
@@ -247,8 +256,8 @@ export default function DashboardPage() {
                 <div className="text-2xl font-bold">{onlineCount}</div>
                 <p className="text-xs text-muted-foreground">pacientes no total</p>
             </CardContent>
-          </Card>
-          <Card className="hover:bg-muted/50 transition-colors">
+        </Card>
+        <Card className="hover:bg-muted/50 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Atend. Híbrido</CardTitle>
                 <Handshake className="h-4 w-4 text-muted-foreground" />
@@ -257,12 +266,9 @@ export default function DashboardPage() {
                 <div className="text-2xl font-bold">{hibridoCount}</div>
                 <p className="text-xs text-muted-foreground">pacientes no total</p>
             </CardContent>
-          </Card>
-      </div>
-      
-       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Link href="/patients?filter=overdue">
-            <Card className="hover:bg-destructive/10 transition-colors border-destructive/30">
+        </Card>
+        <Link href="/patients?filter=overdue" className="block">
+            <Card className="hover:bg-destructive/10 transition-colors border-destructive/30 h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Doses Vencidas</CardTitle>
                     <AlertCircle className="h-4 w-4 text-destructive" />
@@ -273,8 +279,8 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
         </Link>
-        <Link href="/patients?filter=due_today">
-            <Card className="hover:bg-amber-500/10 transition-colors border-amber-500/30">
+        <Link href="/patients?filter=due_today" className="block">
+            <Card className="hover:bg-amber-500/10 transition-colors border-amber-500/30 h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Vencem Hoje</CardTitle>
                     <Clock className="h-4 w-4 text-amber-500" />
@@ -285,8 +291,8 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
         </Link>
-        <Link href="/patients?filter=abandoned">
-            <Card className="hover:bg-red-900/10 transition-colors border-red-900/30">
+        <Link href="/patients?filter=abandoned" className="block">
+            <Card className="hover:bg-red-900/10 transition-colors border-red-900/30 h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Risco de Abandono</CardTitle>
                     <UserX className="h-4 w-4 text-red-900" />
@@ -297,8 +303,8 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
         </Link>
-        <Link href="/sales-control?status=pendente">
-          <Card className="hover:bg-muted/50 transition-colors">
+        <Link href="/sales-control?status=pendente" className="block">
+          <Card className="hover:bg-muted/50 transition-colors h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Pagamentos Pendentes
@@ -307,20 +313,6 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-500">{pendingPaymentsCount}</div>
-               <p className="text-xs text-muted-foreground">Vendas no período</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/sales-control">
-          <Card className="hover:bg-muted/50 transition-colors">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Entregas Pendentes
-              </CardTitle>
-              <PackageCheck className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-500">{pendingDeliveriesCount}</div>
                <p className="text-xs text-muted-foreground">Vendas no período</p>
             </CardContent>
           </Card>
@@ -426,7 +418,3 @@ function DashboardSkeleton() {
     </div>
   );
 }
-
-    
-
-    
