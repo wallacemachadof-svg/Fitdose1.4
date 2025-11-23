@@ -43,23 +43,10 @@ export function Combobox({ options, value, onChange, placeholder, noResultsText,
     setOpen(false);
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
-    if (allowCustom) {
-        onChange("", e.target.value); // No ID for custom values
-    }
-  }
-  
-  const handleInputBlur = () => {
-    if (allowCustom && inputValue && !options.some(o => o.label.toLowerCase() === inputValue.toLowerCase())) {
-        onChange("", inputValue);
-    }
-  }
-
   React.useEffect(() => {
     const currentOption = options.find(option => option.value === value);
-    setInputValue(currentOption?.label || value || "");
-  }, [value, options]);
+    setInputValue(currentOption?.label || (allowCustom ? value : "") || "");
+  }, [value, options, allowCustom]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -78,20 +65,10 @@ export function Combobox({ options, value, onChange, placeholder, noResultsText,
         <Command>
             <CommandInput 
                 placeholder={placeholder || "Search..."}
-                value={inputValue}
-                onValueChange={setInputValue}
             />
           <CommandList>
-            <CommandEmpty
-                onSelect={() => {
-                    if (allowCustom) {
-                        handleSelect(inputValue || "")
-                    }
-                }}
-                className={cn(allowCustom && inputValue ? "cursor-pointer" : "")}
-            >
+            <CommandEmpty>
                 {noResultsText || "No results found."}
-                {allowCustom && inputValue && <span className="ml-2 text-xs text-muted-foreground">(Salvar como "{inputValue}")</span>}
             </CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
@@ -119,3 +96,5 @@ export function Combobox({ options, value, onChange, placeholder, noResultsText,
     </Popover>
   )
 }
+
+    
