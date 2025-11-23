@@ -10,6 +10,7 @@ import {
   getPatientById,
   updateDose,
   deleteBioimpedanceEntry,
+  getSettings,
   type Patient,
   type Dose,
   type Evolution,
@@ -61,6 +62,7 @@ import {
     Minus,
     Trash2,
     Network,
+    AlertTriangle,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -77,14 +79,16 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { format as formatDateFns } from 'date-fns';
+import { format as formatDateFns, differenceInDays, startOfToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip } from 'recharts';
 
 export default function PatientDetailPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
+  const [settings, setSettings] = useState<{ dailyLateFee?: number }>({});
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -98,16 +102,20 @@ export default function PatientDetailPage() {
 
   useEffect(() => {
     if (!patientId) return;
-    const fetchPatient = async () => {
-      const fetchedPatient = await getPatientById(patientId);
+    const fetchPatientData = async () => {
+      const [fetchedPatient, fetchedSettings] = await Promise.all([
+        getPatientById(patientId),
+        getSettings()
+      ]);
       if (!fetchedPatient) {
         notFound();
       }
       setPatient(fetchedPatient);
+      setSettings(fetchedSettings);
       setLoading(false);
     };
 
-    fetchPatient();
+    fetchPatientData();
   }, [patientId]);
 
   const handleSummarize = async () => {
@@ -517,14 +525,20 @@ export default function PatientDetailPage() {
                 <TableHead>Dose</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead>Status Aplicação</TableHead>
-                <TableHead>Status Pag.</TableHead>
+                <TableHead>Pagamento</TableHead>
                 <TableHead>Ação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {patient.doses.map((dose) => {
                 const status = getDoseStatus(dose, patient.doses);
-                const paymentStatus = getPaymentStatusVariant(dose.payment?.status ?? 'pendente');
+                const paymentStatusInfo = getPaymentStatusVariant(dose.payment?.status ?? 'pendente');
+                
+                const isOverdue = dose.payment.status === 'pendente' && dose.payment.dueDate && new Date(dose.payment.dueDate) < startOfToday();
+                const overdueDays = isOverdue ? differenceInDays(startOfToday(), new Date(dose.payment.dueDate!)) : 0;
+                const lateFee = isOverdue ? overdueDays * (settings.dailyLateFee || 0) : 0;
+                const totalAmountDue = (dose.payment.amount || 0) + lateFee;
+
                 return (
                   <TableRow key={dose.id}>
                     <TableCell className="font-semibold">{dose.doseNumber}</TableCell>
@@ -558,7 +572,27 @@ export default function PatientDetailPage() {
                       <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={paymentStatus.label === 'Pago' ? 'default' : 'outline'} className={`${paymentStatus.color} ${paymentStatus.textColor} border-none`}>{paymentStatus.label}</Badge>
+                      {isOverdue ? (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <Badge variant="destructive" className="cursor-help">
+                                        <AlertTriangle className="h-3 w-3 mr-1" /> Vencido
+                                    </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <div className="p-1 text-sm space-y-1">
+                                        <p><strong>Vencimento:</strong> {formatDate(dose.payment.dueDate)} ({overdueDays} dias de atraso)</p>
+                                        <p><strong>Valor Original:</strong> {formatCurrency(dose.payment.amount || 0)}</p>
+                                        <p><strong>Multa por Atraso:</strong> {formatCurrency(lateFee)}</p>
+                                        <p className="font-bold"><strong>Total a Cobrar:</strong> {formatCurrency(totalAmountDue)}</p>
+                                    </div>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <Badge variant={paymentStatusInfo.label === 'Pago' ? 'default' : 'outline'} className={`${paymentStatusInfo.color} ${paymentStatusInfo.textColor} border-none`}>{paymentStatusInfo.label}</Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -635,7 +669,7 @@ function EvolutionChartCard({ title, icon: Icon, data, change, unit='' }: { titl
             <CardContent className="flex-1 -mb-4">
                 <ResponsiveContainer width="100%" height={100}>
                     <LineChart data={data}>
-                        <Tooltip
+                        <RechartsTooltip
                             content={({ active, payload, label }) => {
                                 if (active && payload && payload.length) {
                                 return (
@@ -700,3 +734,4 @@ const isSameDay = (date1: Date, date2: Date) =>
   date1.getDate() === date2.getDate();
 
     
+

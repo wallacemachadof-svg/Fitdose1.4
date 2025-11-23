@@ -35,7 +35,7 @@ const readData = (): MockData => {
         const sales = fs.existsSync(salesFilePath) ? JSON.parse(fs.readFileSync(salesFilePath, 'utf-8')) : [];
         const cashFlowEntries = fs.existsSync(cashFlowFilePath) ? JSON.parse(fs.readFileSync(cashFlowFilePath, 'utf-8')) : [];
         const vials = fs.existsSync(vialsFilePath) ? JSON.parse(fs.readFileSync(vialsFilePath, 'utf-8')) : [];
-        const settings = fs.existsSync(settingsFilePath) ? JSON.parse(fs.readFileSync(settingsFilePath, 'utf-8')) : { dosePrices: [] };
+        const settings = fs.existsSync(settingsFilePath) ? JSON.parse(fs.readFileSync(settingsFilePath, 'utf-8')) : { dosePrices: [], dailyLateFee: 0 };
 
         
         // Dates are stored as strings in JSON, so we need to convert them back to Date objects
@@ -45,6 +45,7 @@ const readData = (): MockData => {
             p.doses.forEach(d => {
                 d.date = new Date(d.date);
                 if (d.payment?.date) d.payment.date = new Date(d.payment.date);
+                if (d.payment?.dueDate) d.payment.dueDate = new Date(d.payment.dueDate);
             });
             if (p.evolutions) {
               p.evolutions.forEach(e => e.date = new Date(e.date));
@@ -80,7 +81,7 @@ const readData = (): MockData => {
             { dose: "5.0", price: 430 },
             { dose: "6.25", price: 540 },
             { dose: "7.05", price: 620 }
-        ] } };
+        ], dailyLateFee: 0 } };
     }
 };
 
@@ -270,6 +271,7 @@ export type Dose = {
   payment: {
     status: 'pago' | 'pendente';
     date?: Date;
+    dueDate?: Date;
     method?: "dinheiro" | "pix" | "debito" | "credito" | "payment_link";
     installments?: number;
     amount?: number;
@@ -360,6 +362,7 @@ export type DosePrice = {
 
 export type Settings = {
     dosePrices: DosePrice[];
+    dailyLateFee?: number;
 };
 
 export type StockForecast = {
@@ -714,6 +717,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
                 administeredDose.payment.date = newSale.paymentDate || (newSale.paymentStatus === 'pago' ? newSale.saleDate : undefined);
                 administeredDose.payment.amount = newSale.total / saleData.quantity;
                 administeredDose.payment.method = newSale.paymentMethod;
+                administeredDose.payment.dueDate = newSale.paymentDueDate;
 
                 dosesToAdminister--;
                 lastAdministeredDate.setDate(lastAdministeredDate.getDate() + 7);
@@ -948,7 +952,8 @@ export const resetAllData = async (): Promise<void> => {
                 { dose: "5.0", price: 430 },
                 { dose: "6.25", price: 540 },
                 { dose: "7.05", price: 620 }
-            ]
+            ],
+            dailyLateFee: 0,
         }
     };
     writeData(emptyData);

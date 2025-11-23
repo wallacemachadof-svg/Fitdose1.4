@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Loader2, Upload, Trash2, PlusCircle, Save } from "lucide-react";
+import { Loader2, Upload, Trash2, PlusCircle, Save, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getSettings, updateSettings, type Settings } from "@/lib/actions";
 import Image from "next/image";
@@ -36,6 +36,7 @@ const dosePriceSchema = z.object({
 
 const settingsFormSchema = z.object({
   dosePrices: z.array(dosePriceSchema),
+  dailyLateFee: z.coerce.number().min(0, "A multa deve ser um valor positivo.").optional(),
 });
 
 type SettingsFormValues = z.infer<typeof settingsFormSchema>;
@@ -53,6 +54,7 @@ export default function AdminPage() {
     resolver: zodResolver(settingsFormSchema),
     defaultValues: {
       dosePrices: [],
+      dailyLateFee: 0,
     }
   });
 
@@ -66,9 +68,10 @@ export default function AdminPage() {
       setLoading(true);
       try {
         const settings = await getSettings();
-        if (settings && settings.dosePrices) {
+        if (settings) {
             form.reset({
-                dosePrices: settings.dosePrices,
+                dosePrices: settings.dosePrices || [],
+                dailyLateFee: settings.dailyLateFee || 0,
             });
         }
         const storedLogo = localStorage.getItem('customLogo');
@@ -142,11 +145,12 @@ export default function AdminPage() {
     try {
       const settingsToSave: Settings = {
         dosePrices: data.dosePrices,
+        dailyLateFee: data.dailyLateFee,
       };
       await updateSettings(settingsToSave);
       toast({
         title: "Configurações Salvas!",
-        description: "A tabela de preços foi atualizada com sucesso.",
+        description: "As configurações globais foram atualizadas com sucesso.",
       });
     } catch (error) {
       toast({
@@ -189,157 +193,175 @@ export default function AdminPage() {
             <h1 className="text-2xl font-bold">Administrador</h1>
             <p className="text-muted-foreground">Gerencie as configurações globais do sistema.</p>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Logotipo</CardTitle>
-                        <CardDescription>Altere o logotipo que aparece no topo do menu e nas páginas públicas.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col items-center gap-4">
-                        <div className="w-full h-32 flex items-center justify-center rounded-md border border-dashed bg-muted/50 p-2">
-                            {logoPreview ? (
-                                <Image 
-                                    src={logoPreview} 
-                                    alt="Logo Preview" 
-                                    width={400}
-                                    height={logoHeight}
-                                    className="object-contain" 
-                                    style={{ height: `${logoHeight}px`}}
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Logotipo</CardTitle>
+                                <CardDescription>Altere o logotipo que aparece no topo do menu e nas páginas públicas.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex flex-col items-center gap-4">
+                                <div className="w-full h-32 flex items-center justify-center rounded-md border border-dashed bg-muted/50 p-2">
+                                    {logoPreview ? (
+                                        <Image 
+                                            src={logoPreview} 
+                                            alt="Logo Preview" 
+                                            width={400}
+                                            height={logoHeight}
+                                            className="object-contain" 
+                                            style={{ height: `${logoHeight}px`}}
+                                        />
+                                    ) : (
+                                        <span className="text-sm text-muted-foreground">Sem logotipo</span>
+                                    )}
+                                </div>
+                                <div className="w-full space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="logo-size">Ajustar Tamanho (Altura)</Label>
+                                        <Slider
+                                            id="logo-size"
+                                            min={20}
+                                            max={200}
+                                            step={1}
+                                            value={[logoHeight]}
+                                            onValueChange={handleSizeChange}
+                                            onValueCommit={handleSizeCommit}
+                                        />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button asChild variant="outline" className="flex-1" type="button">
+                                            <label htmlFor="logo-upload" className="cursor-pointer">
+                                                <Upload className="mr-2 h-4 w-4" />
+                                                Alterar Logotipo
+                                            </label>
+                                        </Button>
+                                        <Input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                                        {logoPreview && (
+                                            <Button type="button" variant="destructive" size="icon" onClick={removeLogo}>
+                                                <Trash2 className="h-4 w-4"/>
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card className="flex flex-col">
+                            <CardHeader>
+                                <CardTitle>Lista de Melhorias</CardTitle>
+                                <CardDescription>Anote aqui os erros, bugs e ideias de melhorias para o sistema.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-grow">
+                                <Textarea 
+                                    className="h-full resize-none"
+                                    placeholder="Ex: Corrigir cálculo de IMC na tela de cadastro..."
+                                    value={improvements}
+                                    onChange={(e) => setImprovements(e.target.value)}
                                 />
-                            ) : (
-                                <span className="text-sm text-muted-foreground">Sem logotipo</span>
-                            )}
-                        </div>
-                         <div className="w-full space-y-4">
-                            <div className="space-y-2">
-                                 <Label htmlFor="logo-size">Ajustar Tamanho (Altura)</Label>
-                                <Slider
-                                    id="logo-size"
-                                    min={20}
-                                    max={200}
-                                    step={1}
-                                    value={[logoHeight]}
-                                    onValueChange={handleSizeChange}
-                                    onValueCommit={handleSizeCommit}
-                                />
-                            </div>
-                            <div className="flex gap-2">
-                                <Button asChild variant="outline" className="flex-1">
-                                    <label htmlFor="logo-upload" className="cursor-pointer">
-                                        <Upload className="mr-2 h-4 w-4" />
-                                        Alterar Logotipo
-                                    </label>
+                            </CardContent>
+                            <CardFooter className="justify-end">
+                                <Button type="button" onClick={handleSaveImprovements} disabled={isSavingImprovements}>
+                                    {isSavingImprovements ? (
+                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Salvando...</>
+                                    ) : (
+                                        <><Save className="mr-2 h-4 w-4" /> Salvar Lista</>
+                                    )}
                                 </Button>
-                                <Input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-                                {logoPreview && (
-                                    <Button variant="destructive" size="icon" onClick={removeLogo}>
-                                        <Trash2 className="h-4 w-4"/>
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="flex flex-col">
-                    <CardHeader>
-                        <CardTitle>Lista de Melhorias</CardTitle>
-                        <CardDescription>Anote aqui os erros, bugs e ideias de melhorias para o sistema.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-grow">
-                        <Textarea 
-                            className="h-full resize-none"
-                            placeholder="Ex: Corrigir cálculo de IMC na tela de cadastro..."
-                            value={improvements}
-                            onChange={(e) => setImprovements(e.target.value)}
-                        />
-                    </CardContent>
-                    <CardFooter className="justify-end">
-                        <Button onClick={handleSaveImprovements} disabled={isSavingImprovements}>
-                            {isSavingImprovements ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Salvando...</>
-                            ) : (
-                                <><Save className="mr-2 h-4 w-4" /> Salvar Lista</>
-                            )}
-                        </Button>
-                    </CardFooter>
-                </Card>
-            </div>
+                            </CardFooter>
+                        </Card>
+                    </div>
 
-            <Card className="lg:col-span-3">
-                <CardHeader>
-                    <CardTitle>Tabela de Preços por Dose</CardTitle>
-                    <CardDescription>Defina os preços para cada dosagem disponível no sistema.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Dose (mg)</TableHead>
-                                        <TableHead>Preço (R$)</TableHead>
-                                        <TableHead className="text-right">Ação</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {fields.map((field, index) => (
-                                        <TableRow key={field.id}>
-                                            <TableCell>
-                                                <FormField
-                                                    control={form.control}
-                                                    name={`dosePrices.${index}.dose`}
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormControl><Input placeholder="Ex: 2.5" {...field} /></FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <FormField
-                                                    control={form.control}
-                                                    name={`dosePrices.${index}.price`}
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormControl><Input type="number" step="0.01" placeholder="Ex: 220.00" {...field} /></FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            </TableCell>
+                    <Card className="lg:col-span-3">
+                        <CardHeader>
+                            <CardTitle>Configurações Financeiras</CardTitle>
+                            <CardDescription>Defina os preços, multas e outras configurações do sistema.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="max-w-xs">
+                                 <FormField
+                                    control={form.control}
+                                    name="dailyLateFee"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Multa por Atraso (R$ / dia)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" placeholder="Ex: 1.00" {...field} />
+                                        </FormControl>
+                                        <FormDescription>Valor a ser cobrado por cada dia de atraso no pagamento.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                             <div>
+                                <h3 className="text-md font-semibold">Tabela de Preços por Dose</h3>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Dose (mg)</TableHead>
+                                            <TableHead>Preço (R$)</TableHead>
+                                            <TableHead className="text-right">Ação</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                             <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="mt-4"
-                                onClick={() => append({ dose: "", price: 0 })}
-                            >
-                                <PlusCircle className="h-4 w-4 mr-2" />
-                                Adicionar Dose
-                            </Button>
-                            
-                            <div className="flex justify-end pt-4">
-                                <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
-                                    {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : 'Salvar Tabela de Preços'}
+                                    </TableHeader>
+                                    <TableBody>
+                                        {fields.map((field, index) => (
+                                            <TableRow key={field.id}>
+                                                <TableCell>
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`dosePrices.${index}.dose`}
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormControl><Input placeholder="Ex: 2.5" {...field} /></FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`dosePrices.${index}.price`}
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormControl><Input type="number" step="0.01" placeholder="Ex: 220.00" {...field} /></FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-4"
+                                    onClick={() => append({ dose: "", price: 0 })}
+                                >
+                                    <PlusCircle className="h-4 w-4 mr-2" />
+                                    Adicionar Dose
                                 </Button>
-                            </div>
-                        </form>
-                    </Form>
-                </CardContent>
-            </Card>
-        </div>
+                             </div>
+                        </CardContent>
+                    </Card>
+                </div>
+                 <div className="flex justify-end pt-4">
+                    <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
+                        {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : 'Salvar Todas as Configurações'}
+                    </Button>
+                </div>
+            </form>
+        </Form>
     </div>
   )
 }
