@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getPatients, getSales, type Patient, type Sale } from "@/lib/actions";
 import { formatCurrency } from "@/lib/utils";
-import { User, BarChart3, PieChart, DollarSign, Link as LinkIcon, Copy, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock, CalendarIcon, Building, Laptop, Handshake } from "lucide-react";
+import { User, BarChart3, PieChart, DollarSign, Link as LinkIcon, Copy, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock, CalendarIcon, Building, Laptop, Handshake, UserX } from "lucide-react";
 import Link from 'next/link';
 import { subDays, format as formatDateFns, startOfToday, isWithinInterval, addDays } from "date-fns";
 import { ptBR } from 'date-fns/locale';
@@ -74,6 +74,7 @@ export default function DashboardPage() {
     salesByDoseChartData,
     overduePatientsCount,
     dueTodayPatientsCount,
+    abandonedPatientsCount,
     pendingPaymentsCount,
     pendingDeliveriesCount,
     presencialCount,
@@ -119,8 +120,10 @@ export default function DashboardPage() {
           .map(d => ({ ...d, patientId: p.id, patientName: p.fullName, allDoses: p.doses }))
     );
     const _overdueDoses = allPendingDoses.filter(d => getOverdueDays(d, d.allDoses) > 0);
+    const _abandonedDoses = allPendingDoses.filter(d => getOverdueDays(d, d.allDoses) >= 14);
     const _dueToday = allPendingDoses.filter(d => getDaysUntilDose(d) === 0);
     const _overduePatientsCount = new Set(_overdueDoses.map(d => d.patientId)).size;
+    const _abandonedPatientsCount = new Set(_abandonedDoses.map(d => d.patientId)).size;
     const _dueTodayPatientsCount = new Set(_dueToday.map(d => d.patientId)).size;
 
     // Sales metrics (dependent on patient AND date range)
@@ -150,6 +153,7 @@ export default function DashboardPage() {
         salesByDoseChartData: _salesByDoseChartData,
         overduePatientsCount: _overduePatientsCount,
         dueTodayPatientsCount: _dueTodayPatientsCount,
+        abandonedPatientsCount: _abandonedPatientsCount,
         pendingPaymentsCount: _pendingPayments,
         pendingDeliveriesCount: _pendingDeliveries,
         presencialCount: _presencialCount,
@@ -278,6 +282,18 @@ export default function DashboardPage() {
                 <CardContent>
                     <div className="text-2xl font-bold text-amber-500">{dueTodayPatientsCount}</div>
                     <p className="text-xs text-muted-foreground">Pacientes com dose para hoje</p>
+                </CardContent>
+            </Card>
+        </Link>
+        <Link href="/patients?filter=abandoned">
+            <Card className="hover:bg-red-900/10 transition-colors border-red-900/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Risco de Abandono</CardTitle>
+                    <UserX className="h-4 w-4 text-red-900" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-red-900">{abandonedPatientsCount}</div>
+                    <p className="text-xs text-muted-foreground">Atraso de 14+ dias na dose</p>
                 </CardContent>
             </Card>
         </Link>

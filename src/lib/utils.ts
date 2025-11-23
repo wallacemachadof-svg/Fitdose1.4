@@ -57,6 +57,9 @@ export function getDoseStatus(dose: Dose, allDoses: Dose[] = []) {
 
   if (daysUntilDose < 0) {
       const overdueDays = Math.abs(daysUntilDose);
+      if (overdueDays >= 14) {
+        return { label: `Abandono (Atraso ${overdueDays}d)`, color: "bg-red-900", textColor: "text-white" };
+      }
       return { label: `Vencida há ${overdueDays}d`, color: "bg-red-500", textColor: "text-white" };
   }
   if (daysUntilDose === 0) {
@@ -170,6 +173,21 @@ Conte conosco para te ajudar a não perder o timing dos seus resultados! ✨`;
     const encodedMessage = encodeURIComponent(message);
     const cleanPhoneNumber = patient.phone?.replace(/\D/g, '') || '';
 
+    return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
+}
+
+export function generateAbandonedTreatmentWhatsAppLink(patient: Patient): string {
+    const patientFirstName = patient.fullName.split(' ')[0];
+    const message = `Olá, ${patientFirstName}! Sentimos sua falta. 💖
+
+Notamos que já faz um tempinho que você não continua seu protocolo conosco. Sabemos que a rotina é corrida, mas estamos aqui para te ajudar a não desistir do seu objetivo!
+
+Que tal retomarmos? Podemos agendar um horário flexível para você. Seus resultados são importantes para nós!
+
+Nos dê um alô para conversarmos. ✨`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const cleanPhoneNumber = patient.phone?.replace(/\D/g, '') || '';
     return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
 }
 

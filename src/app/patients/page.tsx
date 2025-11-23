@@ -5,7 +5,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from 'next/navigation';
 import { getPatients, deletePatient, type Patient, type Dose } from "@/lib/actions";
-import { formatCurrency, formatDate, getDoseStatus, getDaysUntilDose, getOverdueDays, generateOverdueWhatsAppLink, generateDueTodayWhatsAppLink }from "@/lib/utils";
+import { formatCurrency, formatDate, getDoseStatus, getDaysUntilDose, getOverdueDays, generateOverdueWhatsAppLink, generateDueTodayWhatsAppLink, generateAbandonedTreatmentWhatsAppLink }from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -82,7 +82,9 @@ function PatientsPageContent() {
     };
     
     const patientHasDoseWithStatus = (patient: Patient, checker: (dose: Dose) => boolean) => {
-        return patient.doses.some(dose => dose.status === 'pending' && checker(dose));
+        const nextPendingDose = patient.doses.find(d => d.status === 'pending');
+        if (!nextPendingDose) return false;
+        return checker(nextPendingDose);
     }
     
     const filteredPatients = patients.filter(patient => {
@@ -93,13 +95,11 @@ function PatientsPageContent() {
 
         switch (filter) {
             case 'overdue':
-                return patientHasDoseWithStatus(patient, (d) => getOverdueDays(d, patient.doses) > 0);
+                return patientHasDoseWithStatus(patient, (d) => getOverdueDays(d, patient.doses) > 0 && getOverdueDays(d, patient.doses) < 14);
             case 'due_today':
                 return patientHasDoseWithStatus(patient, (d) => getDaysUntilDose(d) === 0);
-            case 'due_in_2_days':
-                 return patientHasDoseWithStatus(patient, (d) => getDaysUntilDose(d) === 2);
-            case 'due_in_3_days':
-                 return patientHasDoseWithStatus(patient, (d) => getDaysUntilDose(d) === 3);
+            case 'abandoned':
+                return patientHasDoseWithStatus(patient, (d) => getOverdueDays(d, patient.doses) >= 14);
             default:
                 return true;
         }
@@ -146,7 +146,9 @@ function PatientsPageContent() {
                 <div>
                     <h1 className="text-2xl font-bold">Pacientes</h1>
                     <p className="text-muted-foreground">
-                        {filter 
+                        {filter === 'abandoned'
+                            ? "Exibindo pacientes com risco de abandono (14+ dias de atraso)."
+                            : filter
                             ? `Exibindo pacientes com doses ${filter.replace(/_/g, ' ')}.`
                             : 'Gerencie sua lista de pacientes.'
                         }
@@ -221,8 +223,9 @@ function PatientsPageContent() {
                                 filteredPatients.map((patient) => {
                                     const nextPendingDose = patient.doses.find(d => d.status === 'pending');
                                     const status = nextPendingDose ? getDoseStatus(nextPendingDose, patient.doses) : { label: 'Concluído', color: 'bg-blue-500', textColor: 'text-white' };
-                                    const isOverdue = nextPendingDose && getOverdueDays(nextPendingDose, patient.doses) > 0;
+                                    const overdueDays = nextPendingDose ? getOverdueDays(nextPendingDose, patient.doses) : 0;
                                     const isDueToday = nextPendingDose && getDaysUntilDose(nextPendingDose) === 0;
+                                    const isAbandoned = overdueDays >= 14;
 
                                     return (
                                     <TableRow key={patient.id}>
@@ -246,15 +249,20 @@ function PatientsPageContent() {
                                             <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                             {nextPendingDose && (isOverdue || isDueToday) && (
+                                             {nextPendingDose && (overdueDays > 0 || isDueToday) && (
                                                 <Button 
                                                     variant="ghost" 
                                                     size="icon" 
                                                     className="h-8 w-8 text-green-500 hover:text-green-600 mr-2" 
                                                     onClick={() => {
-                                                        const link = isOverdue 
-                                                            ? generateOverdueWhatsAppLink(patient) 
-                                                            : generateDueTodayWhatsAppLink(patient, nextPendingDose);
+                                                        let link;
+                                                        if (isAbandoned) {
+                                                            link = generateAbandonedTreatmentWhatsAppLink(patient);
+                                                        } else if (isDueToday) {
+                                                            link = generateDueTodayWhatsAppLink(patient, nextPendingDose);
+                                                        } else {
+                                                            link = generateOverdueWhatsAppLink(patient);
+                                                        }
                                                         window.open(link, '_blank');
                                                     }}
                                                 >
