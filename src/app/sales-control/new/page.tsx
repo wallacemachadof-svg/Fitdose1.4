@@ -46,6 +46,7 @@ const saleFormSchema = z.object({
     paymentStatus: z.enum(['pago', 'pendente'], { required_error: 'O status do pagamento é obrigatório.' }),
     paymentMethod: z.enum(['dinheiro', 'pix', 'debito', 'credito', 'payment_link']).optional(),
     paymentDate: z.date().optional(),
+    paymentDueDate: z.date().optional(),
     deliveryStatus: z.enum(['em agendamento', 'entregue', 'em processamento'], { required_error: 'O status da entrega é obrigatório.' }),
     deliveryDate: z.date().optional(),
     observations: z.string().optional(),
@@ -389,6 +390,26 @@ export default function NewSalePage() {
                                             />
                                         </div>
                                      )}
+                                     {watchPaymentStatus === 'pendente' && (
+                                        <FormField control={form.control} name="paymentDueDate" render={({ field }) => (
+                                                <FormItem className="flex flex-col"><FormLabel>Data Prevista de Pagamento</FormLabel>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <FormControl>
+                                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                                {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                            </Button>
+                                                            </FormControl>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-0" align="start">
+                                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                <FormMessage />
+                                                </FormItem>
+                                            )}/>
+                                     )}
                                 </div>
                             </div>
                            
@@ -449,5 +470,3 @@ export default function NewSalePage() {
         </div>
     )
 }
-
-    

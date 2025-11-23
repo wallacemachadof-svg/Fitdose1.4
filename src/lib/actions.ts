@@ -60,6 +60,7 @@ const readData = (): MockData => {
             s.saleDate = new Date(s.saleDate);
             if (s.paymentDate) s.paymentDate = new Date(s.paymentDate);
             if (s.deliveryDate) s.deliveryDate = new Date(s.deliveryDate);
+            if (s.paymentDueDate) s.paymentDueDate = new Date(s.paymentDueDate);
         });
         cashFlowEntries.forEach((c: CashFlowEntry) => {
             c.purchaseDate = new Date(c.purchaseDate);
@@ -232,6 +233,7 @@ export type Sale = {
   patientId: string;
   patientName: string;
   paymentDate?: Date;
+  paymentDueDate?: Date;
   paymentStatus: 'pago' | 'pendente';
   deliveryStatus: 'em agendamento' | 'entregue' | 'em processamento';
   observations?: string;
@@ -416,11 +418,9 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     
     // Sort doses by number to ensure correct order before recalculating
     patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
-    doseIndex = patient.doses.findIndex(d => d.id === doseId);
 
-
-    // Recalculate dates for subsequent pending doses
-    for (let i = doseIndex + 1; i < patient.doses.length; i++) {
+    // Recalculate dates for all subsequent pending doses
+    for (let i = 1; i < patient.doses.length; i++) {
         const prevDose = patient.doses[i - 1];
         if (patient.doses[i].status === 'pending') {
             const newDate = new Date(prevDose.date);
@@ -666,6 +666,17 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             amount: total,
             status: 'pago',
             paymentMethod: saleData.paymentMethod,
+        };
+        data.cashFlowEntries.push(newCashFlowEntry);
+    } else if (newSale.paymentStatus === 'pendente' && newSale.paymentDueDate) {
+         const newCashFlowEntry: CashFlowEntry = {
+            id: `sale-${newSale.id}`,
+            type: 'entrada',
+            purchaseDate: newSale.saleDate,
+            description: `Venda ${saleData.quantity}x ${saleData.soldDose}mg p/ ${patient.fullName}`,
+            amount: total,
+            status: 'pendente',
+            dueDate: newSale.paymentDueDate,
         };
         data.cashFlowEntries.push(newCashFlowEntry);
     }
