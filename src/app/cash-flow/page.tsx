@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from "react";
@@ -80,8 +79,8 @@ export default function CashFlowPage() {
         router.push(`/cash-flow/edit/${entry.id}`);
     }
 
-    const income = entries.filter(e => e.type === 'entrada');
-    const expenses = entries.filter(e => e.type === 'saida');
+    const income = entries.filter(e => e.type === 'entrada' && e.status === 'pago');
+    const expenses = entries.filter(e => e.type === 'saida' && e.status === 'pago');
 
     const totalIncome = income.reduce((acc, curr) => acc + curr.amount, 0);
     const totalExpenses = expenses.reduce((acc, curr) => acc + curr.amount, 0);
@@ -119,7 +118,7 @@ export default function CashFlowPage() {
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total de Entradas</CardTitle>
+                        <CardTitle className="text-sm font-medium">Receita Realizada</CardTitle>
                         <ArrowUpCircle className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
@@ -128,7 +127,7 @@ export default function CashFlowPage() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total de Saídas</CardTitle>
+                        <CardTitle className="text-sm font-medium">Despesas Realizadas</CardTitle>
                         <ArrowDownCircle className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
@@ -137,7 +136,7 @@ export default function CashFlowPage() {
                 </Card>
                  <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Saldo Atual</CardTitle>
+                        <CardTitle className="text-sm font-medium">Balanço (Realizado)</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground"/>
                     </CardHeader>
                     <CardContent>
@@ -160,10 +159,10 @@ export default function CashFlowPage() {
                             <EntriesTable entries={entries} onEdit={handleEditClick} onDelete={handleDeleteClick} />
                         </TabsContent>
                         <TabsContent value="income" className="mt-0">
-                            <EntriesTable entries={income} onEdit={handleEditClick} onDelete={handleDeleteClick} />
+                            <EntriesTable entries={entries.filter(e => e.type === 'entrada')} onEdit={handleEditClick} onDelete={handleDeleteClick} />
                         </TabsContent>
                         <TabsContent value="expenses" className="mt-0">
-                             <EntriesTable entries={expenses} onEdit={handleEditClick} onDelete={handleDeleteClick} />
+                             <EntriesTable entries={entries.filter(e => e.type === 'saida')} onEdit={handleEditClick} onDelete={handleDeleteClick} />
                         </TabsContent>
                     </Tabs>
                 </CardContent>

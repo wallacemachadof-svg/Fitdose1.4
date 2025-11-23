@@ -260,15 +260,6 @@
     "paymentMethod": "pix"
   },
   {
-    "id": "manual-2",
-    "type": "saida",
-    "purchaseDate": "2025-11-20T03:00:00.000Z",
-    "description": "Compra 1x frasco 90mg",
-    "amount": 3150,
-    "status": "pago",
-    "paymentMethod": "pix"
-  },
-  {
     "id": "sale-29",
     "type": "entrada",
     "purchaseDate": "2025-11-12T03:00:00.000Z",
@@ -276,5 +267,49 @@
     "amount": 200,
     "status": "pendente",
     "dueDate": "2025-11-30T03:00:00.000Z"
+  },
+  {
+    "id": "manual-1763919803573-0",
+    "type": "saida",
+    "purchaseDate": "2025-11-18T03:00:00.000Z",
+    "description": "Compra 2x frasco 90mg (Parcela 1/4)",
+    "amount": 1575,
+    "status": "pendente",
+    "paymentMethod": "credito_parcelado",
+    "dueDate": "2025-12-06T03:00:00.000Z",
+    "installments": "1/4"
+  },
+  {
+    "id": "manual-1763919803573-1",
+    "type": "saida",
+    "purchaseDate": "2025-11-18T03:00:00.000Z",
+    "description": "Compra 2x frasco 90mg (Parcela 2/4)",
+    "amount": 1575,
+    "status": "pendente",
+    "paymentMethod": "credito_parcelado",
+    "dueDate": "2026-01-06T03:00:00.000Z",
+    "installments": "2/4"
+  },
+  {
+    "id": "manual-1763919803573-2",
+    "type": "saida",
+    "purchaseDate": "2025-11-18T03:00:00.000Z",
+    "description": "Compra 2x frasco 90mg (Parcela 3/4)",
+    "amount": 1575,
+    "status": "pendente",
+    "paymentMethod": "credito_parcelado",
+    "dueDate": "2026-02-06T03:00:00.000Z",
+    "installments": "3/4"
+  },
+  {
+    "id": "manual-1763919803573-3",
+    "type": "saida",
+    "purchaseDate": "2025-11-18T03:00:00.000Z",
+    "description": "Compra 2x frasco 90mg (Parcela 4/4)",
+    "amount": 1575,
+    "status": "pendente",
+    "paymentMethod": "credito_parcelado",
+    "dueDate": "2026-03-06T03:00:00.000Z",
+    "installments": "4/4"
   }
 ]
