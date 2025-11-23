@@ -45,10 +45,6 @@ export default function StockControlPage() {
 
     const form = useForm<AdjustmentFormValues>({
         resolver: zodResolver(adjustmentFormSchema),
-        defaultValues: {
-            newRemainingMg: 0,
-            reason: "",
-        },
     });
 
     const fetchStockData = async () => {
@@ -338,3 +334,4 @@ export default function StockControlPage() {
     
 
     
+
