@@ -41,6 +41,7 @@ const readData = (): MockData => {
         // Dates are stored as strings in JSON, so we need to convert them back to Date objects
         patients.forEach((p: Patient) => {
             if (p.firstDoseDate) p.firstDoseDate = new Date(p.firstDoseDate);
+            if (p.birthDate) p.birthDate = new Date(p.birthDate);
             if (p.consentDate) p.consentDate = new Date(p.consentDate);
             p.doses.forEach(d => {
                 d.date = new Date(d.date);
@@ -216,6 +217,7 @@ export type Patient = {
   id: string;
   fullName: string;
   age?: number;
+  birthDate?: Date;
   initialWeight: number;
   height: number;
   desiredWeight?: number;
@@ -416,6 +418,7 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         id: String(newId),
         fullName: patientData.fullName,
         age: patientData.age,
+        birthDate: patientData.birthDate,
         initialWeight: patientData.initialWeight,
         height: patientData.height,
         desiredWeight: patientData.desiredWeight,

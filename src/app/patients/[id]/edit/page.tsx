@@ -60,6 +60,7 @@ const contraindicationsList = [
 
 const patientEditFormSchema = z.object({
   fullName: z.string().min(3, "Nome completo é obrigatório."),
+  birthDate: z.date().optional(),
   initialWeight: z.coerce.number().min(1, "Peso inicial é obrigatório.").positive("Peso deve ser um número positivo."),
   height: z.coerce.number().min(1, "Altura é obrigatória.").positive("Altura deve ser um número positivo."),
   age: z.coerce.number().positive("Idade deve ser um número positivo.").optional(),
@@ -156,6 +157,7 @@ export default function PatientEditPage() {
 
                 form.reset({
                     fullName: fetchedPatient.fullName,
+                    birthDate: fetchedPatient.birthDate ? new Date(fetchedPatient.birthDate) : undefined,
                     initialWeight: fetchedPatient.initialWeight,
                     height: fetchedPatient.height,
                     age: fetchedPatient.age,
@@ -221,6 +223,7 @@ export default function PatientEditPage() {
 
             const patientDataForApi: UpdatePatientData = {
                 fullName: data.fullName,
+                birthDate: data.birthDate,
                 initialWeight: data.initialWeight,
                 height: data.height,
                 age: data.age,
@@ -377,6 +380,27 @@ export default function PatientEditPage() {
                          </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-end">
+                             <FormField
+                                control={form.control}
+                                name="birthDate"
+                                render={({ field }) => (
+                                <FormItem className="flex flex-col"><FormLabel>Data de Nascimento</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus captionLayout="dropdown-buttons" fromYear={1930} toYear={new Date().getFullYear()} />
+                                        </PopoverContent>
+                                    </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}/>
                             <FormField control={form.control} name="age" render={({ field }) => (
                                 <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>

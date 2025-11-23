@@ -18,6 +18,7 @@ import {
   Trash2,
   HeartPulse,
   Settings,
+  Cake,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -154,6 +155,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <Link href="/patients">
                     <HeartPulse />
                     <span>Pacientes</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+               <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/birthdays')}
+                  tooltip="Aniversariantes"
+                >
+                  <Link href="/birthdays">
+                    <Cake />
+                    <span>Aniversariantes</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
