@@ -90,7 +90,7 @@ export function getPaymentStatusVariant(status: Sale['paymentStatus'] | CashFlow
 export function getDeliveryStatusVariant(status: Sale['deliveryStatus']) {
     switch (status) {
         case 'entregue':
-            return { label: "Entregue", color: "bg-accent/80", textColor: "text-accent-foreground" };
+            return { label: "Entregue", color: "bg-green-500", textColor: "text-white" };
         case 'em processamento':
             return { label: "Em Processamento", color: "bg-blue-500", textColor: "text-white" };
         case 'em agendamento':

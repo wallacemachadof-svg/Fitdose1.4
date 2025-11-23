@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, MoreVertical, Edit, Trash2, DollarSign, PackageX, ShoppingCart } from "lucide-react";
+import { PlusCircle, MoreVertical, Edit, Trash2, DollarSign, PackageX, ShoppingCart, Search } from "lucide-react";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -32,6 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { startOfMonth, endOfMonth, isWithinInterval, format } from "date-fns";
 import { ptBR } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 export default function SalesControlPage() {
     const [sales, setSales] = useState<Sale[]>([]);
@@ -39,8 +40,10 @@ export default function SalesControlPage() {
     const [saleToDelete, setSaleToDelete] = useState<Sale | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
-    const [filter, setFilter] = useState<'all' | 'pago' | 'pendente'>('all');
+    const [paymentFilter, setPaymentFilter] = useState<'all' | 'pago' | 'pendente'>('all');
     const [selectedMonth, setSelectedMonth] = useState<string>('current');
+    const [searchTerm, setSearchTerm] = useState('');
+
 
     useEffect(() => {
         const fetchSales = async () => {
@@ -138,8 +141,9 @@ export default function SalesControlPage() {
     const totalValueInSelectedPeriod = salesInSelectedPeriod.reduce((acc, sale) => acc + sale.total, 0);
 
     const filteredSales = salesInSelectedPeriod.filter(sale => {
-        if (filter === 'all') return true;
-        return sale.paymentStatus === filter;
+        if (paymentFilter !== 'all' && sale.paymentStatus !== paymentFilter) return false;
+        if (searchTerm && !sale.patientName.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+        return true;
     });
 
 
@@ -221,15 +225,24 @@ export default function SalesControlPage() {
                     <CardTitle>Histórico de Vendas ({monthLabel})</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <Tabs value={filter} onValueChange={(value) => setFilter(value as any)}>
-                         <div className="px-6">
+                    <Tabs value={paymentFilter} onValueChange={(value) => setPaymentFilter(value as any)}>
+                         <div className="px-6 pb-4 flex flex-wrap items-center justify-between gap-4 border-b">
                             <TabsList>
                                 <TabsTrigger value="all">Todos</TabsTrigger>
                                 <TabsTrigger value="pago">Pagos</TabsTrigger>
                                 <TabsTrigger value="pendente">Pendentes</TabsTrigger>
                             </TabsList>
+                            <div className="relative max-w-xs w-full">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input 
+                                    placeholder="Buscar por paciente..."
+                                    className="pl-9"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
                         </div>
-                        <TabsContent value={filter} className="mt-0">
+                        <TabsContent value={paymentFilter} className="mt-0">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
