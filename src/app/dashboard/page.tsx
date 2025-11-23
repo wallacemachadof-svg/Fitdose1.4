@@ -4,8 +4,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getPatients, getSales, type Patient, type Sale } from "@/lib/actions";
-import { formatDate, formatCurrency } from "@/lib/utils";
-import { User, BarChart3, PieChart, DollarSign, Link as LinkIcon, Copy, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock } from "lucide-react";
+import { formatCurrency, getOverdueDays, getDaysUntilDose } from "@/lib/utils";
+import { User, BarChart3, PieChart, DollarSign, Link as LinkIcon, Copy, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock, CalendarIcon } from "lucide-react";
 import Link from 'next/link';
 import { subDays, format as formatDateFns, startOfToday, isWithinInterval, addDays } from "date-fns";
 import { ptBR } from 'date-fns/locale';
@@ -65,49 +65,84 @@ export default function DashboardPage() {
   }, [patients]);
   
   
-  const { filteredSales, salesChartData, totalFilteredRevenue, filterTitle, pendingPayments, pendingDeliveries } = useMemo(() => {
-    const today = startOfToday();
-    let startDate = dateRange?.from || subDays(today, 29);
-    let endDate = dateRange?.to || today;
+  const { 
+    salesChartData, 
+    totalFilteredRevenue, 
+    filterTitle,
+    salesByDoseChartData,
+    overduePatientsCount,
+    dueTodayPatientsCount,
+    pendingPaymentsCount,
+    pendingDeliveriesCount
+  } = useMemo(() => {
+    const startDate = dateRange?.from || subDays(startOfToday(), 29);
+    const endDate = dateRange?.to || startOfToday();
     let title: string;
 
-    // 1. Filter by patient
-    let baseFilteredSales: Sale[];
+    // 1. Filter patients
+    const filteredPatients = selectedPatientId === 'all' 
+        ? patients 
+        : patients.filter(p => p.id === selectedPatientId);
+
+    // 2. Filter sales
+    const filteredSalesByPatient = selectedPatientId === 'all'
+        ? sales
+        : sales.filter(s => s.patientId === selectedPatientId);
+
+    const filteredSalesByDate = filteredSalesByPatient.filter(s => {
+        const saleDate = new Date(s.saleDate);
+        return isWithinInterval(saleDate, { start: startDate, end: addDays(endDate, 1) });
+    });
+
     if (selectedPatientId === 'all') {
-        baseFilteredSales = sales;
         title = `Visão Geral`;
     } else {
-        baseFilteredSales = sales.filter(s => s.patientId === selectedPatientId);
         const patientName = patients.find(p => p.id === selectedPatientId)?.fullName || 'Paciente';
         title = `Análise de ${patientName}`;
     }
     
-    // 2. Filter by date
-    const finalFilteredSales = baseFilteredSales.filter(s => {
-        const saleDate = new Date(s.saleDate);
-        return isWithinInterval(saleDate, { start: startDate, end: addDays(endDate, 1) });
-    });
-    
-    const total = finalFilteredSales.reduce((acc, sale) => acc + sale.total, 0);
+    // --- Calculations based on filtered data ---
 
-    const salesByDay = finalFilteredSales.reduce((acc, sale) => {
+    // Doses (not dependent on date range, but on patient filter)
+    const allPendingDoses = filteredPatients.flatMap(p => 
+        p.doses
+          .filter(d => d.status === 'pending')
+          .map(d => ({ ...d, patientId: p.id, patientName: p.fullName, allDoses: p.doses }))
+    );
+    const _overdueDoses = allPendingDoses.filter(d => getOverdueDays(d, d.allDoses) > 0);
+    const _dueToday = allPendingDoses.filter(d => getDaysUntilDose(d) === 0);
+    const _overduePatientsCount = new Set(_overdueDoses.map(d => d.patientId)).size;
+    const _dueTodayPatientsCount = new Set(_dueToday.map(d => d.patientId)).size;
+
+    // Sales metrics (dependent on patient AND date range)
+    const total = filteredSalesByDate.reduce((acc, sale) => acc + sale.total, 0);
+
+    const salesByDay = filteredSalesByDate.reduce((acc, sale) => {
         const day = formatDateFns(new Date(sale.saleDate), 'dd/MM');
         acc[day] = (acc[day] || 0) + sale.total;
         return acc;
     }, {} as Record<string, number>);
-
-    const chartData = Object.entries(salesByDay).map(([name, total]) => ({ name, total })).reverse();
+    const _salesChartData = Object.entries(salesByDay).map(([name, total]) => ({ name, total })).reverse();
     
-    const _pendingPayments = finalFilteredSales.filter(s => s.paymentStatus === 'pendente').length;
-    const _pendingDeliveries = finalFilteredSales.filter(s => s.deliveryStatus !== 'entregue').length;
+    const _pendingPayments = filteredSalesByDate.filter(s => s.paymentStatus === 'pendente').length;
+    const _pendingDeliveries = filteredSalesByDate.filter(s => s.deliveryStatus !== 'entregue').length;
+
+    const salesByDose = filteredSalesByDate.reduce((acc, sale) => {
+        const dose = `${sale.soldDose} mg`;
+        acc[dose] = (acc[dose] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+    const _salesByDoseChartData = Object.entries(salesByDose).map(([name, value]) => ({ name, value }));
 
     return { 
-        filteredSales: finalFilteredSales, 
-        salesChartData: chartData, 
+        salesChartData: _salesChartData, 
         totalFilteredRevenue: total, 
         filterTitle: title,
-        pendingPayments: _pendingPayments,
-        pendingDeliveries: _pendingDeliveries
+        salesByDoseChartData: _salesByDoseChartData,
+        overduePatientsCount: _overduePatientsCount,
+        dueTodayPatientsCount: _dueTodayPatientsCount,
+        pendingPaymentsCount: _pendingPayments,
+        pendingDeliveriesCount: _pendingDeliveries,
     };
 
   }, [sales, dateRange, selectedPatientId, patients]);
@@ -116,28 +151,7 @@ export default function DashboardPage() {
   if (loading) {
     return <DashboardSkeleton />;
   }
-
-  const allPendingDoses = patients.flatMap(p => 
-    p.doses
-      .filter(d => d.status === 'pending')
-      .map(d => ({ ...d, patientId: p.id, patientName: p.fullName, allDoses: p.doses }))
-  );
   
-  const overdueDoses = allPendingDoses.filter(d => getOverdueDays(d, d.allDoses) > 0);
-  const dueToday = allPendingDoses.filter(d => getDaysUntilDose(d) === 0);
-  
-  const overduePatientsCount = new Set(overdueDoses.map(d => d.patientId)).size;
-  const dueTodayPatientsCount = new Set(dueToday.map(d => d.patientId)).size;
-
-  const totalPatients = patients.length;
-  
-  const salesByDose = filteredSales.reduce((acc, sale) => {
-    const dose = `${sale.soldDose} mg`;
-    acc[dose] = (acc[dose] || 0) + 1;
-    return acc;
-    }, {} as Record<string, number>);
-
-  const salesByDoseChartData = Object.entries(salesByDose).map(([name, value]) => ({ name, value }));
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57'];
   
   return (
@@ -147,8 +161,8 @@ export default function DashboardPage() {
           <CardTitle>{filterTitle}</CardTitle>
           <CardDescription>Use os filtros abaixo para analisar os dados do período e paciente desejado.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-          <div className="flex flex-col md:flex-row gap-2">
+        <CardContent className="flex flex-col sm:flex-row justify-start items-center gap-4">
+          <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
               <Combobox 
                   options={patientOptions}
                   value={selectedPatientId}
@@ -231,8 +245,8 @@ export default function DashboardPage() {
               <PackageX className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-500">{pendingPayments}</div>
-               <p className="text-xs text-muted-foreground">Vendas aguardando pagamento</p>
+              <div className="text-2xl font-bold text-yellow-500">{pendingPaymentsCount}</div>
+               <p className="text-xs text-muted-foreground">Vendas no período</p>
             </CardContent>
           </Card>
         </Link>
@@ -245,8 +259,8 @@ export default function DashboardPage() {
               <PackageCheck className="h-4 w-4 text-orange-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-500">{pendingDeliveries}</div>
-               <p className="text-xs text-muted-foreground">Vendas aguardando entrega</p>
+              <div className="text-2xl font-bold text-orange-500">{pendingDeliveriesCount}</div>
+               <p className="text-xs text-muted-foreground">Vendas no período</p>
             </CardContent>
           </Card>
         </Link>
@@ -343,19 +357,11 @@ function DashboardSkeleton() {
         <Skeleton className="h-24" />
         <Skeleton className="h-24" />
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Skeleton className="h-32" />
-        <Skeleton className="h-32" />
-        <Skeleton className="h-32" />
-        <Skeleton className="h-32" />
-        <Skeleton className="h-32" />
-      </div>
       <div className="grid gap-6 md:grid-cols-2">
         <Skeleton className="h-80" />
         <Skeleton className="h-80" />
       </div>
+       <Skeleton className="h-24" />
     </div>
   );
 }
-
-    

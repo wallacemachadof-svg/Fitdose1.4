@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -440,10 +439,10 @@ export default function PatientEditPage() {
                             <h3 className="text-lg font-semibold -mb-2">Configurações Padrão</h3>
                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <FormField control={form.control} name="defaultPrice" render={({ field }) => (
-                                    <FormItem><FormLabel>Preço Padrão (R$)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ex: 380.00" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Preço Padrão (R$)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ex: 380.00" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                  <FormField control={form.control} name="defaultDose" render={({ field }) => (
-                                    <FormItem><FormLabel>Dose Padrão (mg)</FormLabel><FormControl><Input placeholder="Ex: 5.0" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Dose Padrão (mg)</FormLabel><FormControl><Input placeholder="Ex: 5.0" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="serviceModel" render={({ field }) => (
                                     <FormItem className="space-y-3">
@@ -473,23 +472,23 @@ export default function PatientEditPage() {
                         <h3 className="text-lg font-semibold border-t pt-6 -mb-2">Endereço</h3>
                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField control={form.control} name="zip" render={({ field }) => (
-                                <FormItem><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>CEP</FormLabel><FormControl><Input placeholder="00000-000" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
                             )}/>
                          </div>
                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField control={form.control} name="street" render={({ field }) => (
-                                <FormItem className="col-span-2"><FormLabel>Rua</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem className="col-span-2"><FormLabel>Rua</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="number" render={({ field }) => (
-                                <FormItem><FormLabel>Número</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Número</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField control={form.control} name="city" render={({ field }) => (
-                                <FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="state" render={({ field }) => (
-                                <FormItem><FormLabel>Estado (UF)</FormLabel><FormControl><Input placeholder="Ex: SP" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Estado (UF)</FormLabel><FormControl><Input placeholder="Ex: SP" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                         </div>
 
@@ -500,7 +499,7 @@ export default function PatientEditPage() {
                                 <FormItem>
                                     <FormLabel>Você possui algum problema de saúde não listado abaixo?</FormLabel>
                                     <FormControl>
-                                        <Textarea rows={3} placeholder="Liste problemas de saúde não mencionados, se houver." {...field} />
+                                        <Textarea rows={3} placeholder="Liste problemas de saúde não mencionados, se houver." {...field} value={field.value ?? ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -556,7 +555,7 @@ export default function PatientEditPage() {
                                         <FormItem>
                                             <FormLabel>Especifique as alergias</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Ex: Dipirona, frutos do mar" {...field} />
+                                                <Input placeholder="Ex: Dipirona, frutos do mar" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -610,7 +609,7 @@ export default function PatientEditPage() {
                                 <FormItem>
                                     <FormLabel>Quais medicamentos o paciente toma todos os dias?</FormLabel>
                                     <FormControl>
-                                        <Textarea rows={3} placeholder="Liste os medicamentos de uso contínuo." {...field} />
+                                        <Textarea rows={3} placeholder="Liste os medicamentos de uso contínuo." {...field} value={field.value ?? ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -657,10 +656,10 @@ export default function PatientEditPage() {
                             {watchUsedMonjauro === 'yes' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <FormField control={form.control} name="monjauroDose" render={({ field }) => (
-                                        <FormItem><FormLabel>Qual a dose?</FormLabel><FormControl><Input placeholder="Ex: 2.5mg" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Qual a dose?</FormLabel><FormControl><Input placeholder="Ex: 2.5mg" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                     )}/>
                                     <FormField control={form.control} name="monjauroTime" render={({ field }) => (
-                                        <FormItem><FormLabel>Há quanto tempo?</FormLabel><FormControl><Input placeholder="Ex: 3 meses" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Há quanto tempo?</FormLabel><FormControl><Input placeholder="Ex: 3 meses" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                     )}/>
                                 </div>
                             )}

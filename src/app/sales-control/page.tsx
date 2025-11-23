@@ -232,11 +232,9 @@ export default function SalesControlPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Filtrar Vendas</CardTitle>
+                    <CardTitle>Histórico de Vendas</CardTitle>
                     <CardDescription>Use os filtros abaixo para encontrar vendas específicas.</CardDescription>
-                </CardHeader>
-                <CardContent className="border-t pt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                         <Input 
                             placeholder="Buscar por nome do paciente..."
                             value={searchTerm}
@@ -260,7 +258,7 @@ export default function SalesControlPage() {
                             </SelectContent>
                         </Select>
                     </div>
-                </CardContent>
+                </CardHeader>
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
