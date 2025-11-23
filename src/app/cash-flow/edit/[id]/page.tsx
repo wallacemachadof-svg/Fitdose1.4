@@ -23,13 +23,14 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CalendarIcon, ArrowLeft, Loader2 } from "lucide-react";
+import { CalendarIcon, ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { getCashFlowEntryById, updateCashFlowEntry, type UpdateCashFlowData, type CashFlowEntry } from "@/lib/actions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const cashFlowEditFormSchema = z.object({
     type: z.enum(['entrada', 'saida'], { required_error: 'O tipo é obrigatório.' }),
@@ -83,16 +84,6 @@ export default function EditCashFlowPage() {
 
     async function onSubmit(data: CashFlowEditFormValues) {
         if (!id) return;
-
-        if (entry?.installments) {
-            toast({
-                variant: "destructive",
-                title: "Ação não permitida",
-                description: "Não é possível editar um lançamento que faz parte de um parcelamento. Exclua a compra original e lance novamente, se necessário.",
-            });
-            return;
-        }
-
         setIsSubmitting(true);
         try {
             await updateCashFlowEntry(id, data);
@@ -148,6 +139,14 @@ export default function EditCashFlowPage() {
                     <CardDescription>Atualize os dados da movimentação abaixo.</CardDescription>
                 </CardHeader>
                 <CardContent>
+                     {!!entry?.installments && (
+                        <Alert variant="destructive" className="mb-6">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>
+                                Você está editando uma parcela. Alterações no valor ou forma de pagamento não afetarão as outras parcelas da mesma compra.
+                            </AlertDescription>
+                        </Alert>
+                     )}
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                             
@@ -180,7 +179,7 @@ export default function EditCashFlowPage() {
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <FormField control={form.control} name="amount" render={({ field }) => (
-                                    <FormItem><FormLabel>Valor Total (R$)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ex: 150.00" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Valor (R$)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ex: 150.00" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="purchaseDate" render={({ field }) => (
                                     <FormItem className="flex flex-col"><FormLabel>Data da Compra</FormLabel>
@@ -273,7 +272,7 @@ export default function EditCashFlowPage() {
                             
                             <div className="flex justify-end gap-2 pt-4">
                                 <Button type="button" variant="outline" onClick={() => router.push('/cash-flow')} disabled={isSubmitting}>Cancelar</Button>
-                                <Button type="submit" disabled={isSubmitting || !!entry?.installments}>
+                                <Button type="submit" disabled={isSubmitting}>
                                     {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Salvando...</> : 'Salvar Alterações'}
                                 </Button>
                             </div>
