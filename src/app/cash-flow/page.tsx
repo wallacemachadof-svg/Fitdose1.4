@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -11,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowDownCircle, ArrowUpCircle, PlusCircle, MoreVertical, Edit, Trash2, Loader2, DollarSign } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +39,7 @@ export default function CashFlowPage() {
     const [entryToDelete, setEntryToDelete] = useState<CashFlowEntry | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
+    const router = useRouter();
 
     useEffect(() => {
         const fetchEntries = async () => {
@@ -74,10 +77,7 @@ export default function CashFlowPage() {
     };
     
     const handleEditClick = (entry: CashFlowEntry) => {
-        toast({
-            title: "Função em desenvolvimento",
-            description: "A edição de lançamentos será implementada em breve.",
-        });
+        router.push(`/cash-flow/edit/${entry.id}`);
     }
 
     const income = entries.filter(e => e.type === 'entrada');

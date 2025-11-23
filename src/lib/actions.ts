@@ -357,6 +357,9 @@ export type NewCashFlowData = {
     installments?: number;
 };
 
+export type UpdateCashFlowData = Partial<Omit<NewCashFlowData, 'installments'>>;
+
+
 export type Vial = {
   id: string;
   purchaseDate: Date;
@@ -840,6 +843,13 @@ export const getCashFlowEntries = async (): Promise<CashFlowEntry[]> => {
   return [...cashFlowEntries].sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime());
 }
 
+export const getCashFlowEntryById = async (id: string): Promise<CashFlowEntry | null> => {
+    const { cashFlowEntries } = readData();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return cashFlowEntries.find(entry => entry.id === id) || null;
+}
+
+
 export const addCashFlowEntry = async (entryData: NewCashFlowData): Promise<CashFlowEntry[]> => {
     const data = readData();
     const newEntries: CashFlowEntry[] = [];
@@ -887,6 +897,31 @@ export const addCashFlowEntry = async (entryData: NewCashFlowData): Promise<Cash
     writeData({ cashFlowEntries: data.cashFlowEntries });
     await new Promise(resolve => setTimeout(resolve, 100));
     return newEntries;
+}
+
+export const updateCashFlowEntry = async (id: string, updateData: UpdateCashFlowData): Promise<CashFlowEntry> => {
+    const data = readData();
+    const entryIndex = data.cashFlowEntries.findIndex(e => e.id === id);
+
+    if (entryIndex === -1) {
+        throw new Error("Lançamento não encontrado.");
+    }
+    
+    // Cannot edit parcelled entries
+    if (data.cashFlowEntries[entryIndex].installments) {
+        throw new Error("Não é possível editar um lançamento parcelado. Exclua a compra e lance novamente.");
+    }
+
+    const updatedEntry: CashFlowEntry = {
+        ...data.cashFlowEntries[entryIndex],
+        ...updateData,
+    };
+
+    data.cashFlowEntries[entryIndex] = updatedEntry;
+    writeData({ cashFlowEntries: data.cashFlowEntries });
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return updatedEntry;
 }
 
 
@@ -1112,6 +1147,7 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
 
     
+
 
 
 
