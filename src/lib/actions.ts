@@ -879,7 +879,7 @@ export const addCashFlowEntry = async (entryData: NewCashFlowData): Promise<Cash
         }
 
     } else {
-        const newId = `manual-${(data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).length > 0 ? Math.max(...data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).map(e => parseInt(e.id.split('-').pop() || '0', 10))) : 0) + 1}`;
+        const newId = `manual-${Date.now()}`;
         const newEntry: CashFlowEntry = {
             id: newId,
             type: entryData.type,
@@ -1046,7 +1046,7 @@ export const adjustVialStock = async (vialId: string, newRemainingMg: number, re
             status: 'pago',
             paymentMethod: 'pix', // Defaulting to pix for simplicity
         };
-         const newId = `manual-${(data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).length > 0 ? Math.max(...data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).map(e => parseInt(e.id.split('-').pop() || '0', 10))) : 0) + 1}`;
+         const newId = `manual-${Date.now()}`;
          const newEntry: CashFlowEntry = { id: newId, ...adjustmentEntry, installments: undefined };
          data.cashFlowEntries.push(newEntry);
     }
@@ -1147,6 +1147,7 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
 
     
+
 
 
 

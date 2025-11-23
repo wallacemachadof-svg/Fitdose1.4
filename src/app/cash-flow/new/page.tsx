@@ -23,7 +23,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CalendarIcon, ArrowLeft } from "lucide-react";
+import { CalendarIcon, ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -254,7 +254,7 @@ export default function NewCashFlowPage() {
                             <div className="flex justify-end gap-2 pt-4">
                                 <Button type="button" variant="outline" onClick={() => router.push('/cash-flow')} disabled={isSubmitting}>Cancelar</Button>
                                 <Button type="submit" disabled={isSubmitting}>
-                                    {isSubmitting ? 'Salvando...' : 'Salvar Lançamento'}
+                                    {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Salvando...</> : 'Salvar Lançamento'}
                                 </Button>
                             </div>
                         </form>
