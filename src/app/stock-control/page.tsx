@@ -3,11 +3,11 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getVials, getStockForecast, type Vial, type StockForecast, adjustVialStock, getSales, type Sale } from '@/lib/actions';
+import { getVials, getStockForecast, type Vial, type StockForecast, adjustVialStock, getSales, type Sale, updateVialDetails } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { PlusCircle, Warehouse, Droplets, FlaskConical, AlertTriangle, Package, CalendarClock, ShoppingCart, SlidersHorizontal, Loader2, User } from 'lucide-react';
+import { PlusCircle, Warehouse, Droplets, FlaskConical, AlertTriangle, Package, CalendarClock, ShoppingCart, SlidersHorizontal, Loader2, User, Edit } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -21,6 +21,14 @@ import * as z from "zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 
 const DELIVERY_LEAD_TIME = 22; // 22 days
@@ -32,6 +40,15 @@ const adjustmentFormSchema = z.object({
 
 type AdjustmentFormValues = z.infer<typeof adjustmentFormSchema>;
 
+const editVialFormSchema = z.object({
+    purchaseDate: z.date({ required_error: "A data é obrigatória."}),
+    totalMg: z.enum(['40', '60', '90'], { required_error: 'A dosagem é obrigatória.'}),
+    cost: z.coerce.number().positive("O custo deve ser um valor positivo."),
+});
+
+type EditVialFormValues = z.infer<typeof editVialFormSchema>;
+
+
 export default function StockControlPage() {
     const [vials, setVials] = useState<Vial[]>([]);
     const [sales, setSales] = useState<Sale[]>([]);
@@ -39,12 +56,18 @@ export default function StockControlPage() {
     const [loading, setLoading] = useState(true);
     const [selectedVial, setSelectedVial] = useState<Vial | null>(null);
     const [isAdjusting, setIsAdjusting] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
     const [isAdjustmentDialogOpen, setIsAdjustmentDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
     const { toast } = useToast();
 
-    const form = useForm<AdjustmentFormValues>({
+    const adjustmentForm = useForm<AdjustmentFormValues>({
         resolver: zodResolver(adjustmentFormSchema),
+    });
+    
+    const editForm = useForm<EditVialFormValues>({
+        resolver: zodResolver(editVialFormSchema),
     });
 
     const fetchStockData = async () => {
@@ -66,11 +89,21 @@ export default function StockControlPage() {
 
     const handleOpenAdjustDialog = (vial: Vial) => {
         setSelectedVial(vial);
-        form.reset({
+        adjustmentForm.reset({
             newRemainingMg: vial.remainingMg,
             reason: "",
         });
         setIsAdjustmentDialogOpen(true);
+    }
+    
+    const handleOpenEditDialog = (vial: Vial) => {
+        setSelectedVial(vial);
+        editForm.reset({
+            purchaseDate: new Date(vial.purchaseDate),
+            totalMg: String(vial.totalMg) as '40' | '60' | '90',
+            cost: vial.cost,
+        });
+        setIsEditDialogOpen(true);
     }
     
     async function onAdjustmentSubmit(data: AdjustmentFormValues) {
@@ -92,6 +125,31 @@ export default function StockControlPage() {
             });
         } finally {
             setIsAdjusting(false);
+        }
+    }
+    
+    async function onEditSubmit(data: EditVialFormValues) {
+        if (!selectedVial) return;
+        setIsEditing(true);
+        try {
+            await updateVialDetails(selectedVial.id, {
+                ...data,
+                totalMg: parseInt(data.totalMg, 10) as 40 | 60 | 90,
+            });
+            toast({
+                title: "Frasco Atualizado!",
+                description: "Os detalhes do frasco foram salvos."
+            });
+            fetchStockData();
+            setIsEditDialogOpen(false);
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Erro ao editar frasco",
+                description: error instanceof Error ? error.message : "Não foi possível salvar as alterações."
+            });
+        } finally {
+            setIsEditing(false);
         }
     }
 
@@ -259,10 +317,16 @@ export default function StockControlPage() {
                                     </Accordion>
                                     <div className="w-full flex justify-between items-center p-6 pt-3">
                                         <p className="text-xs text-muted-foreground">ID: {vial.id}</p>
-                                        <Button variant="outline" size="sm" onClick={() => handleOpenAdjustDialog(vial)}>
-                                            <SlidersHorizontal className="h-4 w-4 mr-2" />
-                                            Ajustar
-                                        </Button>
+                                        <div className='flex gap-2'>
+                                            <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(vial)}>
+                                                <Edit className="h-4 w-4 mr-2" />
+                                                Editar
+                                            </Button>
+                                            <Button variant="outline" size="sm" onClick={() => handleOpenAdjustDialog(vial)}>
+                                                <SlidersHorizontal className="h-4 w-4 mr-2" />
+                                                Ajustar
+                                            </Button>
+                                        </div>
                                     </div>
                                 </CardFooter>
                             </Card>
@@ -285,10 +349,10 @@ export default function StockControlPage() {
                             A diferença será registrada como uma saída no fluxo de caixa.
                         </DialogDescription>
                     </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onAdjustmentSubmit)} className="space-y-4 py-4">
+                    <Form {...adjustmentForm}>
+                        <form onSubmit={adjustmentForm.handleSubmit(onAdjustmentSubmit)} className="space-y-4 py-4">
                             <FormField
-                                control={form.control}
+                                control={adjustmentForm.control}
                                 name="newRemainingMg"
                                 render={({ field }) => (
                                     <FormItem>
@@ -302,7 +366,7 @@ export default function StockControlPage() {
                                 )}
                             />
                             <FormField
-                                control={form.control}
+                                control={adjustmentForm.control}
                                 name="reason"
                                 render={({ field }) => (
                                     <FormItem>
@@ -327,6 +391,66 @@ export default function StockControlPage() {
                     </Form>
                 </DialogContent>
             </Dialog>
+
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar Frasco</DialogTitle>
+                        <DialogDescription>
+                            Altere os detalhes da compra do frasco ID: <span className="font-mono bg-muted px-1 py-0.5 rounded">{selectedVial?.id}</span>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Form {...editForm}>
+                        <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4 py-4">
+                             <FormField control={editForm.control} name="purchaseDate" render={({ field }) => (
+                                <FormItem className="flex flex-col"><FormLabel>Data da Compra</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                        </PopoverContent>
+                                    </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}/>
+                            <FormField control={editForm.control} name="totalMg" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Dosagem Total do Frasco</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Selecione a dosagem" /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="40">40 mg</SelectItem>
+                                            <SelectItem value="60">60 mg</SelectItem>
+                                            <SelectItem value="90">90 mg</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}/>
+                            <FormField control={editForm.control} name="cost" render={({ field }) => (
+                                <FormItem><FormLabel>Custo Total (R$)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ex: 3150.00" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button type="button" variant="outline">Cancelar</Button>
+                                </DialogClose>
+                                <Button type="submit" disabled={isEditing}>
+                                    {isEditing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Salvar Alterações
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }
@@ -334,5 +458,6 @@ export default function StockControlPage() {
     
 
     
+
 
 

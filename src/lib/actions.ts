@@ -354,9 +354,10 @@ export type Vial = {
   cost: number;
   remainingMg: number;
   soldMg: number;
+  cashFlowEntryId?: string;
 };
 
-export type NewVialData = Omit<Vial, 'id' | 'remainingMg' | 'soldMg'> & {
+export type NewVialData = Omit<Vial, 'id' | 'remainingMg' | 'soldMg' | 'cashFlowEntryId'> & {
     quantity: number;
 };
 
@@ -860,6 +861,8 @@ export const getVials = async (): Promise<Vial[]> => {
 export const addVial = async (vialData: NewVialData): Promise<Vial[]> => {
     const data = readData();
     const newVials: Vial[] = [];
+    const cashFlowEntryId = `vial-purchase-${Date.now()}`;
+    
     for (let i = 0; i < vialData.quantity; i++) {
         const newId = `vial-${Date.now()}-${i}`;
         const newVial: Vial = {
@@ -869,12 +872,14 @@ export const addVial = async (vialData: NewVialData): Promise<Vial[]> => {
             cost: vialData.cost,
             remainingMg: vialData.totalMg,
             soldMg: 0,
+            cashFlowEntryId: cashFlowEntryId,
         };
         newVials.push(newVial);
         data.vials.push(newVial);
     }
     
     const cashFlowEntry: NewCashFlowData = {
+        id: cashFlowEntryId,
         type: 'saida',
         purchaseDate: vialData.purchaseDate,
         description: `Compra ${vialData.quantity}x frasco ${vialData.totalMg}mg`,
@@ -883,14 +888,50 @@ export const addVial = async (vialData: NewVialData): Promise<Vial[]> => {
         paymentMethod: 'pix'
     };
     
-    const newId = `manual-${(data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).length > 0 ? Math.max(...data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).map(e => parseInt(e.id.replace('manual-',''), 10))) : 0) + 1}`;
-    const newEntry: CashFlowEntry = { id: newId, ...cashFlowEntry };
-    data.cashFlowEntries.push(newEntry);
+    data.cashFlowEntries.push(cashFlowEntry);
     
     writeData({ vials: data.vials, cashFlowEntries: data.cashFlowEntries });
     await new Promise(resolve => setTimeout(resolve, 100));
     return newVials;
 }
+
+export const updateVialDetails = async (vialId: string, newDetails: { purchaseDate: Date, totalMg: 40 | 60 | 90, cost: number }): Promise<Vial> => {
+    const data = readData();
+    const vialIndex = data.vials.findIndex(v => v.id === vialId);
+    if (vialIndex === -1) {
+        throw new Error("Frasco não encontrado.");
+    }
+    
+    const vial = data.vials[vialIndex];
+
+    // Check if totalMg change is valid
+    if (newDetails.totalMg < vial.soldMg) {
+        throw new Error(`A nova dosagem total (${newDetails.totalMg}mg) não pode ser menor que a quantidade já vendida (${vial.soldMg}mg).`);
+    }
+
+    // Update vial details
+    vial.purchaseDate = newDetails.purchaseDate;
+    vial.totalMg = newDetails.totalMg;
+    vial.cost = newDetails.cost;
+    vial.remainingMg = newDetails.totalMg - vial.soldMg;
+
+    // Update corresponding cash flow entry
+    if (vial.cashFlowEntryId) {
+        const cashFlowIndex = data.cashFlowEntries.findIndex(cf => cf.id === vial.cashFlowEntryId);
+        if (cashFlowIndex !== -1) {
+            data.cashFlowEntries[cashFlowIndex].purchaseDate = newDetails.purchaseDate;
+            data.cashFlowEntries[cashFlowIndex].description = `Compra 1x frasco ${newDetails.totalMg}mg`; // Assuming quantity is 1 for editing
+            data.cashFlowEntries[cashFlowIndex].amount = newDetails.cost;
+        }
+    }
+
+    data.vials[vialIndex] = vial;
+    writeData({ vials: data.vials, cashFlowEntries: data.cashFlowEntries });
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return vial;
+};
+
 
 export const adjustVialStock = async (vialId: string, newRemainingMg: number, reason: string): Promise<Vial> => {
     const data = readData();
@@ -1020,4 +1061,5 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
 
     
+
 
