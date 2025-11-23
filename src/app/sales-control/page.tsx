@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { subDays } from "date-fns";
+import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 
 export default function SalesControlPage() {
     const [sales, setSales] = useState<Sale[]>([]);
@@ -81,11 +81,17 @@ export default function SalesControlPage() {
         });
     }
     
-    const thirtyDaysAgo = subDays(new Date(), 30);
-    const recentSales = sales.filter(s => new Date(s.saleDate) >= thirtyDaysAgo);
-    const totalRevenueLast30Days = recentSales.reduce((acc, sale) => acc + sale.total, 0);
+    const today = new Date();
+    const startOfCurrentMonth = startOfMonth(today);
+    const endOfCurrentMonth = endOfMonth(today);
+
+    const pendingPayments = sales.filter(s => s.paymentStatus === 'pendente');
+    const totalPendingAmount = pendingPayments.reduce((acc, sale) => acc + sale.total, 0);
     
-    const pendingPaymentCount = sales.filter(s => s.paymentStatus === 'pendente').length;
+    const scheduledForThisMonth = pendingPayments.filter(s => 
+        s.paymentDueDate && isWithinInterval(new Date(s.paymentDueDate), { start: startOfCurrentMonth, end: endOfCurrentMonth })
+    ).reduce((acc, sale) => acc + sale.total, 0);
+
     const pendingDeliveryCount = sales.filter(s => s.deliveryStatus !== 'entregue').length;
 
 
@@ -121,20 +127,22 @@ export default function SalesControlPage() {
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Receita (Últimos 30 dias)</CardTitle>
+                        <CardTitle className="text-sm font-medium">Receita Prevista (Mês Atual)</CardTitle>
                         <DollarSign className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-500">{formatCurrency(totalRevenueLast30Days)}</div>
+                        <div className="text-2xl font-bold text-green-500">{formatCurrency(scheduledForThisMonth)}</div>
+                         <p className="text-xs text-muted-foreground">de pagamentos pendentes este mês</p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pagamentos Pendentes</CardTitle>
+                        <CardTitle className="text-sm font-medium">Pagamentos Pendentes (Total)</CardTitle>
                         <PackageX className="h-4 w-4 text-yellow-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-yellow-500">{pendingPaymentCount}</div>
+                        <div className="text-2xl font-bold text-yellow-500">{formatCurrency(totalPendingAmount)}</div>
+                        <p className="text-xs text-muted-foreground">{pendingPayments.length} vendas aguardando pagamento</p>
                     </CardContent>
                 </Card>
                  <Card>
@@ -144,6 +152,7 @@ export default function SalesControlPage() {
                     </CardHeader>
                     <CardContent>
                         <div className={`text-2xl font-bold text-orange-500`}>{pendingDeliveryCount}</div>
+                        <p className="text-xs text-muted-foreground">Vendas aguardando entrega</p>
                     </CardContent>
                 </Card>
             </div>
@@ -237,5 +246,3 @@ export default function SalesControlPage() {
         </div>
     );
 }
-
-    

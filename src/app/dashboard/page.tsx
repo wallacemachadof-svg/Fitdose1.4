@@ -35,7 +35,7 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [registrationLink, setRegistrationLink] = useState('');
   
-  const [salesDateFilter, setSalesDateFilter] = useState<'30d' | '6m' | '1y' | 'today' | 'custom'>('30d');
+  const [salesDateFilter, setSalesDateFilter] = useState<'30d' | '6m' | '1y' | 'today' | 'all' | 'custom'>('30d');
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 29),
     to: new Date(),
@@ -69,6 +69,7 @@ export default function DashboardPage() {
     let startDate: Date;
     let endDate: Date = new Date();
     let title: string;
+    let filtered: Sale[];
 
     switch (salesDateFilter) {
         case 'today':
@@ -84,6 +85,9 @@ export default function DashboardPage() {
             startDate = subDays(today, 365);
             title = 'Vendas (Último ano)';
             break;
+        case 'all':
+            title = 'Todas as Vendas';
+            break;
         case 'custom':
             startDate = dateRange?.from || today;
             endDate = dateRange?.to || today;
@@ -96,10 +100,14 @@ export default function DashboardPage() {
             break;
     }
     
-    const filtered = sales.filter(s => {
-        const saleDate = new Date(s.saleDate);
-        return isWithinInterval(saleDate, { start: startDate, end: addDays(endDate, 1) }); // addDays to include the end date
-    });
+    if (salesDateFilter === 'all') {
+        filtered = sales;
+    } else {
+        filtered = sales.filter(s => {
+            const saleDate = new Date(s.saleDate);
+            return isWithinInterval(saleDate, { start: startDate, end: addDays(endDate, 1) }); // addDays to include the end date
+        });
+    }
     
     const total = filtered.reduce((acc, sale) => acc + sale.total, 0);
 
@@ -303,11 +311,12 @@ export default function DashboardPage() {
                             <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />{filterTitle}</CardTitle>
                             <CardDescription>Receita total de {formatCurrency(totalFilteredRevenue)}</CardDescription>
                         </div>
-                         <div className="flex items-center gap-2">
+                         <div className="flex items-center gap-2 flex-wrap">
                             <Button variant={salesDateFilter === 'today' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('today')}>Hoje</Button>
                             <Button variant={salesDateFilter === '30d' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('30d')}>30d</Button>
                             <Button variant={salesDateFilter === '6m' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('6m')}>6m</Button>
                             <Button variant={salesDateFilter === '1y' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('1y')}>1 ano</Button>
+                            <Button variant={salesDateFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('all')}>Todas</Button>
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <Button
@@ -435,6 +444,3 @@ function DashboardSkeleton() {
     </div>
   );
 }
-
-
-    
