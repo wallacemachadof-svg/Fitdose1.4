@@ -18,6 +18,7 @@ const salesFilePath = path.join(dataDir, 'sales.json');
 const cashFlowFilePath = path.join(dataDir, 'cashflow.json');
 const vialsFilePath = path.join(dataDir, 'vials.json');
 const settingsFilePath = path.join(dataDir, 'settings.json');
+const migrationFilePath = path.join(dataDir, '.migration-check');
 
 
 type MockData = {
@@ -93,6 +94,83 @@ const writeData = (data: Partial<MockData>) => {
     if (data.vials) fs.writeFileSync(vialsFilePath, JSON.stringify(newData.vials, null, 2));
     if (data.settings) fs.writeFileSync(settingsFilePath, JSON.stringify(newData.settings, null, 2));
 };
+
+const runMigration = () => {
+    if (fs.existsSync(migrationFilePath)) {
+        return; // Migration already ran
+    }
+    console.log("Running one-time data migration...");
+
+    const allData = readData();
+    const { patients, sales } = allData;
+    let hasChanges = false;
+
+    patients.forEach(patient => {
+        const patientSales = sales
+            .filter(s => s.patientId === patient.id && s.deliveryStatus === 'entregue')
+            .sort((a, b) => new Date(a.saleDate).getTime() - new Date(b.saleDate).getTime());
+
+        if (patientSales.length === 0) return;
+
+        hasChanges = true;
+
+        // Reset all doses to pending before reprocessing sales
+        patient.doses.forEach(dose => {
+            dose.status = 'pending';
+        });
+        const initialSchedule = generateDoseSchedule(patient.firstDoseDate || new Date());
+        patient.doses = initialSchedule;
+        
+
+        let dosesAdministeredCount = 0;
+
+        patientSales.forEach(sale => {
+            let dosesToUpdateForThisSale = sale.quantity;
+            
+            for(let i = 0; i < patient.doses.length && dosesToUpdateForThisSale > 0; i++) {
+                if (patient.doses[i].status === 'pending') {
+                    const dose = patient.doses[i];
+                    dose.status = 'administered';
+                    dose.date = sale.deliveryDate || sale.saleDate;
+                    
+                    if (sale.bioimpedance?.weight) {
+                        dose.weight = sale.bioimpedance.weight;
+                        dose.bmi = sale.bioimpedance.bmi;
+                    }
+                    
+                    if (!dose.payment) dose.payment = { status: 'pendente' };
+                    dose.payment.status = sale.paymentStatus;
+                    dose.payment.amount = sale.total / sale.quantity;
+                    dose.payment.date = sale.paymentDate || (sale.paymentStatus === 'pago' ? sale.saleDate : undefined);
+                    dose.payment.method = sale.paymentMethod;
+
+                    dosesToUpdateForThisSale--;
+                }
+            }
+        });
+
+        // Final rescheduling pass
+        patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
+        for(let i = 1; i < patient.doses.length; i++) {
+            if(patient.doses[i].status === 'pending') {
+                const prevDoseDate = patient.doses[i-1].date;
+                const newDate = new Date(prevDoseDate);
+                newDate.setDate(newDate.getDate() + 7);
+                patient.doses[i].date = newDate;
+            }
+        }
+    });
+
+    if (hasChanges) {
+        writeData({ patients });
+        console.log("Data migration completed successfully.");
+    } else {
+        console.log("No data migration needed.");
+    }
+    
+    fs.writeFileSync(migrationFilePath, 'completed');
+}
+
 
 // --- Type Definitions ---
 
@@ -239,6 +317,7 @@ export type Sale = {
   deliveryDate?: Date;
   pointsUsed?: number;
   paymentMethod?: "dinheiro" | "pix" | "debito" | "credito" | "payment_link";
+  bioimpedance?: Bioimpedance;
 };
 
 export type NewSaleData = Omit<Sale, 'id' | 'patientName'> & {
@@ -284,6 +363,7 @@ export type Settings = {
 // --- Data Access Functions ---
 
 export const getPatients = async (): Promise<Patient[]> => {
+    runMigration(); // Run migration check
     await new Promise(resolve => setTimeout(resolve, 100)); // simulate async
     const { patients } = readData();
     return [...patients].sort((a,b) => a.fullName.localeCompare(b.fullName));
@@ -414,25 +494,20 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
         }
     };
     
+    // Sort doses by number to ensure correct order
     patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
 
-    for (let i = 1; i < patient.doses.length; i++) {
-        // Find the previous dose in the sorted array
-        const prevDose = patient.doses[i-1];
+    // Reschedule subsequent pending doses
+    for (let i = doseIndex + 1; i < patient.doses.length; i++) {
+        const prevDose = patient.doses[i - 1];
         const currentDose = patient.doses[i];
         
-        // If the current dose is pending and its date is before 7 days after the previous dose's date, update it
         if (currentDose.status === 'pending') {
             const newDate = new Date(prevDose.date);
             newDate.setDate(newDate.getDate() + 7);
-            
-            // Only update if the date is different, to avoid unnecessary changes.
-            if (currentDose.date.getTime() !== newDate.getTime()) {
-                 currentDose.date = newDate;
-            }
+            currentDose.date = newDate;
         }
     }
-
 
     data.patients[patientIndex] = patient;
     writeData({ patients: data.patients });
@@ -652,10 +727,13 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
 
 
     // --- Handle Points ---
-    const uiPerMg = 4;
-    const pointsGained = soldMgPerDose * saleData.quantity;
+    // const uiPerMg = 4; // This seems unused, keeping it commented out
+    const pointsGained = (soldMgPerDose / 2.5) * 10 * saleData.quantity; // 10 points per 2.5mg
     
-    patient.points = (patient.points || 0) + pointsGained;
+    if(!patient.points) patient.points = 0;
+    if(!patient.pointHistory) patient.pointHistory = [];
+
+    patient.points = patient.points + pointsGained;
     patient.pointHistory.push({
         date: new Date(),
         description: `Compra de ${saleData.quantity}x dose(s) de ${saleData.soldDose}mg`,
@@ -826,6 +904,9 @@ export const resetAllData = async (): Promise<void> => {
         }
     };
     writeData(emptyData);
+    if (fs.existsSync(migrationFilePath)) {
+        fs.unlinkSync(migrationFilePath);
+    }
     await new Promise(resolve => setTimeout(resolve, 100));
 }
 
