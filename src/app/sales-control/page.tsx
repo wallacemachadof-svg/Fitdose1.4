@@ -177,12 +177,12 @@ export default function SalesControlPage() {
                 </Button>
             </div>
             
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Receita Realizada ({monthLabel})</CardTitle>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Visão Financeira de Vendas - {monthLabel}</CardTitle>
+                    <CardDescription>
                          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                            <SelectTrigger className="w-[180px] h-8 text-xs">
+                            <SelectTrigger className="w-full md:w-[280px] h-9 mt-2">
                                 <SelectValue placeholder="Selecionar Mês" />
                             </SelectTrigger>
                             <SelectContent>
@@ -193,33 +193,42 @@ export default function SalesControlPage() {
                                 ))}
                             </SelectContent>
                         </Select>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-500">{formatCurrency(revenueThisMonth)}</div>
-                         <p className="text-xs text-muted-foreground">Soma dos valores pagos no período</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pagamentos Pendentes ({monthLabel})</CardTitle>
-                        <PackageX className="h-4 w-4 text-yellow-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-yellow-500">{formatCurrency(totalPendingAmountInPeriod)}</div>
-                        <p className="text-xs text-muted-foreground">{pendingPaymentsInPeriod.length} vendas aguardando pagamento</p>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Vendas no Mês</CardTitle>
-                        <ShoppingCart className="h-4 w-4 text-muted-foreground"/>
-                    </CardHeader>
-                    <CardContent>
-                        <div className={`text-2xl font-bold`}>{salesInSelectedPeriod.length} <span className="text-lg font-medium text-muted-foreground">({formatCurrency(totalValueInSelectedPeriod)})</span></div>
-                        <p className="text-xs text-muted-foreground">Total de vendas em {monthLabel}</p>
-                    </CardContent>
-                </Card>
-            </div>
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-3">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Receita Realizada</CardTitle>
+                            <DollarSign className="h-4 w-4 text-green-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-green-500">{formatCurrency(revenueThisMonth)}</div>
+                            <p className="text-xs text-muted-foreground">Soma dos valores pagos no período</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Pagamentos Pendentes</CardTitle>
+                            <PackageX className="h-4 w-4 text-yellow-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-yellow-500">{formatCurrency(totalPendingAmountInPeriod)}</div>
+                            <p className="text-xs text-muted-foreground">{pendingPaymentsInPeriod.length} vendas aguardando pagamento</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Total Vendido</CardTitle>
+                            <ShoppingCart className="h-4 w-4 text-muted-foreground"/>
+                        </CardHeader>
+                        <CardContent>
+                            <div className={`text-2xl font-bold`}>{formatCurrency(totalValueInSelectedPeriod)}</div>
+                            <p className="text-xs text-muted-foreground">{salesInSelectedPeriod.length} vendas em {monthLabel}</p>
+                        </CardContent>
+                    </Card>
+                </CardContent>
+            </Card>
+
 
             <Card>
                 <CardHeader>

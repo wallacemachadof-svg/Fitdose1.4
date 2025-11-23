@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowDownCircle, ArrowUpCircle, PlusCircle, MoreVertical, Edit, Trash2, Loader2, DollarSign } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, PlusCircle, MoreVertical, Edit, Trash2, Loader2, DollarSign, Package, PackageOpen, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import {
@@ -30,13 +30,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export default function CashFlowPage() {
     const [entries, setEntries] = useState<CashFlowEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [entryToDelete, setEntryToDelete] = useState<CashFlowEntry | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [selectedMonth, setSelectedMonth] = useState<string>('current');
     const { toast } = useToast();
     const router = useRouter();
 
@@ -79,18 +82,68 @@ export default function CashFlowPage() {
         router.push(`/cash-flow/edit/${entry.id}`);
     }
 
-    const income = entries.filter(e => e.type === 'entrada' && e.status === 'pago');
-    const expenses = entries.filter(e => e.type === 'saida' && e.status === 'pago');
+    const availableMonths = entries.reduce((acc, entry) => {
+        const date = entry.dueDate || entry.purchaseDate;
+        if (date) {
+            const monthKey = format(new Date(date), 'yyyy-MM');
+            if (!acc.find(item => item.value === monthKey)) {
+                acc.push({
+                    value: monthKey,
+                    label: format(new Date(date), 'MMMM yyyy', { locale: ptBR }).replace(/^\w/, c => c.toUpperCase())
+                });
+            }
+        }
+        return acc;
+    }, [] as { value: string, label: string }[]);
+    
+    availableMonths.sort((a,b) => b.value.localeCompare(a.value));
 
-    const totalIncome = income.reduce((acc, curr) => acc + curr.amount, 0);
-    const totalExpenses = expenses.reduce((acc, curr) => acc + curr.amount, 0);
-    const balance = totalIncome - totalExpenses;
+
+    const today = new Date();
+    let monthLabel: string;
+    let startOfSelectedPeriod: Date | null = null;
+    let endOfSelectedPeriod: Date | null = null;
+
+    if (selectedMonth === 'all') {
+        monthLabel = 'Geral';
+    } else if (selectedMonth === 'current') {
+        startOfSelectedPeriod = startOfMonth(today);
+        endOfSelectedPeriod = endOfMonth(today);
+        monthLabel = format(startOfSelectedPeriod, 'MMMM yyyy', { locale: ptBR }).replace(/^\w/, c => c.toUpperCase());
+    } else {
+        const [year, month] = selectedMonth.split('-').map(Number);
+        startOfSelectedPeriod = new Date(year, month - 1, 1);
+        endOfSelectedPeriod = endOfMonth(startOfSelectedPeriod);
+        monthLabel = format(startOfSelectedPeriod, 'MMMM yyyy', { locale: ptBR }).replace(/^\w/, c => c.toUpperCase());
+    }
+
+    const entriesInPeriod = selectedMonth === 'all'
+        ? entries
+        : entries.filter(e => {
+            const dateToCheck = e.status === 'pendente' || e.status === 'vencido' ? e.dueDate : e.purchaseDate;
+            return dateToCheck && startOfSelectedPeriod && endOfSelectedPeriod && isWithinInterval(new Date(dateToCheck), { start: startOfSelectedPeriod, end: endOfSelectedPeriod });
+        });
+        
+    const paidIncome = entriesInPeriod.filter(e => e.type === 'entrada' && e.status === 'pago');
+    const paidExpenses = entriesInPeriod.filter(e => e.type === 'saida' && e.status === 'pago');
+    const pendingIncome = entriesInPeriod.filter(e => e.type === 'entrada' && (e.status === 'pendente' || e.status === 'vencido'));
+    const pendingExpenses = entriesInPeriod.filter(e => e.type === 'saida' && (e.status === 'pendente' || e.status === 'vencido'));
+
+    const totalPaidIncome = paidIncome.reduce((acc, curr) => acc + curr.amount, 0);
+    const totalPaidExpenses = paidExpenses.reduce((acc, curr) => acc + curr.amount, 0);
+    const totalPendingIncome = pendingIncome.reduce((acc, curr) => acc + curr.amount, 0);
+    const totalPendingExpenses = pendingExpenses.reduce((acc, curr) => acc + curr.amount, 0);
+    
+    const realBalance = totalPaidIncome - totalPaidExpenses;
+    const projectedBalance = realBalance + totalPendingIncome - totalPendingExpenses;
+
 
     if (loading) {
         return (
             <div className="space-y-6">
                 <Skeleton className="h-12 w-1/3" />
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Skeleton className="h-28" />
                     <Skeleton className="h-28" />
                     <Skeleton className="h-28" />
                     <Skeleton className="h-28" />
@@ -105,7 +158,7 @@ export default function CashFlowPage() {
             <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                 <div>
                     <h1 className="text-2xl font-bold">Fluxo de Caixa</h1>
-                    <p className="text-muted-foreground">Visualize suas entradas e saídas.</p>
+                    <p className="text-muted-foreground">Visualize suas movimentações financeiras.</p>
                 </div>
                  <Button asChild>
                     <Link href="/cash-flow/new">
@@ -115,35 +168,82 @@ export default function CashFlowPage() {
                 </Button>
             </div>
             
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Receita Realizada</CardTitle>
-                        <ArrowUpCircle className="h-4 w-4 text-green-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-500">{formatCurrency(totalIncome)}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Despesas Realizadas</CardTitle>
-                        <ArrowDownCircle className="h-4 w-4 text-red-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-red-500">{formatCurrency(totalExpenses)}</div>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Balanço (Realizado)</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground"/>
-                    </CardHeader>
-                    <CardContent>
-                        <div className={`text-2xl font-bold ${balance >= 0 ? 'text-foreground' : 'text-destructive'}`}>{formatCurrency(balance)}</div>
-                    </CardContent>
-                </Card>
-            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Visão Financeira - {monthLabel}</CardTitle>
+                    <CardDescription>
+                         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                            <SelectTrigger className="w-full md:w-[280px] h-9 mt-2">
+                                <SelectValue placeholder="Selecionar Mês" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="current">Mês Atual</SelectItem>
+                                <SelectItem value="all">Visão Geral</SelectItem>
+                                {availableMonths.map(month => (
+                                    <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Receita Realizada</CardTitle>
+                            <ArrowUpCircle className="h-4 w-4 text-green-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-green-500">{formatCurrency(totalPaidIncome)}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Despesas Realizadas</CardTitle>
+                            <ArrowDownCircle className="h-4 w-4 text-red-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-red-500">{formatCurrency(totalPaidExpenses)}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Balanço Realizado</CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground"/>
+                        </CardHeader>
+                        <CardContent>
+                            <div className={`text-2xl font-bold ${realBalance >= 0 ? 'text-foreground' : 'text-destructive'}`}>{formatCurrency(realBalance)}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Balanço Previsto</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-blue-500"/>
+                        </CardHeader>
+                        <CardContent>
+                            <div className={`text-2xl font-bold text-blue-500`}>{formatCurrency(projectedBalance)}</div>
+                            <p className="text-xs text-muted-foreground">Inclui pendentes do mês</p>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">A Receber (Pendente)</CardTitle>
+                            <Package className="h-4 w-4 text-yellow-500"/>
+                        </CardHeader>
+                        <CardContent>
+                            <div className={`text-2xl font-bold text-yellow-500`}>{formatCurrency(totalPendingIncome)}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">A Pagar (Pendente)</CardTitle>
+                            <PackageOpen className="h-4 w-4 text-orange-500"/>
+                        </CardHeader>
+                        <CardContent>
+                            <div className={`text-2xl font-bold text-orange-500`}>{formatCurrency(totalPendingExpenses)}</div>
+                        </CardContent>
+                    </Card>
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardContent className="p-0">
@@ -156,13 +256,13 @@ export default function CashFlowPage() {
                             </TabsList>
                         </div>
                          <TabsContent value="all" className="mt-0">
-                            <EntriesTable entries={entries} onEdit={handleEditClick} onDelete={handleDeleteClick} />
+                            <EntriesTable entries={entriesInPeriod} onEdit={handleEditClick} onDelete={handleDeleteClick} />
                         </TabsContent>
                         <TabsContent value="income" className="mt-0">
-                            <EntriesTable entries={entries.filter(e => e.type === 'entrada')} onEdit={handleEditClick} onDelete={handleDeleteClick} />
+                            <EntriesTable entries={entriesInPeriod.filter(e => e.type === 'entrada')} onEdit={handleEditClick} onDelete={handleDeleteClick} />
                         </TabsContent>
                         <TabsContent value="expenses" className="mt-0">
-                             <EntriesTable entries={entries.filter(e => e.type === 'saida')} onEdit={handleEditClick} onDelete={handleDeleteClick} />
+                             <EntriesTable entries={entriesInPeriod.filter(e => e.type === 'saida')} onEdit={handleEditClick} onDelete={handleDeleteClick} />
                         </TabsContent>
                     </Tabs>
                 </CardContent>
@@ -200,7 +300,7 @@ function EntriesTable({ entries, onEdit, onDelete }: EntriesTableProps) {
         dinheiro: "Dinheiro",
         debito: "Débito",
         credito: "Crédito",
-        credito_parcelado: "Crédito Parcelado",
+        credito_parcelado: "Créd. Parcelado",
         payment_link: "Link de Pagamento",
     };
 
@@ -208,7 +308,7 @@ function EntriesTable({ entries, onEdit, onDelete }: EntriesTableProps) {
         <Table>
             <TableHeader>
                 <TableRow>
-                    <TableHead>Data</TableHead>
+                    <TableHead>Data Compra</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Valor</TableHead>
                     <TableHead>Forma Pag.</TableHead>
@@ -226,7 +326,7 @@ function EntriesTable({ entries, onEdit, onDelete }: EntriesTableProps) {
                             <TableRow key={entry.id}>
                                 <TableCell>{formatDate(entry.purchaseDate)}</TableCell>
                                 <TableCell className="font-medium">{entry.description}</TableCell>
-                                <TableCell className={`font-semibold ${typeStyle.color} ${typeStyle.textColor}`}>
+                                <TableCell className={`font-semibold ${typeStyle.color}`}>
                                     {entry.type === 'saida' && '- '}{formatCurrency(entry.amount)}
                                 </TableCell>
                                 <TableCell>{entry.paymentMethod ? paymentMethodLabels[entry.paymentMethod] ?? '-' : '-'}</TableCell>
@@ -259,7 +359,7 @@ function EntriesTable({ entries, onEdit, onDelete }: EntriesTableProps) {
                 ) : (
                     <TableRow>
                         <TableCell colSpan={7} className="h-24 text-center">
-                            Nenhum lançamento encontrado.
+                            Nenhum lançamento encontrado para este período.
                         </TableCell>
                     </TableRow>
                 )}
