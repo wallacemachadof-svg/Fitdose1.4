@@ -53,7 +53,7 @@ export default function SalesControlPage() {
     }, []);
 
     const availableMonths = sales.reduce((acc, sale) => {
-        const date = sale.paymentStatus === 'pago' ? sale.paymentDate : sale.paymentDueDate;
+        const date = sale.paymentStatus === 'pago' && sale.paymentDate ? sale.paymentDate : sale.saleDate;
         if (date) {
             const monthKey = format(new Date(date), 'yyyy-MM');
             if (!acc.find(item => item.value === monthKey)) {
@@ -103,26 +103,40 @@ export default function SalesControlPage() {
     }
     
     const today = new Date();
-    const [year, month] = selectedMonth === 'current' 
-        ? [today.getFullYear(), today.getMonth()]
-        : selectedMonth.split('-').map(Number);
-    const startOfSelectedMonth = selectedMonth === 'current' ? startOfMonth(today) : new Date(year, month - 1, 1);
-    const endOfSelectedMonth = selectedMonth === 'current' ? endOfMonth(today) : endOfMonth(new Date(year, month - 1, 1));
-    const monthLabel = format(startOfSelectedMonth, 'MMMM yyyy', { locale: ptBR }).replace(/^\w/, c => c.toUpperCase());
+    
+    let monthLabel: string;
+    let startOfSelectedPeriod: Date | null = null;
+    let endOfSelectedPeriod: Date | null = null;
+
+    if (selectedMonth === 'all') {
+        monthLabel = 'Todos os Meses';
+    } else if (selectedMonth === 'current') {
+        startOfSelectedPeriod = startOfMonth(today);
+        endOfSelectedPeriod = endOfMonth(today);
+        monthLabel = format(startOfSelectedPeriod, 'MMMM yyyy', { locale: ptBR }).replace(/^\w/, c => c.toUpperCase());
+    } else {
+        const [year, month] = selectedMonth.split('-').map(Number);
+        startOfSelectedPeriod = new Date(year, month - 1, 1);
+        endOfSelectedPeriod = endOfMonth(startOfSelectedPeriod);
+        monthLabel = format(startOfSelectedPeriod, 'MMMM yyyy', { locale: ptBR }).replace(/^\w/, c => c.toUpperCase());
+    }
+
 
     const pendingPayments = sales.filter(s => s.paymentStatus === 'pendente');
     const totalPendingAmount = pendingPayments.reduce((acc, sale) => acc + sale.total, 0);
     
-    const salesInSelectedMonth = sales.filter(s => {
-        const dateToCheck = s.saleDate;
-        return dateToCheck && isWithinInterval(new Date(dateToCheck), { start: startOfSelectedMonth, end: endOfSelectedMonth });
-    });
+    const salesInSelectedPeriod = selectedMonth === 'all'
+        ? sales
+        : sales.filter(s => {
+            const dateToCheck = s.paymentStatus === 'pago' && s.paymentDate ? s.paymentDate : s.saleDate;
+            return dateToCheck && startOfSelectedPeriod && endOfSelectedPeriod && isWithinInterval(new Date(dateToCheck), { start: startOfSelectedPeriod, end: endOfSelectedPeriod });
+        });
 
-    const revenueThisMonth = salesInSelectedMonth
-        .filter(s => s.paymentStatus === 'pago' && s.paymentDate)
+    const revenueThisMonth = salesInSelectedPeriod
+        .filter(s => s.paymentStatus === 'pago')
         .reduce((acc, sale) => acc + sale.total, 0);
 
-    const filteredSales = sales.filter(sale => {
+    const filteredSales = salesInSelectedPeriod.filter(sale => {
         if (filter === 'all') return true;
         return sale.paymentStatus === filter;
     });
@@ -167,6 +181,7 @@ export default function SalesControlPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="current">Mês Atual</SelectItem>
+                                <SelectItem value="all">Todos os Meses</SelectItem>
                                 {availableMonths.map(month => (
                                     <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
                                 ))}
@@ -175,7 +190,7 @@ export default function SalesControlPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-500">{formatCurrency(revenueThisMonth)}</div>
-                         <p className="text-xs text-muted-foreground">Soma dos valores pagos no mês selecionado</p>
+                         <p className="text-xs text-muted-foreground">Soma dos valores pagos no período</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -194,7 +209,7 @@ export default function SalesControlPage() {
                         <ShoppingCart className="h-4 w-4 text-muted-foreground"/>
                     </CardHeader>
                     <CardContent>
-                        <div className={`text-2xl font-bold`}>{salesInSelectedMonth.length}</div>
+                        <div className={`text-2xl font-bold`}>{salesInSelectedPeriod.length}</div>
                         <p className="text-xs text-muted-foreground">Total de vendas em {monthLabel}</p>
                     </CardContent>
                 </Card>
@@ -202,7 +217,7 @@ export default function SalesControlPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Histórico de Vendas</CardTitle>
+                    <CardTitle>Histórico de Vendas ({monthLabel})</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <Tabs value={filter} onValueChange={(value) => setFilter(value as any)}>
