@@ -29,7 +29,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { startOfMonth, endOfMonth, isWithinInterval, format } from "date-fns";
+import { ptBR } from 'date-fns/locale';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function SalesControlPage() {
     const [sales, setSales] = useState<Sale[]>([]);
@@ -38,7 +40,7 @@ export default function SalesControlPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
     const [filter, setFilter] = useState<'all' | 'pago' | 'pendente'>('all');
-
+    const [selectedMonth, setSelectedMonth] = useState<string>('current');
 
     useEffect(() => {
         const fetchSales = async () => {
@@ -49,6 +51,23 @@ export default function SalesControlPage() {
         };
         fetchSales();
     }, []);
+
+    const availableMonths = sales.reduce((acc, sale) => {
+        const date = sale.paymentStatus === 'pago' ? sale.paymentDate : sale.paymentDueDate;
+        if (date) {
+            const monthKey = format(new Date(date), 'yyyy-MM');
+            if (!acc.find(item => item.value === monthKey)) {
+                acc.push({
+                    value: monthKey,
+                    label: format(new Date(date), 'MMMM yyyy', { locale: ptBR }).replace(/^\w/, c => c.toUpperCase())
+                });
+            }
+        }
+        return acc;
+    }, [] as { value: string, label: string }[]);
+    
+    availableMonths.sort((a,b) => b.value.localeCompare(a.value));
+
 
     const handleDeleteClick = (sale: Sale) => {
         setSaleToDelete(sale);
@@ -84,15 +103,19 @@ export default function SalesControlPage() {
     }
     
     const today = new Date();
-    const startOfCurrentMonth = startOfMonth(today);
-    const endOfCurrentMonth = endOfMonth(today);
+    const [year, month] = selectedMonth === 'current' 
+        ? [today.getFullYear(), today.getMonth()]
+        : selectedMonth.split('-').map(Number);
+    const startOfSelectedMonth = selectedMonth === 'current' ? startOfMonth(today) : new Date(year, month - 1, 1);
+    const endOfSelectedMonth = selectedMonth === 'current' ? endOfMonth(today) : endOfMonth(new Date(year, month - 1, 1));
+    const monthLabel = format(startOfSelectedMonth, 'MMMM yyyy', { locale: ptBR }).replace(/^\w/, c => c.toUpperCase());
 
     const pendingPayments = sales.filter(s => s.paymentStatus === 'pendente');
     const totalPendingAmount = pendingPayments.reduce((acc, sale) => acc + sale.total, 0);
     
     const revenueThisMonth = sales.filter(s => {
         const dateToCheck = s.paymentStatus === 'pago' ? s.paymentDate : s.paymentDueDate;
-        return dateToCheck && isWithinInterval(new Date(dateToCheck), { start: startOfCurrentMonth, end: endOfCurrentMonth });
+        return dateToCheck && isWithinInterval(new Date(dateToCheck), { start: startOfSelectedMonth, end: endOfSelectedMonth });
     }).reduce((acc, sale) => acc + sale.total, 0);
 
     const pendingDeliveryCount = sales.filter(s => s.deliveryStatus !== 'entregue').length;
@@ -135,12 +158,22 @@ export default function SalesControlPage() {
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Receita do Mês (Realizada + Prevista)</CardTitle>
-                        <DollarSign className="h-4 w-4 text-green-500" />
+                        <CardTitle className="text-sm font-medium">Receita de {monthLabel}</CardTitle>
+                        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                            <SelectTrigger className="w-[180px] h-8 text-xs">
+                                <SelectValue placeholder="Selecionar Mês" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="current">Mês Atual</SelectItem>
+                                {availableMonths.map(month => (
+                                    <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-500">{formatCurrency(revenueThisMonth)}</div>
-                         <p className="text-xs text-muted-foreground">Soma de valores pagos e pendentes no mês atual</p>
+                         <p className="text-xs text-muted-foreground">Soma de valores pagos e pendentes no mês</p>
                     </CardContent>
                 </Card>
                 <Card>
