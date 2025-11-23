@@ -144,7 +144,7 @@ export default function SalesControlPage() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pagamentos Pendentes (Total)</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total de Pagamentos Pendentes</CardTitle>
                         <PackageX className="h-4 w-4 text-yellow-500" />
                     </CardHeader>
                     <CardContent>
