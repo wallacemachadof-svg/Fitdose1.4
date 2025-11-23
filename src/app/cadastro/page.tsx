@@ -8,7 +8,6 @@ import PatientRegistrationForm from './form';
 export default function CadastroPage() {
     return (
         <Suspense fallback={<Card className="w-full max-w-4xl h-96 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></Card>}>
-            {/* The form will now fetch its own data on the client */}
             <PatientRegistrationForm />
         </Suspense>
     )

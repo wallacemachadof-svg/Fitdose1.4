@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { User as UserIcon, Upload, Loader2, ArrowRight, CalendarIcon } from "lucide-react";
 import { cn, calculateBmi } from "@/lib/utils";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { addPatient, getPatients, type Patient } from "@/lib/actions";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -85,9 +85,7 @@ const patientFormSchema = z.object({
   indicationSource: z.enum(['yes', 'no']).optional(),
   indicationName: z.string().optional(),
   indicationPatientId: z.string().optional(),
-  consentGiven: z.boolean().refine((val) => val === true, {
-    message: "Você deve ler e concordar com os termos para continuar.",
-  }),
+  consentGiven: z.boolean().optional(),
 }).refine(data => {
     if (data.usedMonjauro === 'yes') {
         return !!data.monjauroDose && !!data.monjauroTime;
@@ -121,6 +119,45 @@ export default function PatientRegistrationForm() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [patientOptions, setPatientOptions] = useState<PatientOptions>([]);
 
+    const isInternalRegistration = useMemo(() => searchParams.get('source') === 'internal', [searchParams]);
+
+    const formSchema = useMemo(() => {
+        return patientFormSchema.refine(data => {
+            if (!isInternalRegistration) {
+                return data.consentGiven === true;
+            }
+            return true;
+        }, {
+            message: "Você deve ler e concordar com os termos para continuar.",
+            path: ["consentGiven"],
+        });
+    }, [isInternalRegistration]);
+
+    const form = useForm<PatientFormValues>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            healthConditions: [],
+            contraindications: [],
+            otherHealthIssues: "",
+            dailyMedications: "",
+            monjauroDose: "",
+            monjauroTime: "",
+            avatarUrl: "",
+            indicationSource: 'no',
+            indicationName: "",
+            consentGiven: isInternalRegistration ? true : false,
+            allergyDetails: "",
+            serviceModel: 'presencial',
+        }
+    });
+    
+    useEffect(() => {
+        form.reset({
+            ...form.getValues(),
+            consentGiven: isInternalRegistration ? true : false,
+        });
+    }, [isInternalRegistration, form]);
+
     useEffect(() => {
         async function fetchPatientOptions() {
             const patients = await getPatients();
@@ -128,8 +165,7 @@ export default function PatientRegistrationForm() {
         }
         fetchPatientOptions();
         
-        const source = searchParams.get('source');
-        if (source === 'internal') {
+        if (isInternalRegistration) {
             setShowForm(true);
         }
 
@@ -147,26 +183,8 @@ export default function PatientRegistrationForm() {
         return () => {
           window.removeEventListener('storage', handleStorageChange);
         };
-    }, [searchParams]);
+    }, [isInternalRegistration]);
 
-
-    const form = useForm<PatientFormValues>({
-        resolver: zodResolver(patientFormSchema),
-        defaultValues: {
-            healthConditions: [],
-            contraindications: [],
-            otherHealthIssues: "",
-            dailyMedications: "",
-            monjauroDose: "",
-            monjauroTime: "",
-            avatarUrl: "",
-            indicationSource: 'no',
-            indicationName: "",
-            consentGiven: false,
-            allergyDetails: "",
-            serviceModel: 'presencial',
-        }
-    });
 
     const watchWeight = form.watch("initialWeight");
     const watchHeight = form.watch("height");
@@ -288,11 +306,19 @@ export default function PatientRegistrationForm() {
                 usedMonjauro: data.usedMonjauro,
                 monjauroDose: data.monjauroDose,
                 monjauroTime: data.monjauroTime,
-                consentGiven: data.consentGiven
+                consentGiven: data.consentGiven || false,
             };
             
             await addPatient(patientDataForApi);
-            router.push("/cadastro/sucesso");
+            if (isInternalRegistration) {
+                toast({
+                    title: "Paciente Cadastrado!",
+                    description: `${data.fullName} foi adicionado(a) com sucesso.`
+                });
+                router.push('/patients');
+            } else {
+                 router.push("/cadastro/sucesso");
+            }
         } catch (error) {
             console.error("Failed to add patient", error);
              toast({
@@ -426,16 +452,16 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do tratame
                                 </FormItem>
                             )}/>
                             <FormField control={form.control} name="age" render={({ field }) => (
-                                <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" placeholder="Sua idade" {...field} disabled={!!watchBirthDate} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" placeholder="Sua idade" {...field} value={field.value ?? ''} disabled={!!watchBirthDate} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="height" render={({ field }) => (
-                                <FormItem><FormLabel>Altura (cm)</FormLabel><FormControl><Input type="number" placeholder="Ex: 175" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Altura (cm)</FormLabel><FormControl><Input type="number" placeholder="Ex: 175" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="initialWeight" render={({ field }) => (
-                                <FormItem><FormLabel>Peso Inicial (kg)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 85.5" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Peso Inicial (kg)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 85.5" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                              <FormField control={form.control} name="desiredWeight" render={({ field }) => (
-                                <FormItem><FormLabel>Meta de Peso (kg)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 70" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Meta de Peso (kg)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 70" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             {bmi !== null && (
                             <div className="space-y-2">
@@ -477,7 +503,7 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do tratame
                                 <FormItem>
                                     <FormLabel>Você possui algum problema de saúde não listado abaixo?</FormLabel>
                                     <FormControl>
-                                        <Textarea rows={3} placeholder="Liste problemas de saúde não mencionados, se houver." {...field} />
+                                        <Textarea rows={3} placeholder="Liste problemas de saúde não mencionados, se houver." {...field} value={field.value ?? ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -533,7 +559,7 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do tratame
                                         <FormItem>
                                             <FormLabel>Especifique suas alergias</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Ex: Dipirona, frutos do mar" {...field} />
+                                                <Input placeholder="Ex: Dipirona, frutos do mar" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -587,7 +613,7 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do tratame
                                 <FormItem>
                                     <FormLabel>Quais medicamentos você toma todos os dias?</FormLabel>
                                     <FormControl>
-                                        <Textarea rows={3} placeholder="Liste os medicamentos de uso contínuo." {...field} />
+                                        <Textarea rows={3} placeholder="Liste os medicamentos de uso contínuo." {...field} value={field.value ?? ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -683,37 +709,40 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do tratame
 
                         </div>
                         
-                        <div className="space-y-4 pt-6 border-t">
-                            <h3 className="text-lg font-semibold">Termo de Consentimento Livre e Esclarecido</h3>
-                            <div className="space-y-2">
-                                <ScrollArea className="h-40 w-full rounded-md border p-4 text-sm">
-                                    {consentText}
-                                </ScrollArea>
-                                <FormField
-                                    control={form.control}
-                                    name="consentGiven"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2">
-                                        <FormControl>
-                                            <Checkbox
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
-                                        </FormControl>
-                                        <div className="space-y-1 leading-none">
-                                            <FormLabel className="font-normal">
-                                                Li e concordo com os termos de consentimento.
-                                            </FormLabel>
-                                        </div>
-                                        </FormItem>
-                                    )}
-                                    />
+                        {!isInternalRegistration && (
+                            <div className="space-y-4 pt-6 border-t">
+                                <h3 className="text-lg font-semibold">Termo de Consentimento Livre e Esclarecido</h3>
+                                <div className="space-y-2">
+                                    <ScrollArea className="h-40 w-full rounded-md border p-4 text-sm">
+                                        {consentText}
+                                    </ScrollArea>
+                                    <FormField
+                                        control={form.control}
+                                        name="consentGiven"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none">
+                                                <FormLabel className="font-normal">
+                                                    Li e concordo com os termos de consentimento.
+                                                </FormLabel>
+                                                <FormMessage />
+                                            </div>
+                                            </FormItem>
+                                        )}
+                                        />
+                                </div>
                             </div>
-                        </div>
+                        )}
                         
                         <div className="flex justify-end gap-2 pt-4">
                             <Button type="submit" disabled={isSubmitting || !form.formState.isValid} size="lg">
-                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Enviando...</> : 'Finalizar e Enviar Cadastro'}
+                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Enviando...</> : isInternalRegistration ? 'Cadastrar Paciente' : 'Finalizar e Enviar Cadastro'}
                             </Button>
                         </div>
                     </form>

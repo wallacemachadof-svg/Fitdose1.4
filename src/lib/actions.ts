@@ -180,7 +180,7 @@ const generateDoseSchedule = (startDate: Date, totalDoses = 12, startDoseNumber 
   const newDoses: Dose[] = [];
   
   const lastAdministeredDose = administeredDoses.length > 0 
-      ? administeredDoses.sort((a,b) => b.doseNumber - b.doseNumber)[0]
+      ? administeredDoses.sort((a,b) => b.doseNumber - a.doseNumber)[0]
       : null;
 
   let currentDate = lastAdministeredDose ? new Date(lastAdministeredDose.date) : new Date(startDate);
@@ -460,6 +460,29 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
     };
 
     data.patients.push(newPatient);
+    
+    // --- Handle Indication Points ---
+    if (newPatient.indication?.type === 'indicado' && newPatient.indication.patientId) {
+        const referrerIndex = data.patients.findIndex(p => p.id === newPatient.indication!.patientId);
+        if (referrerIndex !== -1) {
+            const referrer = data.patients[referrerIndex];
+            const settings = data.settings;
+            // Assuming 120 points for a successful referral, this can be made configurable
+            const referralPoints = 120; 
+            
+            if (!referrer.points) referrer.points = 0;
+            if (!referrer.pointHistory) referrer.pointHistory = [];
+
+            referrer.points += referralPoints;
+            referrer.pointHistory.push({
+                date: new Date(),
+                description: `Indicação de ${newPatient.fullName}`,
+                points: referralPoints,
+            });
+            data.patients[referrerIndex] = referrer;
+        }
+    }
+    
     writeData({ patients: data.patients });
     
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -779,23 +802,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     const pointsConfig = settings.rewards?.pointsPerDose?.find(p => p.dose === saleData.soldDose);
     const pointsGained = (pointsConfig?.points ?? 0) * saleData.quantity;
     
-    // If patient was referred, give points to the referrer
-    if (patient.indication?.type === 'indicado' && patient.indication.patientId) {
-        const referrerIndex = data.patients.findIndex(p => p.id === patient.indication!.patientId);
-        if (referrerIndex !== -1) {
-            const referrer = data.patients[referrerIndex];
-            if (!referrer.points) referrer.points = 0;
-            if (!referrer.pointHistory) referrer.pointHistory = [];
-
-            referrer.points += pointsGained;
-            referrer.pointHistory.push({
-                date: new Date(),
-                description: `Indicação de ${patient.fullName}`,
-                points: pointsGained,
-            });
-            data.patients[referrerIndex] = referrer;
-        }
-    } else { // Otherwise, give points to the patient making the purchase
+    if (pointsGained > 0) {
         if(!patient.points) patient.points = 0;
         if(!patient.pointHistory) patient.pointHistory = [];
 
@@ -1173,3 +1180,4 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
     return { ruptureDate: null, purchaseDeadline: null };
 }
+
