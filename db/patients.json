@@ -1020,7 +1020,7 @@
     "initialWeight": 79.9,
     "height": 170,
     "desiredWeight": 60,
-    "firstDoseDate": "2025-11-23T14:09:46.574Z",
+    "firstDoseDate": "2025-11-11T03:00:00.000Z",
     "address": {
       "zip": "",
       "street": "",
@@ -1035,27 +1035,33 @@
       {
         "id": 1,
         "doseNumber": 1,
-        "date": "2025-11-23T14:09:46.574Z",
-        "status": "pending",
+        "date": "2025-11-11T03:00:00.000Z",
+        "status": "administered",
         "time": "10:00",
         "payment": {
           "status": "pendente"
-        }
+        },
+        "weight": 79.9,
+        "bmi": 27.6,
+        "administeredDose": 2.5
       },
       {
         "id": 2,
         "doseNumber": 2,
-        "date": "2025-11-30T14:09:46.574Z",
-        "status": "pending",
+        "date": "2025-11-18T03:00:00.000Z",
+        "status": "administered",
         "time": "10:00",
         "payment": {
           "status": "pendente"
-        }
+        },
+        "weight": 78,
+        "bmi": 26.8,
+        "administeredDose": 2.5
       },
       {
         "id": 3,
         "doseNumber": 3,
-        "date": "2025-12-07T14:09:46.574Z",
+        "date": "2025-11-25T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -1065,7 +1071,7 @@
       {
         "id": 4,
         "doseNumber": 4,
-        "date": "2025-12-14T14:09:46.574Z",
+        "date": "2025-12-02T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -1075,7 +1081,7 @@
       {
         "id": 5,
         "doseNumber": 5,
-        "date": "2025-12-21T14:09:46.574Z",
+        "date": "2025-12-09T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -1085,7 +1091,7 @@
       {
         "id": 6,
         "doseNumber": 6,
-        "date": "2025-12-28T14:09:46.574Z",
+        "date": "2025-12-16T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -1095,7 +1101,7 @@
       {
         "id": 7,
         "doseNumber": 7,
-        "date": "2026-01-04T14:09:46.574Z",
+        "date": "2025-12-23T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -1105,7 +1111,7 @@
       {
         "id": 8,
         "doseNumber": 8,
-        "date": "2026-01-11T14:09:46.574Z",
+        "date": "2025-12-30T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -1115,7 +1121,7 @@
       {
         "id": 9,
         "doseNumber": 9,
-        "date": "2026-01-18T14:09:46.574Z",
+        "date": "2026-01-06T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -1125,7 +1131,7 @@
       {
         "id": 10,
         "doseNumber": 10,
-        "date": "2026-01-25T14:09:46.574Z",
+        "date": "2026-01-13T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -1135,7 +1141,7 @@
       {
         "id": 11,
         "doseNumber": 11,
-        "date": "2026-02-01T14:09:46.574Z",
+        "date": "2026-01-20T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -1145,7 +1151,7 @@
       {
         "id": 12,
         "doseNumber": 12,
-        "date": "2026-02-08T14:09:46.574Z",
+        "date": "2026-01-27T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -1153,15 +1159,239 @@
         }
       }
     ],
-    "evolutions": [],
+    "evolutions": [
+      {
+        "id": "evo-sale-17",
+        "date": "2025-11-11T03:00:00.000Z",
+        "notes": "Registro de bioimpedância no momento da venda.",
+        "bioimpedance": {
+          "weight": 79.9,
+          "bmi": 27.6,
+          "metabolism": 0
+        }
+      },
+      {
+        "id": "evo-sale-18",
+        "date": "2025-11-18T03:00:00.000Z",
+        "notes": "Registro de bioimpedância no momento da venda.",
+        "bioimpedance": {
+          "weight": 78,
+          "bmi": 26.8
+        }
+      },
+      {
+        "id": "evo-manual-1763908299574",
+        "date": "2025-11-23T14:31:20.049Z",
+        "notes": "Registro de bioimpedância manual.",
+        "bioimpedance": {
+          "weight": 77,
+          "bmi": 26.6
+        }
+      }
+    ],
     "dailyMedications": "",
     "oralContraceptive": "no",
     "usedMonjauro": "no",
     "monjauroDose": "",
     "monjauroTime": "",
-    "points": 0,
-    "pointHistory": [],
+    "points": 30,
+    "pointHistory": [
+      {
+        "date": "2025-11-23T14:20:11.528Z",
+        "description": "Compra de 1x dose(s) de 2.5mg",
+        "points": 10
+      },
+      {
+        "date": "2025-11-23T14:21:21.543Z",
+        "description": "Compra de 1x dose(s) de 2.5mg",
+        "points": 10
+      },
+      {
+        "date": "2025-11-23T14:29:33.280Z",
+        "description": "Compra de 1x dose(s) de 2.5mg",
+        "points": 10
+      }
+    ],
     "consentGiven": true,
     "consentDate": "2025-11-23T14:09:46.863Z"
+  },
+  {
+    "id": "6",
+    "fullName": "TISA GONZE",
+    "age": 45,
+    "initialWeight": 67.8,
+    "height": 154,
+    "desiredWeight": 60,
+    "firstDoseDate": "2025-10-30T03:00:00.000Z",
+    "address": {
+      "zip": "",
+      "street": "",
+      "number": "",
+      "city": "",
+      "state": ""
+    },
+    "phone": "31984630669",
+    "healthContraindications": "Nenhuma observação.",
+    "avatarUrl": "https://i.pravatar.cc/150?u=6",
+    "doses": [
+      {
+        "id": 1,
+        "doseNumber": 1,
+        "date": "2025-11-20T03:00:00.000Z",
+        "status": "administered",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        },
+        "weight": 62.8,
+        "bmi": 26.5,
+        "administeredDose": 2.5
+      },
+      {
+        "id": 2,
+        "doseNumber": 2,
+        "date": "2025-11-27T03:00:00.000Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 3,
+        "doseNumber": 3,
+        "date": "2025-12-04T03:00:00.000Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 4,
+        "doseNumber": 4,
+        "date": "2025-12-11T03:00:00.000Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 5,
+        "doseNumber": 5,
+        "date": "2025-12-18T03:00:00.000Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 6,
+        "doseNumber": 6,
+        "date": "2025-12-25T03:00:00.000Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 7,
+        "doseNumber": 7,
+        "date": "2026-01-01T03:00:00.000Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 8,
+        "doseNumber": 8,
+        "date": "2026-01-08T03:00:00.000Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 9,
+        "doseNumber": 9,
+        "date": "2026-01-15T03:00:00.000Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 10,
+        "doseNumber": 10,
+        "date": "2026-01-22T03:00:00.000Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 11,
+        "doseNumber": 11,
+        "date": "2026-01-29T03:00:00.000Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 12,
+        "doseNumber": 12,
+        "date": "2026-02-05T03:00:00.000Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      }
+    ],
+    "evolutions": [
+      {
+        "id": "evo-sale-22",
+        "date": "2025-11-20T03:00:00.000Z",
+        "notes": "Registro de bioimpedância no momento da venda.",
+        "bioimpedance": {
+          "weight": 62.8,
+          "bmi": 26.5
+        }
+      }
+    ],
+    "dailyMedications": "",
+    "usedMonjauro": "no",
+    "monjauroDose": "",
+    "monjauroTime": "",
+    "points": 30,
+    "pointHistory": [
+      {
+        "date": "2025-11-23T14:49:28.858Z",
+        "description": "Compra de 1x dose(s) de 2.5mg",
+        "points": 10
+      },
+      {
+        "date": "2025-11-23T14:50:00.997Z",
+        "description": "Compra de 1x dose(s) de 2.5mg",
+        "points": 10
+      },
+      {
+        "date": "2025-11-23T14:51:09.035Z",
+        "description": "Compra de 1x dose(s) de 2.5mg",
+        "points": 10
+      }
+    ],
+    "consentGiven": true,
+    "consentDate": "2025-11-23T14:36:23.284Z"
   }
 ]

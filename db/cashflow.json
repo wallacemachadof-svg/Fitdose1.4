@@ -150,5 +150,59 @@
     "amount": 0,
     "status": "pago",
     "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-17",
+    "type": "entrada",
+    "purchaseDate": "2025-11-11T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ JOSIANE LOPES ALVES",
+    "amount": 200,
+    "status": "pendente",
+    "dueDate": "2025-11-30T03:00:00.000Z"
+  },
+  {
+    "id": "sale-18",
+    "type": "entrada",
+    "purchaseDate": "2025-11-18T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ JOSIANE LOPES ALVES",
+    "amount": 200,
+    "status": "pendente",
+    "dueDate": "2025-11-18T03:00:00.000Z"
+  },
+  {
+    "id": "sale-19",
+    "type": "entrada",
+    "purchaseDate": "2025-11-23T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ JOSIANE LOPES ALVES",
+    "amount": 200,
+    "status": "pendente",
+    "dueDate": "2025-11-30T03:00:00.000Z"
+  },
+  {
+    "id": "sale-20",
+    "type": "entrada",
+    "purchaseDate": "2025-11-06T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ TISA GONZE",
+    "amount": 200,
+    "status": "pendente",
+    "dueDate": "2025-11-30T03:00:00.000Z"
+  },
+  {
+    "id": "sale-21",
+    "type": "entrada",
+    "purchaseDate": "2025-11-13T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ TISA GONZE",
+    "amount": 200,
+    "status": "pendente",
+    "dueDate": "2025-11-30T03:00:00.000Z"
+  },
+  {
+    "id": "sale-22",
+    "type": "entrada",
+    "purchaseDate": "2025-11-20T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ TISA GONZE",
+    "amount": 200,
+    "status": "pendente",
+    "dueDate": "2025-11-20T03:00:00.000Z"
   }
 ]

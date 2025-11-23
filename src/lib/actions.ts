@@ -99,7 +99,6 @@ const writeData = (data: Partial<MockData>) => {
 const generateDoseSchedule = (startDate: Date, totalDoses = 12, startDoseNumber = 1, administeredDoses: Dose[] = []): Dose[] => {
   const newDoses: Dose[] = [];
   
-  // Determine the starting point for the new schedule
   const lastAdministeredDose = administeredDoses.length > 0 
       ? administeredDoses.sort((a,b) => b.doseNumber - a.doseNumber)[0]
       : null;
@@ -405,7 +404,6 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
 
     if (doseIndex === -1) return null;
     
-    // Create the updated dose object
     patient.doses[doseIndex] = {
         ...patient.doses[doseIndex],
         ...doseData,
@@ -416,16 +414,16 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
         }
     };
     
-    // Sort doses by number to ensure correct order before recalculating
     patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
 
-    // Recalculate dates for all subsequent pending doses
     for (let i = 1; i < patient.doses.length; i++) {
-        const prevDose = patient.doses[i - 1];
-        if (patient.doses[i].status === 'pending') {
-            const newDate = new Date(prevDose.date);
-            newDate.setDate(newDate.getDate() + 7);
-            patient.doses[i].date = newDate;
+        if (patient.doses[i].doseNumber > patient.doses[doseIndex].doseNumber && patient.doses[i].status === 'pending') {
+            const prevDose = patient.doses.find(d => d.doseNumber === patient.doses[i].doseNumber - 1);
+            if (prevDose) {
+                const newDate = new Date(prevDose.date);
+                newDate.setDate(newDate.getDate() + 7);
+                patient.doses[i].date = newDate;
+            }
         }
     }
 
@@ -568,9 +566,8 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         total: total,
     };
 
-    // --- Handle Bioimpedance and Dose Administration ---
+    // --- Handle Bioimpedance ---
     const hasBioimpedance = saleData.bioimpedance && Object.values(saleData.bioimpedance).some(v => v !== undefined);
-
     if (hasBioimpedance) {
         const bioimpedance = { ...saleData.bioimpedance };
         if (!bioimpedance.bmi && bioimpedance.weight && patient.height) {
@@ -579,22 +576,33 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         
         const newEvolution: Evolution = {
             id: `evo-sale-${newSale.id}`,
-            date: newSale.saleDate,
+            date: newSale.deliveryDate || newSale.saleDate,
             notes: "Registro de bioimpedância no momento da venda.",
             bioimpedance: bioimpedance,
         };
         patient.evolutions.push(newEvolution);
-
-        // Auto-administer next pending dose
+    }
+    
+    // --- Handle Dose Administration based on Delivery Status ---
+    if (newSale.deliveryStatus === 'entregue') {
         patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
         const nextPendingDoseIndex = patient.doses.findIndex(d => d.status === 'pending');
+        
         if (nextPendingDoseIndex !== -1) {
-            patient.doses[nextPendingDoseIndex].status = 'administered';
-            patient.doses[nextPendingDoseIndex].date = newSale.saleDate;
-            patient.doses[nextPendingDoseIndex].weight = bioimpedance.weight;
-            patient.doses[nextPendingDoseIndex].bmi = bioimpedance.bmi;
-            patient.doses[nextPendingDoseIndex].administeredDose = parseFloat(saleData.soldDose) || undefined;
+            const administeredDose = patient.doses[nextPendingDoseIndex];
+            administeredDose.status = 'administered';
+            administeredDose.date = newSale.deliveryDate || newSale.saleDate;
+            administeredDose.administeredDose = parseFloat(saleData.soldDose) || undefined;
+            if(hasBioimpedance && saleData.bioimpedance?.weight) administeredDose.weight = saleData.bioimpedance.weight;
+            if(hasBioimpedance && saleData.bioimpedance?.bmi) administeredDose.bmi = saleData.bioimpedance.bmi;
             
+            // Link payment to this dose
+             if (!administeredDose.payment) administeredDose.payment = { status: 'pendente' };
+             administeredDose.payment.status = newSale.paymentStatus;
+             administeredDose.payment.date = newSale.paymentDate || (newSale.paymentStatus === 'pago' ? newSale.saleDate : undefined);
+             administeredDose.payment.amount = newSale.total / newSale.quantity;
+             administeredDose.payment.method = newSale.paymentMethod;
+
             // Reschedule subsequent doses
             for (let i = nextPendingDoseIndex + 1; i < patient.doses.length; i++) {
                 const prevDose = patient.doses[i-1];
@@ -624,34 +632,10 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         patient.points -= saleData.pointsUsed;
         patient.pointHistory.push({
             date: new Date(),
-            description: `Resgate de ${saleData.discount || 0}`,
+            description: `Resgate de ${formatCurrency(saleData.pointsUsed/10)}`,
             points: -saleData.pointsUsed,
         });
     }
-
-    // --- Update Patient Doses Payment Status ---
-    if (saleData.paymentStatus === 'pago') {
-        const pendingPaymentDoses = patient.doses
-            .filter(d => d.payment?.status === 'pendente')
-            .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        
-        for (let i = 0; i < saleData.quantity; i++) {
-            if (i < pendingPaymentDoses.length) {
-                const doseToUpdate = pendingPaymentDoses[i];
-                const doseIndex = patient.doses.findIndex(d => d.id === doseToUpdate.id);
-                if (doseIndex !== -1) {
-                    if (!patient.doses[doseIndex].payment) {
-                        patient.doses[doseIndex].payment = { status: 'pendente' };
-                    }
-                    patient.doses[doseIndex].payment.status = 'pago';
-                    patient.doses[doseIndex].payment.date = saleData.paymentDate || saleData.saleDate;
-                    patient.doses[doseIndex].payment.amount = (saleData.price - (saleData.discount || 0)) / saleData.quantity; // individual price
-                    patient.doses[doseIndex].payment.method = saleData.paymentMethod;
-                }
-            }
-        }
-    }
-
 
     data.sales.push(newSale);
     data.patients[patientIndex] = patient;
@@ -807,3 +791,5 @@ export const resetAllData = async (): Promise<void> => {
     writeData(emptyData);
     await new Promise(resolve => setTimeout(resolve, 100));
 }
+
+    
