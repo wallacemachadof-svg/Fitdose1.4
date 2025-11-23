@@ -22,7 +22,7 @@ import { User as UserIcon, Upload, Loader2, ArrowRight, CalendarIcon } from "luc
 import { cn, calculateBmi } from "@/lib/utils";
 import { useEffect, useState, Suspense } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { addPatient, type Patient } from "@/lib/actions";
+import { addPatient, getPatients, type Patient } from "@/lib/actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -110,7 +110,7 @@ type PatientFormValues = z.infer<typeof patientFormSchema>;
 type PatientOptions = { value: string, label: string }[];
 
 // This is the Client Component
-export default function PatientRegistrationForm({ patientOptions }: { patientOptions: PatientOptions }) {
+export default function PatientRegistrationForm() {
     const router = useRouter();
     const { toast } = useToast();
     const searchParams = useSearchParams();
@@ -119,8 +119,15 @@ export default function PatientRegistrationForm({ patientOptions }: { patientOpt
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [patientOptions, setPatientOptions] = useState<PatientOptions>([]);
 
     useEffect(() => {
+        async function fetchPatientOptions() {
+            const patients = await getPatients();
+            setPatientOptions(patients.map(p => ({ value: p.id, label: p.fullName })));
+        }
+        fetchPatientOptions();
+        
         const source = searchParams.get('source');
         if (source === 'internal') {
             setShowForm(true);
