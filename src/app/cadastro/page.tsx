@@ -63,6 +63,7 @@ const patientFormSchema = z.object({
   age: z.coerce.number().positive("Idade deve ser um número positivo.").optional(),
   desiredWeight: z.coerce.number().positive("Peso deve ser um número positivo.").optional(),
   firstDoseDate: z.date().optional(),
+  serviceModel: z.enum(['presencial', 'online', 'hibrido']).optional(),
   zip: z.string().optional(),
   street: z.string().optional(),
   number: z.string().optional(),
@@ -150,6 +151,7 @@ function PatientRegistrationForm() {
             indicationName: "",
             consentGiven: false,
             allergyDetails: "",
+            serviceModel: 'presencial',
         }
     });
 
@@ -240,6 +242,7 @@ function PatientRegistrationForm() {
                 height: data.height,
                 age: data.age || 0,
                 desiredWeight: data.desiredWeight || 0,
+                serviceModel: data.serviceModel,
                 address: {
                   zip: data.zip || '',
                   street: data.street || '',
@@ -417,6 +420,33 @@ Após receber todas as informações necessárias de forma clara, ética e técn
                                 <p className="text-lg font-bold">{bmi ? bmi.toFixed(2) : '-'}</p>
                             </div>
                         </div>
+
+                        <FormField control={form.control} name="serviceModel" render={({ field }) => (
+                                <FormItem className="space-y-3 border-t pt-6">
+                                    <FormLabel>Modelo de Atendimento</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                        className="flex items-center gap-6"
+                                        >
+                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                            <FormControl><RadioGroupItem value="presencial" /></FormControl>
+                                            <FormLabel className="font-normal">Presencial</FormLabel>
+                                        </FormItem>
+                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                            <FormControl><RadioGroupItem value="online" /></FormControl>
+                                            <FormLabel className="font-normal">Online</FormLabel>
+                                        </FormItem>
+                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                            <FormControl><RadioGroupItem value="hibrido" /></FormControl>
+                                            <FormLabel className="font-normal">Híbrido</FormLabel>
+                                        </FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}/>
                         
                         <h3 className="text-lg font-semibold border-t pt-6 -mb-2">Seu Endereço <span className="text-muted-foreground text-sm font-normal">(Opcional)</span></h3>
                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

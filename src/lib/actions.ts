@@ -219,6 +219,7 @@ export type Patient = {
   height: number;
   desiredWeight?: number;
   firstDoseDate?: Date;
+  serviceModel?: 'presencial' | 'online' | 'hibrido';
   address: {
     zip?: string;
     street?: string;
@@ -309,6 +310,7 @@ export type Sale = {
   total: number;
   patientId: string;
   patientName: string;
+  serviceModel?: 'presencial' | 'online' | 'hibrido';
   paymentDate?: Date;
   paymentDueDate?: Date;
   paymentStatus: 'pago' | 'pendente';
@@ -391,6 +393,7 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         height: patientData.height,
         desiredWeight: patientData.desiredWeight,
         firstDoseDate: firstDoseDate,
+        serviceModel: patientData.serviceModel,
         address: {
             zip: patientData.address?.zip,
             street: patientData.address?.street,

@@ -204,5 +204,59 @@
     "amount": 200,
     "status": "pendente",
     "dueDate": "2025-11-20T03:00:00.000Z"
+  },
+  {
+    "id": "sale-23",
+    "type": "entrada",
+    "purchaseDate": "2025-10-23T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ RAFAELA PAULINA MATOS SANTOS",
+    "amount": 200,
+    "status": "pago",
+    "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-24",
+    "type": "entrada",
+    "purchaseDate": "2025-10-23T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ RAFAELA PAULINA MATOS SANTOS",
+    "amount": 200,
+    "status": "pago",
+    "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-25",
+    "type": "entrada",
+    "purchaseDate": "2025-11-05T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ RAFAELA PAULINA MATOS SANTOS",
+    "amount": 200,
+    "status": "pago",
+    "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-26",
+    "type": "entrada",
+    "purchaseDate": "2025-11-12T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ RAFAELA PAULINA MATOS SANTOS",
+    "amount": 200.01,
+    "status": "pago",
+    "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-27",
+    "type": "entrada",
+    "purchaseDate": "2025-11-20T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ RAFAELA PAULINA MATOS SANTOS",
+    "amount": 200,
+    "status": "pendente",
+    "dueDate": "2025-11-30T03:00:00.000Z"
+  },
+  {
+    "id": "sale-28",
+    "type": "entrada",
+    "purchaseDate": "2025-11-22T03:00:00.000Z",
+    "description": "Venda 1x 5.0mg p/ CRISTIANO MARTINS COSTA",
+    "amount": 180,
+    "status": "pago",
+    "paymentMethod": "pix"
   }
 ]

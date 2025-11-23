@@ -60,6 +60,7 @@ import {
     ArrowUp,
     Minus,
     Trash2,
+    Network,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -303,7 +304,10 @@ export default function PatientDetailPage() {
               <AvatarFallback className="text-3xl">{patientNameInitial}</AvatarFallback>
             </Avatar>
             <CardTitle>{patient.fullName}</CardTitle>
-            {patient.age && <CardDescription>{patient.age} anos</CardDescription>}
+            <div className='flex items-center gap-4 text-muted-foreground'>
+                {patient.age && <CardDescription>{patient.age} anos</CardDescription>}
+                {patient.serviceModel && <CardDescription className='flex items-center gap-1 capitalize'><Network className='h-3 w-3'/> {patient.serviceModel}</CardDescription>}
+            </div>
             {patient.indication?.name && (
                 <CardDescription>
                     {patient.indication.type === 'indicado' ? 'Indicado(a) por ' : 'Indicou '} 
@@ -696,6 +700,7 @@ const isSameDay = (date1: Date, date2: Date) =>
   date1.getDate() === date2.getDate();
 
     
+
 
 
 

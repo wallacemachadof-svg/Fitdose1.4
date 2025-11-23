@@ -64,6 +64,7 @@ const patientEditFormSchema = z.object({
   age: z.coerce.number().positive("Idade deve ser um número positivo.").optional(),
   desiredWeight: z.coerce.number().positive("Peso deve ser um número positivo.").optional(),
   firstDoseDate: z.date().optional(),
+  serviceModel: z.enum(['presencial', 'online', 'hibrido']).optional(),
   zip: z.string().optional(),
   street: z.string().optional(),
   number: z.string().optional(),
@@ -152,6 +153,7 @@ export default function PatientEditPage() {
                     age: fetchedPatient.age,
                     desiredWeight: fetchedPatient.desiredWeight,
                     firstDoseDate: fetchedPatient.firstDoseDate ? new Date(fetchedPatient.firstDoseDate) : undefined,
+                    serviceModel: fetchedPatient.serviceModel || 'presencial',
                     zip: fetchedPatient.address.zip,
                     street: fetchedPatient.address.street,
                     number: fetchedPatient.address.number,
@@ -215,6 +217,7 @@ export default function PatientEditPage() {
                 age: data.age,
                 desiredWeight: data.desiredWeight,
                 firstDoseDate: data.firstDoseDate,
+                serviceModel: data.serviceModel,
                 address: {
                   zip: data.zip,
                   street: data.street,
@@ -408,6 +411,28 @@ export default function PatientEditPage() {
                                 )}/>
                                  <FormField control={form.control} name="defaultDose" render={({ field }) => (
                                     <FormItem><FormLabel>Dose Padrão (mg)</FormLabel><FormControl><Input placeholder="Ex: 5.0" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="serviceModel" render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                        <FormLabel>Modelo de Atendimento</FormLabel>
+                                        <FormControl>
+                                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-6">
+                                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                                    <FormControl><RadioGroupItem value="presencial" /></FormControl>
+                                                    <FormLabel className="font-normal">Presencial</FormLabel>
+                                                </FormItem>
+                                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                                    <FormControl><RadioGroupItem value="online" /></FormControl>
+                                                    <FormLabel className="font-normal">Online</FormLabel>
+                                                </FormItem>
+                                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                                    <FormControl><RadioGroupItem value="hibrido" /></FormControl>
+                                                    <FormLabel className="font-normal">Híbrido</FormLabel>
+                                                </FormItem>
+                                            </RadioGroup>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
                                 )}/>
                              </div>
                         </div>

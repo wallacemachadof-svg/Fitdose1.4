@@ -24,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CalendarIcon, ArrowLeft, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -43,6 +44,7 @@ const saleFormSchema = z.object({
     discount: z.coerce.number().min(0).optional().default(0),
     pointsUsed: z.coerce.number().min(0).optional().default(0),
     total: z.coerce.number().min(0),
+    serviceModel: z.enum(['presencial', 'online', 'hibrido']).optional(),
     paymentStatus: z.enum(['pago', 'pendente'], { required_error: 'O status do pagamento é obrigatório.' }),
     paymentMethod: z.enum(['dinheiro', 'pix', 'debito', 'credito', 'payment_link']).optional(),
     paymentDate: z.date().optional(),
@@ -146,6 +148,7 @@ export default function NewSalePage() {
                 // Set dose and price based on patient's default or global settings
                 const defaultDose = patient?.defaultDose || '';
                 setValue("soldDose", defaultDose);
+                setValue("serviceModel", patient?.serviceModel || 'presencial');
                 
                 const dosePriceInfo = dosePrices.find(dp => dp.dose === defaultDose);
                 const priceToSet = patient?.defaultPrice ?? dosePriceInfo?.price ?? 0;
@@ -242,6 +245,29 @@ export default function NewSalePage() {
                                     </FormItem>
                                 )}/>
                             </div>
+
+                            <FormField control={form.control} name="serviceModel" render={({ field }) => (
+                                <FormItem className="space-y-3">
+                                    <FormLabel>Modelo de Atendimento da Venda</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-6">
+                                            <FormItem className="flex items-center space-x-3 space-y-0">
+                                                <FormControl><RadioGroupItem value="presencial" /></FormControl>
+                                                <FormLabel className="font-normal">Presencial</FormLabel>
+                                            </FormItem>
+                                            <FormItem className="flex items-center space-x-3 space-y-0">
+                                                <FormControl><RadioGroupItem value="online" /></FormControl>
+                                                <FormLabel className="font-normal">Online</FormLabel>
+                                            </FormItem>
+                                            <FormItem className="flex items-center space-x-3 space-y-0">
+                                                <FormControl><RadioGroupItem value="hibrido" /></FormControl>
+                                                <FormLabel className="font-normal">Híbrido</FormLabel>
+                                            </FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}/>
                             
                             <Collapsible>
                                 <CollapsibleTrigger asChild>
