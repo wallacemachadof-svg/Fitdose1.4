@@ -196,6 +196,15 @@ interface EntriesTableProps {
 }
 
 function EntriesTable({ entries, onEdit, onDelete }: EntriesTableProps) {
+    const paymentMethodLabels: Record<string, string> = {
+        pix: "PIX",
+        dinheiro: "Dinheiro",
+        debito: "Débito",
+        credito: "Crédito",
+        credito_parcelado: "Crédito Parcelado",
+        payment_link: "Link de Pagamento",
+    };
+
     return (
         <Table>
             <TableHeader>
@@ -221,7 +230,7 @@ function EntriesTable({ entries, onEdit, onDelete }: EntriesTableProps) {
                                 <TableCell className={`font-semibold ${typeStyle.color} ${typeStyle.textColor}`}>
                                     {entry.type === 'saida' && '- '}{formatCurrency(entry.amount)}
                                 </TableCell>
-                                <TableCell>{entry.paymentMethod ?? '-'}</TableCell>
+                                <TableCell>{entry.paymentMethod ? paymentMethodLabels[entry.paymentMethod] ?? '-' : '-'}</TableCell>
                                 <TableCell>{formatDate(entry.dueDate)}</TableCell>
                                 <TableCell>
                                     <Badge variant={'default'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
@@ -259,7 +268,3 @@ function EntriesTable({ entries, onEdit, onDelete }: EntriesTableProps) {
         </Table>
     )
 }
-
-    
-
-    

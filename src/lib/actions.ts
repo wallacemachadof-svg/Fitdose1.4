@@ -324,7 +324,7 @@ export type Sale = {
   observations?: string;
   deliveryDate?: Date;
   pointsUsed?: number;
-  paymentMethod?: "dinheiro" | "pix" | "debito" | "credito" | "payment_link";
+  paymentMethod?: "dinheiro" | "pix" | "debito" | "credito" | "credito_parcelado" | "payment_link";
   bioimpedance?: Bioimpedance;
   vialUsage?: VialUsage[];
 };
@@ -341,11 +341,21 @@ export type CashFlowEntry = {
   description: string;
   installments?: string; // e.g., "1/3"
   dueDate?: Date;
-  paymentMethod?: 'pix' | 'dinheiro' | 'debito' | 'credito' | 'payment_link';
+  paymentMethod?: 'pix' | 'dinheiro' | 'debito' | 'credito' | 'credito_parcelado' | 'payment_link';
   status: 'pago' | 'pendente' | 'vencido';
   amount: number;
 }
-export type NewCashFlowData = Omit<CashFlowEntry, 'id'>;
+
+export type NewCashFlowData = {
+    type: 'entrada' | 'saida';
+    purchaseDate: Date;
+    description: string;
+    amount: number;
+    paymentMethod: 'pix' | 'dinheiro' | 'debito' | 'credito' | 'credito_parcelado' | 'payment_link';
+    status: 'pago' | 'pendente' | 'vencido';
+    dueDate?: Date;
+    installments?: number;
+};
 
 export type Vial = {
   id: string;
@@ -830,15 +840,55 @@ export const getCashFlowEntries = async (): Promise<CashFlowEntry[]> => {
   return [...cashFlowEntries].sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime());
 }
 
-export const addCashFlowEntry = async (entryData: NewCashFlowData): Promise<CashFlowEntry> => {
+export const addCashFlowEntry = async (entryData: NewCashFlowData): Promise<CashFlowEntry[]> => {
     const data = readData();
-    const newId = `manual-${(data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).length > 0 ? Math.max(...data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).map(e => parseInt(e.id.replace('manual-',''), 10))) : 0) + 1}`;
-    const newEntry: CashFlowEntry = { id: newId, ...entryData };
-    data.cashFlowEntries.push(newEntry);
+    const newEntries: CashFlowEntry[] = [];
+
+    if (entryData.paymentMethod === 'credito_parcelado' && entryData.installments && entryData.installments > 1 && entryData.dueDate) {
+        const installmentAmount = entryData.amount / entryData.installments;
+        const firstDueDate = new Date(entryData.dueDate);
+
+        for (let i = 0; i < entryData.installments; i++) {
+            const newDueDate = new Date(firstDueDate);
+            newDueDate.setMonth(firstDueDate.getMonth() + i);
+
+            const newId = `manual-${Date.now()}-${i}`;
+            const newEntry: CashFlowEntry = {
+                id: newId,
+                type: entryData.type,
+                purchaseDate: entryData.purchaseDate,
+                description: `${entryData.description} (Parcela ${i + 1}/${entryData.installments})`,
+                amount: installmentAmount,
+                status: 'pendente',
+                paymentMethod: entryData.paymentMethod,
+                dueDate: newDueDate,
+                installments: `${i + 1}/${entryData.installments}`,
+            };
+            newEntries.push(newEntry);
+            data.cashFlowEntries.push(newEntry);
+        }
+
+    } else {
+        const newId = `manual-${(data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).length > 0 ? Math.max(...data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).map(e => parseInt(e.id.split('-').pop() || '0', 10))) : 0) + 1}`;
+        const newEntry: CashFlowEntry = {
+            id: newId,
+            type: entryData.type,
+            purchaseDate: entryData.purchaseDate,
+            description: entryData.description,
+            amount: entryData.amount,
+            status: entryData.status,
+            paymentMethod: entryData.paymentMethod,
+            dueDate: entryData.dueDate,
+        };
+        newEntries.push(newEntry);
+        data.cashFlowEntries.push(newEntry);
+    }
+    
     writeData({ cashFlowEntries: data.cashFlowEntries });
     await new Promise(resolve => setTimeout(resolve, 100));
-    return newEntry;
+    return newEntries;
 }
+
 
 export const deleteCashFlowEntry = async (id: string): Promise<void> => {
     const data = readData();
@@ -878,7 +928,7 @@ export const addVial = async (vialData: NewVialData): Promise<Vial[]> => {
         data.vials.push(newVial);
     }
     
-    const cashFlowEntry: NewCashFlowData = {
+    const cashFlowEntry: CashFlowEntry = {
         id: cashFlowEntryId,
         type: 'saida',
         purchaseDate: vialData.purchaseDate,
@@ -959,9 +1009,10 @@ export const adjustVialStock = async (vialId: string, newRemainingMg: number, re
             description: `Ajuste de estoque (${vial.id}): ${reason}`,
             amount: Math.abs(lossAmount),
             status: 'pago',
+            paymentMethod: 'pix', // Defaulting to pix for simplicity
         };
-         const newId = `manual-${(data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).length > 0 ? Math.max(...data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).map(e => parseInt(e.id.replace('manual-',''), 10))) : 0) + 1}`;
-         const newEntry: CashFlowEntry = { id: newId, ...adjustmentEntry };
+         const newId = `manual-${(data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).length > 0 ? Math.max(...data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).map(e => parseInt(e.id.split('-').pop() || '0', 10))) : 0) + 1}`;
+         const newEntry: CashFlowEntry = { id: newId, ...adjustmentEntry, installments: undefined };
          data.cashFlowEntries.push(newEntry);
     }
     
@@ -1061,5 +1112,6 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
 
     
+
 
 

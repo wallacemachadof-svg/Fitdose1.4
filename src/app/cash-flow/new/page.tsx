@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,9 +35,18 @@ const cashFlowFormSchema = z.object({
     purchaseDate: z.date({ required_error: 'A data é obrigatória.' }),
     description: z.string().min(3, 'A descrição é obrigatória.'),
     amount: z.coerce.number().positive('O valor deve ser positivo.'),
-    paymentMethod: z.enum(['pix', 'dinheiro', 'debito', 'credito', 'payment_link']).optional(),
+    paymentMethod: z.enum(['pix', 'dinheiro', 'debito', 'credito', 'credito_parcelado', 'payment_link'], { required_error: "Forma de pagamento é obrigatória."}),
     status: z.enum(['pago', 'pendente', 'vencido'], { required_error: 'O status é obrigatório.' }),
     dueDate: z.date().optional(),
+    installments: z.coerce.number().int().min(1).optional(),
+}).refine(data => {
+    if(data.paymentMethod === 'credito_parcelado') {
+        return data.installments && data.installments > 1 && data.dueDate;
+    }
+    return true;
+}, {
+    message: 'Para crédito parcelado, informe o número de parcelas (>1) e a data do primeiro vencimento.',
+    path: ['installments']
 });
 
 type CashFlowFormValues = z.infer<typeof cashFlowFormSchema>;
@@ -49,10 +59,13 @@ export default function NewCashFlowPage() {
     const form = useForm<CashFlowFormValues>({
         resolver: zodResolver(cashFlowFormSchema),
         defaultValues: {
-            status: "pago",
             type: 'saida',
+            status: 'pendente',
+            installments: 1,
         },
     });
+
+    const watchPaymentMethod = form.watch('paymentMethod');
 
     async function onSubmit(data: CashFlowFormValues) {
         setIsSubmitting(true);
@@ -121,10 +134,10 @@ export default function NewCashFlowPage() {
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <FormField control={form.control} name="amount" render={({ field }) => (
-                                    <FormItem><FormLabel>Valor (R$)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ex: 150.00" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Valor Total (R$)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ex: 150.00" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={form.control} name="purchaseDate" render={({ field }) => (
-                                    <FormItem className="flex flex-col"><FormLabel>Data da Movimentação</FormLabel>
+                                    <FormItem className="flex flex-col"><FormLabel>Data da Compra</FormLabel>
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
@@ -153,14 +166,15 @@ export default function NewCashFlowPage() {
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Selecione (opcional)" />
+                                                        <SelectValue placeholder="Selecione..." />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
                                                     <SelectItem value="pix">PIX</SelectItem>
                                                     <SelectItem value="dinheiro">Dinheiro</SelectItem>
                                                     <SelectItem value="debito">Débito</SelectItem>
-                                                    <SelectItem value="credito">Crédito</SelectItem>
+                                                    <SelectItem value="credito">Crédito (1x)</SelectItem>
+                                                    <SelectItem value="credito_parcelado">Crédito Parcelado</SelectItem>
                                                     <SelectItem value="payment_link">Link de Pagamento</SelectItem>
                                                 </SelectContent>
                                             </Select>
@@ -192,12 +206,37 @@ export default function NewCashFlowPage() {
                                 />
                             </div>
                             
-                            <FormField control={form.control} name="dueDate" render={({ field }) => (
-                                    <FormItem className="flex flex-col"><FormLabel>Data de Vencimento (opcional)</FormLabel>
+                            {watchPaymentMethod === 'credito_parcelado' ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                                     <FormField control={form.control} name="installments" render={({ field }) => (
+                                        <FormItem><FormLabel>Número de Parcelas</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )}/>
+                                    <FormField control={form.control} name="dueDate" render={({ field }) => (
+                                        <FormItem className="flex flex-col"><FormLabel>Vencimento da 1ª Parcela</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                        {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha a data</span>}
+                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                    </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                </PopoverContent>
+                                            </Popover>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}/>
+                                </div>
+                            ) : (
+                                <FormField control={form.control} name="dueDate" render={({ field }) => (
+                                    <FormItem className="flex flex-col max-w-sm"><FormLabel>Data de Vencimento/Pagamento</FormLabel>
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full max-w-sm", !field.value && "text-muted-foreground")}>
+                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
                                                     {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
                                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                 </Button>
@@ -210,6 +249,7 @@ export default function NewCashFlowPage() {
                                     <FormMessage />
                                     </FormItem>
                                 )}/>
+                            )}
                             
                             <div className="flex justify-end gap-2 pt-4">
                                 <Button type="button" variant="outline" onClick={() => router.push('/cash-flow')} disabled={isSubmitting}>Cancelar</Button>
