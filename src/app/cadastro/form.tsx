@@ -24,7 +24,6 @@ import { useEffect, useState, Suspense } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { addPatient, getPatients, type Patient } from "@/lib/actions";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Image from "next/image";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,6 +32,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Combobox } from "@/components/ui/combobox";
+import { Label } from "@/components/ui/label";
 
 const healthConditions = [
     { id: "hypertension", label: "Hipertensão" },
