@@ -3,13 +3,11 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getPatients, getSales, type Dose, type Sale } from "@/lib/actions";
-import { getDoseStatus, formatDate, formatCurrency, getDaysUntilDose, getOverdueDays } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { Syringe, User, BellDot, BarChart3, PieChart, TrendingUp, DollarSign, Link as LinkIcon, Copy, Check, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock, Calendar as CalendarIcon } from "lucide-react";
+import { getPatients, getSales, type Patient, type Sale } from "@/lib/actions";
+import { formatDate, formatCurrency } from "@/lib/utils";
+import { User, BarChart3, PieChart, DollarSign, Link as LinkIcon, Copy, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock } from "lucide-react";
 import Link from 'next/link';
-import { differenceInDays, subDays, format as formatDateFns, startOfToday, startOfMonth, startOfYear, isWithinInterval, addDays } from "date-fns";
+import { subDays, format as formatDateFns, startOfToday, isWithinInterval, addDays } from "date-fns";
 import { ptBR } from 'date-fns/locale';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Pie, PieChart as RechartsPieChart, Cell, Legend } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,13 +21,6 @@ import { cn } from '@/lib/utils';
 import { Combobox } from '@/components/ui/combobox';
 
 
-type UpcomingDose = Dose & {
-  patientId: string;
-  patientName: string;
-};
-
-type Patient = Awaited<ReturnType<typeof getPatients>>[0];
-
 export default function DashboardPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -37,7 +28,6 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [registrationLink, setRegistrationLink] = useState('');
   
-  const [salesDateFilter, setSalesDateFilter] = useState<'30d' | '6m' | '1y' | 'today' | 'all' | 'custom'>('30d');
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 29),
     to: new Date(),
@@ -75,59 +65,28 @@ export default function DashboardPage() {
   }, [patients]);
   
   
-  const { filteredSales, salesChartData, totalFilteredRevenue, filterTitle } = useMemo(() => {
+  const { filteredSales, salesChartData, totalFilteredRevenue, filterTitle, pendingPayments, pendingDeliveries } = useMemo(() => {
     const today = startOfToday();
-    let startDate: Date;
-    let endDate: Date = new Date();
+    let startDate = dateRange?.from || subDays(today, 29);
+    let endDate = dateRange?.to || today;
     let title: string;
-    let baseFilteredSales: Sale[];
 
     // 1. Filter by patient
+    let baseFilteredSales: Sale[];
     if (selectedPatientId === 'all') {
         baseFilteredSales = sales;
+        title = `Visão Geral`;
     } else {
         baseFilteredSales = sales.filter(s => s.patientId === selectedPatientId);
+        const patientName = patients.find(p => p.id === selectedPatientId)?.fullName || 'Paciente';
+        title = `Análise de ${patientName}`;
     }
     
     // 2. Filter by date
-    switch (salesDateFilter) {
-        case 'today':
-            startDate = today;
-            endDate = today;
-            title = 'Vendas de Hoje';
-            break;
-        case '6m':
-            startDate = subDays(today, 180);
-            title = 'Vendas (Últimos 6 meses)';
-            break;
-        case '1y':
-            startDate = subDays(today, 365);
-            title = 'Vendas (Último ano)';
-            break;
-        case 'all':
-            title = 'Todas as Vendas';
-            break;
-        case 'custom':
-            startDate = dateRange?.from || today;
-            endDate = dateRange?.to || today;
-            title = `Vendas (${formatDate(startDate)} - ${formatDate(endDate)})`;
-            break;
-        case '30d':
-        default:
-            startDate = subDays(today, 29);
-            title = 'Vendas (Últimos 30 dias)';
-            break;
-    }
-    
-    let finalFilteredSales: Sale[];
-    if (salesDateFilter === 'all') {
-        finalFilteredSales = baseFilteredSales;
-    } else {
-        finalFilteredSales = baseFilteredSales.filter(s => {
-            const saleDate = new Date(s.saleDate);
-            return isWithinInterval(saleDate, { start: startDate, end: addDays(endDate, 1) });
-        });
-    }
+    const finalFilteredSales = baseFilteredSales.filter(s => {
+        const saleDate = new Date(s.saleDate);
+        return isWithinInterval(saleDate, { start: startDate, end: addDays(endDate, 1) });
+    });
     
     const total = finalFilteredSales.reduce((acc, sale) => acc + sale.total, 0);
 
@@ -138,17 +97,25 @@ export default function DashboardPage() {
     }, {} as Record<string, number>);
 
     const chartData = Object.entries(salesByDay).map(([name, total]) => ({ name, total })).reverse();
+    
+    const _pendingPayments = finalFilteredSales.filter(s => s.paymentStatus === 'pendente').length;
+    const _pendingDeliveries = finalFilteredSales.filter(s => s.deliveryStatus !== 'entregue').length;
 
-    return { filteredSales: finalFilteredSales, salesChartData: chartData, totalFilteredRevenue: total, filterTitle: title };
+    return { 
+        filteredSales: finalFilteredSales, 
+        salesChartData: chartData, 
+        totalFilteredRevenue: total, 
+        filterTitle: title,
+        pendingPayments: _pendingPayments,
+        pendingDeliveries: _pendingDeliveries
+    };
 
-  }, [sales, salesDateFilter, dateRange, selectedPatientId]);
+  }, [sales, dateRange, selectedPatientId, patients]);
 
 
   if (loading) {
     return <DashboardSkeleton />;
   }
-
-  const today = startOfToday();
 
   const allPendingDoses = patients.flatMap(p => 
     p.doses
@@ -158,14 +125,9 @@ export default function DashboardPage() {
   
   const overdueDoses = allPendingDoses.filter(d => getOverdueDays(d, d.allDoses) > 0);
   const dueToday = allPendingDoses.filter(d => getDaysUntilDose(d) === 0);
-  const dueIn2Days = allPendingDoses.filter(d => getDaysUntilDose(d) === 2);
-  const dueIn3Days = allPendingDoses.filter(d => getDaysUntilDose(d) === 3);
-
-  // Use a Set to count unique patients for each category
+  
   const overduePatientsCount = new Set(overdueDoses.map(d => d.patientId)).size;
   const dueTodayPatientsCount = new Set(dueToday.map(d => d.patientId)).size;
-  const dueIn2DaysPatientsCount = new Set(dueIn2Days.map(d => d.patientId)).size;
-  const dueIn3DaysPatientsCount = new Set(dueIn3Days.map(d => d.patientId)).size;
 
   const totalPatients = patients.length;
   
@@ -178,13 +140,62 @@ export default function DashboardPage() {
   const salesByDoseChartData = Object.entries(salesByDose).map(([name, value]) => ({ name, value }));
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57'];
   
-  const totalSales = sales.length;
-  const pendingPayments = sales.filter(s => s.paymentStatus === 'pendente').length;
-  const pendingDeliveries = sales.filter(s => s.deliveryStatus !== 'entregue').length;
-
-
   return (
     <div className="flex flex-col gap-6">
+       <Card>
+        <CardHeader>
+          <CardTitle>{filterTitle}</CardTitle>
+          <CardDescription>Use os filtros abaixo para analisar os dados do período e paciente desejado.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+          <div className="flex flex-col md:flex-row gap-2">
+              <Combobox 
+                  options={patientOptions}
+                  value={selectedPatientId}
+                  onChange={(value) => setSelectedPatientId(value)}
+                  placeholder="Filtrar por paciente..."
+                  noResultsText="Nenhum paciente encontrado."
+              />
+              <Popover>
+                  <PopoverTrigger asChild>
+                      <Button
+                      id="date"
+                      variant={"outline"}
+                      className={cn(
+                          "w-full md:w-[300px] justify-start text-left font-normal",
+                          !dateRange && "text-muted-foreground"
+                      )}
+                      >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange?.from ? (
+                          dateRange.to ? (
+                          <>
+                              {formatDateFns(dateRange.from, "dd/MM/y")} -{" "}
+                              {formatDateFns(dateRange.to, "dd/MM/y")}
+                          </>
+                          ) : (
+                          formatDateFns(dateRange.from, "dd/MM/y")
+                          )
+                      ) : (
+                          <span>Selecione um período</span>
+                      )}
+                      </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                      locale={ptBR}
+                      />
+                  </PopoverContent>
+              </Popover>
+            </div>
+          </CardContent>
+      </Card>
       
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Link href="/patients?filter=overdue">
@@ -211,85 +222,7 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
         </Link>
-         <Link href="/patients?filter=due_in_2_days">
-            <Card className="hover:bg-sky-500/10 transition-colors border-sky-500/30">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Vencem em 2 Dias</CardTitle>
-                    <Clock className="h-4 w-4 text-sky-500" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold text-sky-500">{dueIn2DaysPatientsCount}</div>
-                    <p className="text-xs text-muted-foreground">Pacientes com dose próxima</p>
-                </CardContent>
-            </Card>
-        </Link>
-         <Link href="/patients?filter=due_in_3_days">
-            <Card className="hover:bg-indigo-500/10 transition-colors border-indigo-500/30">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Vencem em 3 Dias</CardTitle>
-                    <Clock className="h-4 w-4 text-indigo-500" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold text-indigo-500">{dueIn3DaysPatientsCount}</div>
-                    <p className="text-xs text-muted-foreground">Pacientes com dose próxima</p>
-                </CardContent>
-            </Card>
-        </Link>
-      </div>
-
-       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center justify-between">
-              Link de Cadastro
-              <LinkIcon className="h-4 w-4 text-muted-foreground" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-             <p className="text-xs text-muted-foreground">
-                Envie este link para seus novos pacientes.
-            </p>
-             <div className="flex items-center space-x-2">
-                <Input value={registrationLink} readOnly className="h-9"/>
-                <Button variant="outline" size="icon" className="h-9 w-9" onClick={copyToClipboard}>
-                    <Copy className="h-4 w-4" />
-                </Button>
-            </div>
-          </CardContent>
-        </Card>
-        <Link href="/patients">
-          <Card className="hover:bg-muted/50 transition-colors">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Pacientes Ativos
-              </CardTitle>
-              <User className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalPatients}</div>
-              <p className="text-xs text-muted-foreground">
-                Total de pacientes registrados
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/sales-control">
-          <Card className="hover:bg-muted/50 transition-colors">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total de Vendas
-              </CardTitle>
-              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalSales}</div>
-              <p className="text-xs text-muted-foreground">
-                Total de vendas registradas no sistema
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/sales-control">
+        <Link href="/sales-control?status=pendente">
           <Card className="hover:bg-muted/50 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -299,9 +232,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-500">{pendingPayments}</div>
-              <p className="text-xs text-muted-foreground">
-                Vendas aguardando pagamento
-              </p>
+               <p className="text-xs text-muted-foreground">Vendas aguardando pagamento</p>
             </CardContent>
           </Card>
         </Link>
@@ -315,9 +246,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-500">{pendingDeliveries}</div>
-               <p className="text-xs text-muted-foreground">
-                Vendas aguardando entrega
-              </p>
+               <p className="text-xs text-muted-foreground">Vendas aguardando entrega</p>
             </CardContent>
           </Card>
         </Link>
@@ -326,72 +255,8 @@ export default function DashboardPage() {
        <div className="grid gap-6 md:grid-cols-2">
             <Card>
                 <CardHeader>
-                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                        <div>
-                            <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />{filterTitle}</CardTitle>
-                            <CardDescription>Receita total de {formatCurrency(totalFilteredRevenue)}</CardDescription>
-                        </div>
-                        <div className="flex flex-col md:flex-row gap-2">
-                            <Combobox 
-                                options={patientOptions}
-                                value={selectedPatientId}
-                                onChange={(value) => setSelectedPatientId(value)}
-                                placeholder="Filtrar por paciente..."
-                                noResultsText="Nenhum paciente encontrado."
-                            />
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <Button variant={salesDateFilter === 'today' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('today')}>Hoje</Button>
-                                <Button variant={salesDateFilter === '30d' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('30d')}>30d</Button>
-                                <Button variant={salesDateFilter === '6m' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('6m')}>6m</Button>
-                                <Button variant={salesDateFilter === '1y' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('1y')}>1 ano</Button>
-                                <Button variant={salesDateFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setSalesDateFilter('all')}>Todas</Button>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                        id="date"
-                                        variant={"outline"}
-                                        size="sm"
-                                        className={cn(
-                                            "justify-start text-left font-normal",
-                                            !dateRange && "text-muted-foreground",
-                                            salesDateFilter === 'custom' && "bg-secondary"
-                                        )}
-                                        >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dateRange?.from ? (
-                                            dateRange.to ? (
-                                            <>
-                                                {formatDateFns(dateRange.from, "dd/MM/y")} -{" "}
-                                                {formatDateFns(dateRange.to, "dd/MM/y")}
-                                            </>
-                                            ) : (
-                                            formatDateFns(dateRange.from, "dd/MM/y")
-                                            )
-                                        ) : (
-                                            <span>Período</span>
-                                        )}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="end">
-                                        <Calendar
-                                        initialFocus
-                                        mode="range"
-                                        defaultMonth={dateRange?.from}
-                                        selected={dateRange}
-                                        onSelect={(range) => {
-                                            setDateRange(range);
-                                            if (range?.from) {
-                                                setSalesDateFilter('custom');
-                                            }
-                                        }}
-                                        numberOfMonths={2}
-                                        locale={ptBR}
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                        </div>
-                    </div>
+                    <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />Vendas no período</CardTitle>
+                    <CardDescription>Receita total de {formatCurrency(totalFilteredRevenue)}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {salesChartData.length > 0 ? (
@@ -412,8 +277,8 @@ export default function DashboardPage() {
             </Card>
              <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><PieChart className="h-5 w-5" />Vendas por Dose ({filterTitle.split('(')[1] || 'período selecionado)'})</CardTitle>
-                     <CardDescription>Distribuição das doses mais vendidas.</CardDescription>
+                    <CardTitle className="flex items-center gap-2"><PieChart className="h-5 w-5" />Vendas por Dose</CardTitle>
+                     <CardDescription>Distribuição das doses mais vendidas no período.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {salesByDoseChartData.length > 0 ? (
@@ -445,6 +310,25 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
         </div>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center justify-between">
+              Link de Cadastro Público
+              <LinkIcon className="h-4 w-4 text-muted-foreground" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+             <p className="text-xs text-muted-foreground">
+                Envie este link para seus novos pacientes realizarem o auto-cadastro.
+            </p>
+             <div className="flex items-center space-x-2">
+                <Input value={registrationLink} readOnly className="h-9"/>
+                <Button variant="outline" size="icon" className="h-9 w-9" onClick={copyToClipboard}>
+                    <Copy className="h-4 w-4" />
+                </Button>
+            </div>
+          </CardContent>
+        </Card>
     </div>
   );
 }

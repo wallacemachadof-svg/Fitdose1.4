@@ -8,8 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, MoreVertical, Edit, Trash2, DollarSign, PackageX, ShoppingCart, Search } from "lucide-react";
+import { PlusCircle, MoreVertical, Edit, Trash2, Search, DollarSign, PackageX, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -41,6 +40,7 @@ export default function SalesControlPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
     const [paymentFilter, setPaymentFilter] = useState<'all' | 'pago' | 'pendente'>('all');
+    const [deliveryFilter, setDeliveryFilter] = useState<'all' | 'entregue' | 'em agendamento' | 'em processamento'>('all');
     const [selectedMonth, setSelectedMonth] = useState<string>('current');
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -142,6 +142,7 @@ export default function SalesControlPage() {
 
     const filteredSales = salesInSelectedPeriod.filter(sale => {
         if (paymentFilter !== 'all' && sale.paymentStatus !== paymentFilter) return false;
+        if (deliveryFilter !== 'all' && sale.deliveryStatus !== deliveryFilter) return false;
         if (searchTerm && !sale.patientName.toLowerCase().includes(searchTerm.toLowerCase())) return false;
         return true;
     });
@@ -222,91 +223,98 @@ export default function SalesControlPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Histórico de Vendas ({monthLabel})</CardTitle>
+                    <CardTitle>Filtrar Vendas</CardTitle>
+                    <CardDescription>Use os filtros abaixo para encontrar vendas específicas.</CardDescription>
                 </CardHeader>
+                <CardContent className="border-t pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Input 
+                            placeholder="Buscar por nome do paciente..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <Select value={paymentFilter} onValueChange={(v) => setPaymentFilter(v as any)}>
+                            <SelectTrigger><SelectValue placeholder="Filtrar por pagamento..." /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos Pagamentos</SelectItem>
+                                <SelectItem value="pago">Pago</SelectItem>
+                                <SelectItem value="pendente">Pendente</SelectItem>
+                            </SelectContent>
+                        </Select>
+                         <Select value={deliveryFilter} onValueChange={(v) => setDeliveryFilter(v as any)}>
+                            <SelectTrigger><SelectValue placeholder="Filtrar por entrega..." /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todas Entregas</SelectItem>
+                                <SelectItem value="entregue">Entregue</SelectItem>
+                                <SelectItem value="em agendamento">Em Agendamento</SelectItem>
+                                <SelectItem value="em processamento">Em Processamento</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardContent>
                 <CardContent className="p-0">
-                    <Tabs value={paymentFilter} onValueChange={(value) => setPaymentFilter(value as any)}>
-                         <div className="px-6 pb-4 flex flex-wrap items-center justify-between gap-4 border-b">
-                            <TabsList>
-                                <TabsTrigger value="all">Todos</TabsTrigger>
-                                <TabsTrigger value="pago">Pagos</TabsTrigger>
-                                <TabsTrigger value="pendente">Pendentes</TabsTrigger>
-                            </TabsList>
-                            <div className="relative max-w-xs w-full">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input 
-                                    placeholder="Buscar por paciente..."
-                                    className="pl-9"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                        <TabsContent value={paymentFilter} className="mt-0">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Data</TableHead>
-                                        <TableHead>Paciente</TableHead>
-                                        <TableHead>Total</TableHead>
-                                        <TableHead>Status Pag.</TableHead>
-                                        <TableHead>Status Entrega</TableHead>
-                                        <TableHead className="text-right">Ações</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredSales.length > 0 ? (
-                                        filteredSales.map((sale) => {
-                                            const paymentStatus = getPaymentStatusVariant(sale.paymentStatus);
-                                            const deliveryStatus = getDeliveryStatusVariant(sale.deliveryStatus);
-                                            return (
-                                                <TableRow key={sale.id}>
-                                                    <TableCell>{formatDate(sale.saleDate)}</TableCell>
-                                                    <TableCell>
-                                                        <Link href={`/patients/${sale.patientId}`} className="font-medium hover:underline">
-                                                            {sale.patientName}
-                                                        </Link>
-                                                    </TableCell>
-                                                    <TableCell className="font-semibold">{formatCurrency(sale.total)}</TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={'default'} className={`${paymentStatus.color} ${paymentStatus.textColor} border-none`}>{paymentStatus.label}</Badge>
-                                                    </TableCell>
-                                                     <TableCell>
-                                                        <Badge variant={'default'} className={`${deliveryStatus.color} ${deliveryStatus.textColor} border-none`}>{deliveryStatus.label}</Badge>
-                                                     </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                                    <MoreVertical className="h-4 w-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem onClick={handleEditClick}>
-                                                                    <Edit className="mr-2 h-4 w-4" />
-                                                                    Editar
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => handleDeleteClick(sale)} className="text-destructive">
-                                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                                    Excluir
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </TableCell>
-                                                </TableRow>
-                                            )
-                                        })
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={6} className="h-24 text-center">
-                                                Nenhuma venda encontrada para este filtro.
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Data</TableHead>
+                                <TableHead>Paciente</TableHead>
+                                <TableHead>Total</TableHead>
+                                <TableHead>Status Pag.</TableHead>
+                                <TableHead>Status Entrega</TableHead>
+                                <TableHead className="text-right">Ações</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredSales.length > 0 ? (
+                                filteredSales.map((sale) => {
+                                    const paymentStatus = getPaymentStatusVariant(sale.paymentStatus);
+                                    const deliveryStatus = getDeliveryStatusVariant(sale.deliveryStatus);
+                                    return (
+                                        <TableRow key={sale.id}>
+                                            <TableCell>{formatDate(sale.saleDate)}</TableCell>
+                                            <TableCell>
+                                                <Link href={`/patients/${sale.patientId}`} className="font-medium hover:underline">
+                                                    {sale.patientName}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell className="font-semibold">{formatCurrency(sale.total)}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={'default'} className={`${paymentStatus.color} ${paymentStatus.textColor} border-none`}>{paymentStatus.label}</Badge>
+                                            </TableCell>
+                                             <TableCell>
+                                                <Badge variant={'default'} className={`${deliveryStatus.color} ${deliveryStatus.textColor} border-none`}>{deliveryStatus.label}</Badge>
+                                             </TableCell>
+                                            <TableCell className="text-right">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                            <MoreVertical className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={handleEditClick}>
+                                                            <Edit className="mr-2 h-4 w-4" />
+                                                            Editar
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleDeleteClick(sale)} className="text-destructive">
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Excluir
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                         </TabsContent>
-                    </Tabs>
+                                    )
+                                })
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center">
+                                        Nenhuma venda encontrada para este filtro.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
                 </CardContent>
             </Card>
 
@@ -329,3 +337,5 @@ export default function SalesControlPage() {
         </div>
     );
 }
+
+    
