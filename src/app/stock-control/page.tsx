@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { getVials, type Vial } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { PlusCircle, Warehouse, Droplets, FlaskConical, AlertTriangle, Package } from 'lucide-react';
 import Link from 'next/link';
@@ -165,4 +165,3 @@ export default function StockControlPage() {
         </div>
     );
 }
-
