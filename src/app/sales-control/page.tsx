@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, MoreVertical, Edit, Trash2, DollarSign, PackageCheck, PackageX, ShoppingCart } from "lucide-react";
+import { PlusCircle, MoreVertical, Edit, Trash2, DollarSign, PackageX, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -113,12 +113,14 @@ export default function SalesControlPage() {
     const pendingPayments = sales.filter(s => s.paymentStatus === 'pendente');
     const totalPendingAmount = pendingPayments.reduce((acc, sale) => acc + sale.total, 0);
     
-    const revenueThisMonth = sales.filter(s => {
-        const dateToCheck = s.paymentStatus === 'pago' ? s.paymentDate : s.paymentDueDate;
+    const salesInSelectedMonth = sales.filter(s => {
+        const dateToCheck = s.saleDate;
         return dateToCheck && isWithinInterval(new Date(dateToCheck), { start: startOfSelectedMonth, end: endOfSelectedMonth });
-    }).reduce((acc, sale) => acc + sale.total, 0);
+    });
 
-    const pendingDeliveryCount = sales.filter(s => s.deliveryStatus !== 'entregue').length;
+    const revenueThisMonth = salesInSelectedMonth
+        .filter(s => s.paymentStatus === 'pago' && s.paymentDate)
+        .reduce((acc, sale) => acc + sale.total, 0);
 
     const filteredSales = sales.filter(sale => {
         if (filter === 'all') return true;
@@ -158,8 +160,8 @@ export default function SalesControlPage() {
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Receita de {monthLabel}</CardTitle>
-                        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                        <CardTitle className="text-sm font-medium">Receita Realizada ({monthLabel})</CardTitle>
+                         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                             <SelectTrigger className="w-[180px] h-8 text-xs">
                                 <SelectValue placeholder="Selecionar Mês" />
                             </SelectTrigger>
@@ -173,7 +175,7 @@ export default function SalesControlPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-500">{formatCurrency(revenueThisMonth)}</div>
-                         <p className="text-xs text-muted-foreground">Soma de valores pagos e pendentes no mês</p>
+                         <p className="text-xs text-muted-foreground">Soma dos valores pagos no mês selecionado</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -188,12 +190,12 @@ export default function SalesControlPage() {
                 </Card>
                  <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Entregas Pendentes</CardTitle>
-                        <ShoppingCart className="h-4 w-4 text-orange-500"/>
+                        <CardTitle className="text-sm font-medium">Vendas no Mês</CardTitle>
+                        <ShoppingCart className="h-4 w-4 text-muted-foreground"/>
                     </CardHeader>
                     <CardContent>
-                        <div className={`text-2xl font-bold text-orange-500`}>{pendingDeliveryCount}</div>
-                        <p className="text-xs text-muted-foreground">Vendas aguardando entrega</p>
+                        <div className={`text-2xl font-bold`}>{salesInSelectedMonth.length}</div>
+                        <p className="text-xs text-muted-foreground">Total de vendas em {monthLabel}</p>
                     </CardContent>
                 </Card>
             </div>
