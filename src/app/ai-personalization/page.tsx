@@ -211,4 +211,3 @@ Evoluções Recentes: ${patient.evolutions.slice(-3).map(e => `Data: ${e.date.to
     </div>
   );
 }
-
