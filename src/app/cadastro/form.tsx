@@ -174,6 +174,20 @@ export default function PatientRegistrationForm() {
     const watchUsedMonjauro = form.watch("usedMonjauro");
     const watchIndicationSource = form.watch("indicationSource");
     const watchHealthConditions = form.watch("healthConditions");
+    const watchBirthDate = form.watch("birthDate");
+
+    useEffect(() => {
+        if (watchBirthDate) {
+            const today = new Date();
+            const birthDate = new Date(watchBirthDate);
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            form.setValue("age", age);
+        }
+    }, [watchBirthDate, form]);
 
     useEffect(() => {
         if (watchWeight && watchHeight) {
@@ -412,7 +426,7 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do tratame
                                 </FormItem>
                             )}/>
                             <FormField control={form.control} name="age" render={({ field }) => (
-                                <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" placeholder="Sua idade" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" placeholder="Sua idade" {...field} disabled={!!watchBirthDate} /></FormControl><FormMessage /></FormItem>
                             )}/>
                             <FormField control={form.control} name="height" render={({ field }) => (
                                 <FormItem><FormLabel>Altura (cm)</FormLabel><FormControl><Input type="number" placeholder="Ex: 175" {...field} /></FormControl><FormMessage /></FormItem>
@@ -620,10 +634,10 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do tratame
                             {watchUsedMonjauro === 'yes' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <FormField control={form.control} name="monjauroDose" render={({ field }) => (
-                                        <FormItem><FormLabel>Qual a dose?</FormLabel><FormControl><Input placeholder="Ex: 2.5mg" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Qual a dose?</FormLabel><FormControl><Input placeholder="Ex: 2.5mg" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                     )}/>
                                     <FormField control={form.control} name="monjauroTime" render={({ field }) => (
-                                        <FormItem><FormLabel>Há quanto tempo?</FormLabel><FormControl><Input placeholder="Ex: 3 meses" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Há quanto tempo?</FormLabel><FormControl><Input placeholder="Ex: 3 meses" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                     )}/>
                                 </div>
                             )}
