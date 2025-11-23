@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from "react";
@@ -9,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlusCircle, MoreVertical, Edit, Trash2, DollarSign, PackageCheck, PackageX, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import {
@@ -37,6 +37,8 @@ export default function SalesControlPage() {
     const [saleToDelete, setSaleToDelete] = useState<Sale | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
+    const [filter, setFilter] = useState<'all' | 'pago' | 'pendente'>('all');
+
 
     useEffect(() => {
         const fetchSales = async () => {
@@ -93,6 +95,11 @@ export default function SalesControlPage() {
     ).reduce((acc, sale) => acc + sale.total, 0);
 
     const pendingDeliveryCount = sales.filter(s => s.deliveryStatus !== 'entregue').length;
+
+    const filteredSales = sales.filter(sale => {
+        if (filter === 'all') return true;
+        return sale.paymentStatus === filter;
+    });
 
 
     if (loading) {
@@ -158,72 +165,83 @@ export default function SalesControlPage() {
             </div>
 
             <Card>
-                 <CardHeader>
+                <CardHeader>
                     <CardTitle>Histórico de Vendas</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Data</TableHead>
-                                <TableHead>Paciente</TableHead>
-                                <TableHead>Total</TableHead>
-                                <TableHead>Status Pag.</TableHead>
-                                <TableHead>Status Entrega</TableHead>
-                                <TableHead className="text-right">Ações</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {sales.length > 0 ? (
-                                sales.map((sale) => {
-                                    const paymentStatus = getPaymentStatusVariant(sale.paymentStatus);
-                                    const deliveryStatus = getDeliveryStatusVariant(sale.deliveryStatus);
-                                    return (
-                                        <TableRow key={sale.id}>
-                                            <TableCell>{formatDate(sale.saleDate)}</TableCell>
-                                            <TableCell>
-                                                <Link href={`/patients/${sale.patientId}`} className="font-medium hover:underline">
-                                                    {sale.patientName}
-                                                </Link>
-                                            </TableCell>
-                                            <TableCell className="font-semibold">{formatCurrency(sale.total)}</TableCell>
-                                            <TableCell>
-                                                <Badge variant={'default'} className={`${paymentStatus.color} ${paymentStatus.textColor} border-none`}>{paymentStatus.label}</Badge>
-                                            </TableCell>
-                                             <TableCell>
-                                                <Badge variant={'default'} className={`${deliveryStatus.color} ${deliveryStatus.textColor} border-none`}>{deliveryStatus.label}</Badge>
-                                             </TableCell>
-                                            <TableCell className="text-right">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                            <MoreVertical className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem onClick={handleEditClick}>
-                                                            <Edit className="mr-2 h-4 w-4" />
-                                                            Editar
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleDeleteClick(sale)} className="text-destructive">
-                                                            <Trash2 className="mr-2 h-4 w-4" />
-                                                            Excluir
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                    <Tabs value={filter} onValueChange={(value) => setFilter(value as any)}>
+                         <div className="px-6">
+                            <TabsList>
+                                <TabsTrigger value="all">Todos</TabsTrigger>
+                                <TabsTrigger value="pago">Pagos</TabsTrigger>
+                                <TabsTrigger value="pendente">Pendentes</TabsTrigger>
+                            </TabsList>
+                        </div>
+                        <TabsContent value={filter} className="mt-0">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Data</TableHead>
+                                        <TableHead>Paciente</TableHead>
+                                        <TableHead>Total</TableHead>
+                                        <TableHead>Status Pag.</TableHead>
+                                        <TableHead>Status Entrega</TableHead>
+                                        <TableHead className="text-right">Ações</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredSales.length > 0 ? (
+                                        filteredSales.map((sale) => {
+                                            const paymentStatus = getPaymentStatusVariant(sale.paymentStatus);
+                                            const deliveryStatus = getDeliveryStatusVariant(sale.deliveryStatus);
+                                            return (
+                                                <TableRow key={sale.id}>
+                                                    <TableCell>{formatDate(sale.saleDate)}</TableCell>
+                                                    <TableCell>
+                                                        <Link href={`/patients/${sale.patientId}`} className="font-medium hover:underline">
+                                                            {sale.patientName}
+                                                        </Link>
+                                                    </TableCell>
+                                                    <TableCell className="font-semibold">{formatCurrency(sale.total)}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={'default'} className={`${paymentStatus.color} ${paymentStatus.textColor} border-none`}>{paymentStatus.label}</Badge>
+                                                    </TableCell>
+                                                     <TableCell>
+                                                        <Badge variant={'default'} className={`${deliveryStatus.color} ${deliveryStatus.textColor} border-none`}>{deliveryStatus.label}</Badge>
+                                                     </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                                    <MoreVertical className="h-4 w-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem onClick={handleEditClick}>
+                                                                    <Edit className="mr-2 h-4 w-4" />
+                                                                    Editar
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleDeleteClick(sale)} className="text-destructive">
+                                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                                    Excluir
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </TableCell>
+                                                </TableRow>
+                                            )
+                                        })
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="h-24 text-center">
+                                                Nenhuma venda encontrada para este filtro.
                                             </TableCell>
                                         </TableRow>
-                                    )
-                                })
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="h-24 text-center">
-                                        Nenhuma venda registrada.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                                    )}
+                                </TableBody>
+                            </Table>
+                         </TabsContent>
+                    </Tabs>
                 </CardContent>
             </Card>
 
