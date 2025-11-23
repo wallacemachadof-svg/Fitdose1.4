@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getPatients, getSales, type Patient, type Sale } from "@/lib/actions";
 import { formatCurrency } from "@/lib/utils";
-import { User, BarChart3, PieChart, DollarSign, Link as LinkIcon, Copy, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock, CalendarIcon } from "lucide-react";
+import { User, BarChart3, PieChart, DollarSign, Link as LinkIcon, Copy, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock, CalendarIcon, Building, Laptop, Handshake } from "lucide-react";
 import Link from 'next/link';
 import { subDays, format as formatDateFns, startOfToday, isWithinInterval, addDays } from "date-fns";
 import { ptBR } from 'date-fns/locale';
@@ -74,7 +75,10 @@ export default function DashboardPage() {
     overduePatientsCount,
     dueTodayPatientsCount,
     pendingPaymentsCount,
-    pendingDeliveriesCount
+    pendingDeliveriesCount,
+    presencialCount,
+    onlineCount,
+    hibridoCount,
   } = useMemo(() => {
     const startDate = dateRange?.from || subDays(startOfToday(), 29);
     const endDate = dateRange?.to || startOfToday();
@@ -103,6 +107,10 @@ export default function DashboardPage() {
     }
     
     // --- Calculations based on filtered data ---
+
+    const _presencialCount = filteredPatients.filter(p => p.serviceModel === 'presencial').length;
+    const _onlineCount = filteredPatients.filter(p => p.serviceModel === 'online').length;
+    const _hibridoCount = filteredPatients.filter(p => p.serviceModel === 'hibrido').length;
 
     // Doses (not dependent on date range, but on patient filter)
     const allPendingDoses = filteredPatients.flatMap(p => 
@@ -144,6 +152,9 @@ export default function DashboardPage() {
         dueTodayPatientsCount: _dueTodayPatientsCount,
         pendingPaymentsCount: _pendingPayments,
         pendingDeliveriesCount: _pendingDeliveries,
+        presencialCount: _presencialCount,
+        onlineCount: _onlineCount,
+        hibridoCount: _hibridoCount,
     };
 
   }, [sales, dateRange, selectedPatientId, patients]);
@@ -211,6 +222,39 @@ export default function DashboardPage() {
             </div>
           </CardContent>
       </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="hover:bg-muted/50 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Atend. Presencial</CardTitle>
+                <Building className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{presencialCount}</div>
+                <p className="text-xs text-muted-foreground">pacientes no total</p>
+            </CardContent>
+          </Card>
+          <Card className="hover:bg-muted/50 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Atend. Online</CardTitle>
+                <Laptop className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{onlineCount}</div>
+                <p className="text-xs text-muted-foreground">pacientes no total</p>
+            </CardContent>
+          </Card>
+          <Card className="hover:bg-muted/50 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Atend. Híbrido</CardTitle>
+                <Handshake className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{hibridoCount}</div>
+                <p className="text-xs text-muted-foreground">pacientes no total</p>
+            </CardContent>
+          </Card>
+      </div>
       
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Link href="/patients?filter=overdue">
@@ -366,5 +410,7 @@ function DashboardSkeleton() {
     </div>
   );
 }
+
+    
 
     
