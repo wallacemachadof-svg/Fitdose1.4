@@ -35,7 +35,7 @@ const readData = (): MockData => {
         const sales = fs.existsSync(salesFilePath) ? JSON.parse(fs.readFileSync(salesFilePath, 'utf-8')) : [];
         const cashFlowEntries = fs.existsSync(cashFlowFilePath) ? JSON.parse(fs.readFileSync(cashFlowFilePath, 'utf-8')) : [];
         const vials = fs.existsSync(vialsFilePath) ? JSON.parse(fs.readFileSync(vialsFilePath, 'utf-8')) : [];
-        const settings = fs.existsSync(settingsFilePath) ? JSON.parse(fs.readFileSync(settingsFilePath, 'utf-8')) : { dosePrices: [], dailyLateFee: 0 };
+        const settings = fs.existsSync(settingsFilePath) ? JSON.parse(fs.readFileSync(settingsFilePath, 'utf-8')) : { dosePrices: [], dailyLateFee: 0, rewards: { pointsPerDose: [], pointsToBrl: 10 } };
 
         
         // Dates are stored as strings in JSON, so we need to convert them back to Date objects
@@ -82,7 +82,7 @@ const readData = (): MockData => {
             { dose: "5.0", price: 430 },
             { dose: "6.25", price: 540 },
             { dose: "7.05", price: 620 }
-        ], dailyLateFee: 0 } };
+        ], dailyLateFee: 0, rewards: { pointsPerDose: [], pointsToBrl: 10 } } };
     }
 };
 
@@ -180,7 +180,7 @@ const generateDoseSchedule = (startDate: Date, totalDoses = 12, startDoseNumber 
   const newDoses: Dose[] = [];
   
   const lastAdministeredDose = administeredDoses.length > 0 
-      ? administeredDoses.sort((a,b) => b.doseNumber - a.doseNumber)[0]
+      ? administeredDoses.sort((a,b) => b.doseNumber - b.doseNumber)[0]
       : null;
 
   let currentDate = lastAdministeredDose ? new Date(lastAdministeredDose.date) : new Date(startDate);
@@ -381,9 +381,20 @@ export type DosePrice = {
     price: number;
 };
 
+export type DosePoints = {
+  dose: string;
+  points: number;
+};
+
+export type RewardsSettings = {
+  pointsPerDose: DosePoints[];
+  pointsToBrl: number;
+};
+
 export type Settings = {
     dosePrices: DosePrice[];
     dailyLateFee?: number;
+    rewards: RewardsSettings;
 };
 
 export type StockForecast = {
@@ -764,7 +775,9 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
 
 
     // --- Handle Points ---
-    const pointsGained = (soldMgPerDose / 2.5) * 10 * saleData.quantity;
+    const settings = data.settings;
+    const pointsConfig = settings.rewards?.pointsPerDose?.find(p => p.dose === saleData.soldDose);
+    const pointsGained = (pointsConfig?.points ?? 0) * saleData.quantity;
     
     // If patient was referred, give points to the referrer
     if (patient.indication?.type === 'indicado' && patient.indication.patientId) {
@@ -799,9 +812,10 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             throw new Error('Pontos insuficientes para o resgate.');
         }
         patient.points -= saleData.pointsUsed;
+        const brlValue = saleData.pointsUsed / (settings.rewards?.pointsToBrl || 10);
         patient.pointHistory.push({
             date: new Date(),
-            description: `Resgate de ${formatCurrency(saleData.pointsUsed/10)}`,
+            description: `Resgate de R$${brlValue.toFixed(2)}`,
             points: -saleData.pointsUsed,
         });
     }
@@ -1104,6 +1118,10 @@ export const resetAllData = async (): Promise<void> => {
                 { dose: "7.05", price: 620 }
             ],
             dailyLateFee: 0,
+            rewards: {
+                pointsPerDose: [],
+                pointsToBrl: 10,
+            }
         }
     };
     writeData(emptyData);
