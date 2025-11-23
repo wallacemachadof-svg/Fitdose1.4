@@ -7,15 +7,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Cake, Gift } from 'lucide-react';
-import { format, getMonth, isSameDay } from 'date-fns';
+import { format, getMonth, isSameDay, setMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Link from 'next/link';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const months = Array.from({ length: 12 }, (_, i) => ({
+  value: i.toString(),
+  label: format(new Date(0, i), 'MMMM', { locale: ptBR }).replace(/^\w/, c => c.toUpperCase()),
+}));
+
 
 export default function BirthdaysPage() {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedMonth, setSelectedMonth] = useState<number>(getMonth(new Date()));
 
     useEffect(() => {
         const fetchPatients = async () => {
@@ -27,13 +35,11 @@ export default function BirthdaysPage() {
         fetchPatients();
     }, []);
 
-    const currentMonth = getMonth(new Date());
-
     const birthdayPatients = patients
-        .filter(p => p.birthDate && getMonth(new Date(p.birthDate)) === currentMonth)
+        .filter(p => p.birthDate && getMonth(new Date(p.birthDate)) === selectedMonth)
         .sort((a, b) => new Date(a.birthDate!).getDate() - new Date(b.birthDate!).getDate());
         
-    const monthName = format(new Date(), 'MMMM', { locale: ptBR });
+    const monthName = format(setMonth(new Date(), selectedMonth), 'MMMM', { locale: ptBR });
 
     const generateBirthdayWhatsAppLink = (patient: Patient) => {
         const patientFirstName = patient.fullName.split(' ')[0];
@@ -70,14 +76,29 @@ export default function BirthdaysPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <Gift className="h-6 w-6 text-primary" />
-                    Aniversariantes do Mês
-                </h1>
-                <p className="text-muted-foreground">
-                    Pacientes que fazem aniversário em {monthName}.
-                </p>
+            <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold flex items-center gap-2">
+                        <Gift className="h-6 w-6 text-primary" />
+                        Aniversariantes de {monthName.charAt(0).toUpperCase() + monthName.slice(1)}
+                    </h1>
+                    <p className="text-muted-foreground">
+                        Selecione um mês para ver os aniversariantes.
+                    </p>
+                </div>
+                 <Select 
+                    value={selectedMonth.toString()} 
+                    onValueChange={(value) => setSelectedMonth(Number(value))}
+                >
+                    <SelectTrigger className="w-full md:w-[200px]">
+                        <SelectValue placeholder="Selecione um mês" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {months.map(month => (
+                            <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             <Card>
@@ -126,4 +147,3 @@ export default function BirthdaysPage() {
         </div>
     );
 }
-
