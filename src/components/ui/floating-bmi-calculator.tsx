@@ -30,7 +30,7 @@ export function FloatingBmiCalculator() {
   }, [weight, height]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target instanceof HTMLInputElement) return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLButtonElement) return;
     isDragging.current = true;
     dragStartPos.current = {
       x: e.clientX - position.x,
