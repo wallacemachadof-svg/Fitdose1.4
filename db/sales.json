@@ -679,5 +679,24 @@
       "bmi": 29.5
     },
     "patientName": "CRISTIANO MARTINS COSTA"
+  },
+  {
+    "id": "29",
+    "patientId": "8",
+    "saleDate": "2025-11-12T03:00:00.000Z",
+    "soldDose": "2.5",
+    "quantity": 1,
+    "price": 220,
+    "discount": 20,
+    "pointsUsed": 0,
+    "total": 200,
+    "serviceModel": "hibrido",
+    "paymentStatus": "pendente",
+    "paymentDueDate": "2025-11-30T03:00:00.000Z",
+    "deliveryStatus": "entregue",
+    "deliveryDate": "2025-11-19T03:00:00.000Z",
+    "observations": "",
+    "bioimpedance": {},
+    "patientName": "DANIEL"
   }
 ]

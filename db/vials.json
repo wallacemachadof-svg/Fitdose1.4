@@ -4,15 +4,15 @@
     "purchaseDate": "2025-11-18T05:05:13.554Z",
     "totalMg": 90,
     "cost": 3150,
-    "remainingMg": 1.25,
-    "soldMg": 88.75
+    "remainingMg": 0,
+    "soldMg": 90
   },
   {
     "id": "vial-1763915805546-0",
     "purchaseDate": "2025-11-20T03:00:00.000Z",
     "totalMg": 90,
     "cost": 3150,
-    "remainingMg": 90,
-    "soldMg": 0
+    "remainingMg": 88.75,
+    "soldMg": 1.25
   }
 ]

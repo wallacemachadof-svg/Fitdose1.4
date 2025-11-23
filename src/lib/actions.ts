@@ -880,6 +880,46 @@ export const addVial = async (vialData: NewVialData): Promise<Vial[]> => {
     return newVials;
 }
 
+export const adjustVialStock = async (vialId: string, newRemainingMg: number, reason: string): Promise<Vial> => {
+    const data = readData();
+    const vialIndex = data.vials.findIndex(v => v.id === vialId);
+    if (vialIndex === -1) {
+        throw new Error("Frasco não encontrado.");
+    }
+    const vial = data.vials[vialIndex];
+    if (newRemainingMg > vial.totalMg || newRemainingMg < 0) {
+        throw new Error("A nova quantidade é inválida.");
+    }
+
+    const difference = vial.remainingMg - newRemainingMg;
+    
+    vial.remainingMg = newRemainingMg;
+    vial.soldMg = vial.totalMg - newRemainingMg;
+
+    if (difference !== 0) {
+        const costPerMg = vial.cost / vial.totalMg;
+        const lossAmount = difference * costPerMg;
+
+        const adjustmentEntry: NewCashFlowData = {
+            type: 'saida',
+            purchaseDate: new Date(),
+            description: `Ajuste de estoque (${vial.id}): ${reason}`,
+            amount: Math.abs(lossAmount),
+            status: 'pago',
+        };
+         const newId = `manual-${(data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).length > 0 ? Math.max(...data.cashFlowEntries.filter(e => e.id.startsWith('manual-')).map(e => parseInt(e.id.replace('manual-',''), 10))) : 0) + 1}`;
+         const newEntry: CashFlowEntry = { id: newId, ...adjustmentEntry };
+         data.cashFlowEntries.push(newEntry);
+    }
+    
+    data.vials[vialIndex] = vial;
+    writeData({ vials: data.vials, cashFlowEntries: data.cashFlowEntries });
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return vial;
+}
+
+
 export const getSettings = async (): Promise<Settings> => {
     const { settings } = readData();
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -960,5 +1000,7 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
     return { ruptureDate: null, purchaseDeadline: null };
 }
+
+    
 
     

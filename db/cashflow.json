@@ -267,5 +267,14 @@
     "amount": 3150,
     "status": "pago",
     "paymentMethod": "pix"
+  },
+  {
+    "id": "sale-29",
+    "type": "entrada",
+    "purchaseDate": "2025-11-12T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ DANIEL",
+    "amount": 200,
+    "status": "pendente",
+    "dueDate": "2025-11-30T03:00:00.000Z"
   }
 ]

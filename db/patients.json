@@ -1701,11 +1701,13 @@
         "id": 1,
         "doseNumber": 1,
         "date": "2025-11-12T03:00:00.000Z",
-        "status": "pending",
+        "status": "administered",
         "time": "10:00",
         "payment": {
-          "status": "pendente"
-        }
+          "status": "pendente",
+          "amount": 200
+        },
+        "administeredDose": 2.5
       },
       {
         "id": 2,
@@ -1823,8 +1825,14 @@
     "usedMonjauro": "no",
     "monjauroDose": "",
     "monjauroTime": "",
-    "points": 0,
-    "pointHistory": [],
+    "points": 10,
+    "pointHistory": [
+      {
+        "date": "2025-11-23T16:39:15.417Z",
+        "description": "Compra de 1x dose(s) de 2.5mg",
+        "points": 10
+      }
+    ],
     "consentGiven": true,
     "consentDate": "2025-11-23T16:28:55.569Z"
   }

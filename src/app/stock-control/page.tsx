@@ -1,37 +1,99 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getVials, getStockForecast, type Vial, type StockForecast } from '@/lib/actions';
+import { getVials, getStockForecast, type Vial, type StockForecast, adjustVialStock } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { PlusCircle, Warehouse, Droplets, FlaskConical, AlertTriangle, Package, CalendarClock, ShoppingCart } from 'lucide-react';
+import { PlusCircle, Warehouse, Droplets, FlaskConical, AlertTriangle, Package, CalendarClock, ShoppingCart, SlidersHorizontal, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useForm, useController } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
+
 
 const DELIVERY_LEAD_TIME = 22; // 22 days
+
+const adjustmentFormSchema = z.object({
+  newRemainingMg: z.coerce.number().min(0, "A quantidade deve ser um valor positivo."),
+  reason: z.string().min(10, "O motivo deve ter pelo menos 10 caracteres."),
+});
+
+type AdjustmentFormValues = z.infer<typeof adjustmentFormSchema>;
 
 export default function StockControlPage() {
     const [vials, setVials] = useState<Vial[]>([]);
     const [forecast, setForecast] = useState<StockForecast | null>(null);
     const [loading, setLoading] = useState(true);
+    const [selectedVial, setSelectedVial] = useState<Vial | null>(null);
+    const [isAdjusting, setIsAdjusting] = useState(false);
+    const [isAdjustmentDialogOpen, setIsAdjustmentDialogOpen] = useState(false);
+
+    const { toast } = useToast();
+
+    const form = useForm<AdjustmentFormValues>({
+        resolver: zodResolver(adjustmentFormSchema),
+        defaultValues: {
+            newRemainingMg: 0,
+            reason: "",
+        },
+    });
+
+    const fetchStockData = async () => {
+        setLoading(true);
+        const [vialsData, forecastData] = await Promise.all([
+            getVials(),
+            getStockForecast(DELIVERY_LEAD_TIME)
+        ]);
+        setVials(vialsData);
+        setForecast(forecastData);
+        setLoading(false);
+    };
 
     useEffect(() => {
-        const fetchStockData = async () => {
-            setLoading(true);
-            const [vialsData, forecastData] = await Promise.all([
-                getVials(),
-                getStockForecast(DELIVERY_LEAD_TIME)
-            ]);
-            setVials(vialsData);
-            setForecast(forecastData);
-            setLoading(false);
-        };
         fetchStockData();
     }, []);
+
+    const handleOpenAdjustDialog = (vial: Vial) => {
+        setSelectedVial(vial);
+        form.reset({
+            newRemainingMg: vial.remainingMg,
+            reason: "",
+        });
+        setIsAdjustmentDialogOpen(true);
+    }
+    
+    async function onAdjustmentSubmit(data: AdjustmentFormValues) {
+        if (!selectedVial) return;
+        setIsAdjusting(true);
+        try {
+            await adjustVialStock(selectedVial.id, data.newRemainingMg, data.reason);
+            toast({
+                title: "Estoque Ajustado!",
+                description: `O frasco ${selectedVial.id} foi atualizado com sucesso.`
+            });
+            fetchStockData(); // Re-fetch data to update the view
+            setIsAdjustmentDialogOpen(false);
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Erro ao ajustar estoque",
+                description: error instanceof Error ? error.message : "Não foi possível salvar o ajuste."
+            });
+        } finally {
+            setIsAdjusting(false);
+        }
+    }
+
 
     const totalMg = vials.reduce((acc, vial) => acc + vial.totalMg, 0);
     const remainingMg = vials.reduce((acc, vial) => acc + vial.remainingMg, 0);
@@ -155,8 +217,12 @@ export default function StockControlPage() {
                                     </div>
                                     <Progress value={(vial.remainingMg / vial.totalMg) * 100} />
                                 </CardContent>
-                                 <CardFooter>
+                                 <CardFooter className="flex justify-between items-center">
                                     <p className="text-xs text-muted-foreground">ID: {vial.id}</p>
+                                    <Button variant="outline" size="sm" onClick={() => handleOpenAdjustDialog(vial)}>
+                                        <SlidersHorizontal className="h-4 w-4 mr-2" />
+                                        Ajustar
+                                    </Button>
                                  </CardFooter>
                             </Card>
                         ))
@@ -168,6 +234,60 @@ export default function StockControlPage() {
                     )}
                 </CardContent>
             </Card>
+
+            <Dialog open={isAdjustmentDialogOpen} onOpenChange={setIsAdjustmentDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Ajustar Estoque do Frasco</DialogTitle>
+                        <DialogDescription>
+                            Faça o balanço do frasco ID: <span className="font-mono bg-muted px-1 py-0.5 rounded">{selectedVial?.id}</span>.
+                            A diferença será registrada como uma saída no fluxo de caixa.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onAdjustmentSubmit)} className="space-y-4 py-4">
+                            <FormField
+                                control={form.control}
+                                name="newRemainingMg"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Nova Quantidade Restante (mg)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.1" placeholder="Ex: 85.5" {...field} />
+                                        </FormControl>
+                                        <FormDescription>Estoque atual: {selectedVial?.remainingMg.toFixed(2)}mg</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="reason"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Motivo do Ajuste</FormLabel>
+                                        <FormControl>
+                                            <Textarea placeholder="Ex: Perda no manuseio, dose de teste, etc." {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button type="button" variant="outline">Cancelar</Button>
+                                </DialogClose>
+                                <Button type="submit" disabled={isAdjusting}>
+                                    {isAdjusting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Salvar Ajuste
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+
+    
