@@ -22,7 +22,7 @@ import { User as UserIcon, Upload, Loader2, ArrowRight, CalendarIcon } from "luc
 import { cn, calculateBmi } from "@/lib/utils";
 import { useEffect, useState, Suspense } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { addPatient } from "@/lib/actions";
+import { addPatient, getPatients, type Patient } from "@/lib/actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -32,6 +32,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Combobox } from "@/components/ui/combobox";
 
 const healthConditions = [
     { id: "hypertension", label: "Hipertensão" },
@@ -82,6 +83,7 @@ const patientFormSchema = z.object({
   avatarUrl: z.string().optional(),
   indicationSource: z.enum(['yes', 'no']).optional(),
   indicationName: z.string().optional(),
+  indicationPatientId: z.string().optional(),
   consentGiven: z.boolean().refine((val) => val === true, {
     message: "Você deve ler e concordar com os termos para continuar.",
   }),
@@ -114,6 +116,8 @@ function PatientRegistrationForm() {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [patients, setPatients] = useState<{ value: string, label: string }[]>([]);
+
 
     useEffect(() => {
         const source = searchParams.get('source');
@@ -131,6 +135,13 @@ function PatientRegistrationForm() {
           }
         };
         window.addEventListener('storage', handleStorageChange);
+
+        const fetchPatients = async () => {
+            const patientData = await getPatients();
+            setPatients(patientData.map(p => ({ value: p.id, label: p.fullName })));
+        }
+        fetchPatients();
+
         return () => {
           window.removeEventListener('storage', handleStorageChange);
         };
@@ -233,7 +244,7 @@ function PatientRegistrationForm() {
             ].filter(Boolean).join(', ');
 
             const indication = data.indicationSource === 'yes' && data.indicationName
-                ? { type: 'indicado' as const, name: data.indicationName }
+                ? { type: 'indicado' as const, name: data.indicationName, patientId: data.indicationPatientId }
                 : undefined;
 
             const patientDataForApi = {
@@ -717,10 +728,20 @@ Após receber todas as informações necessárias de forma clara, ética e técn
                             )}/>
 
                             {watchIndicationSource === 'yes' && (
-                                <FormField control={form.control} name="indicationName" render={({ field }) => (
-                                    <FormItem>
+                                <FormField control={form.control} name="indicationPatientId" render={({ field }) => (
+                                    <FormItem className="flex flex-col">
                                         <FormLabel>Quem indicou?</FormLabel>
-                                        <FormControl><Input placeholder="Nome de quem te indicou" {...field} /></FormControl>
+                                         <Combobox 
+                                            options={patients}
+                                            value={field.value}
+                                            onChange={(value, label) => {
+                                                field.onChange(value)
+                                                form.setValue('indicationName', label)
+                                            }}
+                                            placeholder="Selecione o paciente que indicou..."
+                                            noResultsText="Nenhum paciente encontrado."
+                                            allowCustom={true}
+                                        />
                                         <FormMessage />
                                     </FormItem>
                                 )}/>
@@ -780,5 +801,3 @@ export default function PatientRegistrationPage() {
         </Suspense>
     )
 }
-
-    

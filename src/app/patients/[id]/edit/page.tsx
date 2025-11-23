@@ -24,7 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Loader2, ArrowLeft, CalendarIcon, User as UserIcon, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { getPatientById, updatePatient, type Patient, type UpdatePatientData } from "@/lib/actions";
+import { getPatientById, updatePatient, type Patient, type UpdatePatientData, getPatients } from "@/lib/actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,6 +33,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Combobox } from "@/components/ui/combobox";
 
 const healthConditions = [
     { id: "hypertension", label: "Hipertensão" },
@@ -82,6 +83,7 @@ const patientEditFormSchema = z.object({
   monjauroTime: z.string().optional(),
   indicationSource: z.enum(['yes', 'no']).optional(),
   indicationName: z.string().optional(),
+  indicationPatientId: z.string().optional(),
   avatarUrl: z.string().optional(),
   defaultPrice: z.coerce.number().optional(),
   defaultDose: z.string().optional(),
@@ -114,6 +116,8 @@ export default function PatientEditPage() {
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [allPatients, setAllPatients] = useState<{ value: string, label: string }[]>([]);
+
 
     const form = useForm<PatientEditFormValues>({
         resolver: zodResolver(patientEditFormSchema),
@@ -124,8 +128,12 @@ export default function PatientEditPage() {
 
         const fetchPatient = async () => {
             setLoading(true);
-            const fetchedPatient = await getPatientById(patientId);
+            const [fetchedPatient, allPatientsData] = await Promise.all([
+                getPatientById(patientId),
+                getPatients()
+            ]);
             setPatient(fetchedPatient);
+            setAllPatients(allPatientsData.map(p => ({ value: p.id, label: p.fullName })));
             
             if (fetchedPatient) {
                 setImagePreview(fetchedPatient.avatarUrl || null);
@@ -171,6 +179,7 @@ export default function PatientEditPage() {
                     monjauroTime: fetchedPatient.monjauroTime,
                     indicationSource: fetchedPatient.indication?.name ? 'yes' : 'no',
                     indicationName: fetchedPatient.indication?.name,
+                    indicationPatientId: fetchedPatient.indication?.patientId,
                     avatarUrl: fetchedPatient.avatarUrl,
                     defaultPrice: fetchedPatient.defaultPrice,
                     defaultDose: fetchedPatient.defaultDose,
@@ -207,7 +216,7 @@ export default function PatientEditPage() {
             ].filter(Boolean).join(', ');
             
             const indication = data.indicationSource === 'yes' && data.indicationName
-                ? { type: 'indicado' as const, name: data.indicationName, patientId: patient.indication?.patientId }
+                ? { type: 'indicado' as const, name: data.indicationName, patientId: data.indicationPatientId }
                 : undefined;
 
             const patientDataForApi: UpdatePatientData = {
@@ -652,10 +661,20 @@ export default function PatientEditPage() {
                             )}/>
 
                             {watchIndicationSource === 'yes' && (
-                                <FormField control={form.control} name="indicationName" render={({ field }) => (
-                                    <FormItem>
+                                <FormField control={form.control} name="indicationPatientId" render={({ field }) => (
+                                    <FormItem className="flex flex-col">
                                         <FormLabel>Quem indicou?</FormLabel>
-                                        <FormControl><Input placeholder="Nome de quem indicou" {...field} /></FormControl>
+                                        <Combobox 
+                                            options={allPatients.filter(p => p.value !== patientId)}
+                                            value={field.value}
+                                            onChange={(value, label) => {
+                                                field.onChange(value)
+                                                form.setValue('indicationName', label)
+                                            }}
+                                            placeholder="Selecione o paciente que indicou..."
+                                            noResultsText="Nenhum paciente encontrado."
+                                            allowCustom={true}
+                                        />
                                         <FormMessage />
                                     </FormItem>
                                 )}/>
@@ -676,5 +695,3 @@ export default function PatientEditPage() {
         </>
     )
 }
-
-    

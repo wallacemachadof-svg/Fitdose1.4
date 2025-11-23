@@ -240,7 +240,7 @@ export type Patient = {
   monjauroDose?: string;
   monjauroTime?: string;
   indication?: {
-    type: 'indicado' | 'indicador' | 'nao_se_aplica';
+    type: 'indicado' | 'indicador';
     name: string;
     patientId?: string;
   };
@@ -761,18 +761,35 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
 
 
     // --- Handle Points ---
-    // const uiPerMg = 4; // This seems unused, keeping it commented out
-    const pointsGained = (soldMgPerDose / 2.5) * 10 * saleData.quantity; // 10 points per 2.5mg
+    const pointsGained = (soldMgPerDose / 2.5) * 10 * saleData.quantity;
     
-    if(!patient.points) patient.points = 0;
-    if(!patient.pointHistory) patient.pointHistory = [];
+    // If patient was referred, give points to the referrer
+    if (patient.indication?.type === 'indicado' && patient.indication.patientId) {
+        const referrerIndex = data.patients.findIndex(p => p.id === patient.indication!.patientId);
+        if (referrerIndex !== -1) {
+            const referrer = data.patients[referrerIndex];
+            if (!referrer.points) referrer.points = 0;
+            if (!referrer.pointHistory) referrer.pointHistory = [];
 
-    patient.points = patient.points + pointsGained;
-    patient.pointHistory.push({
-        date: new Date(),
-        description: `Compra de ${saleData.quantity}x dose(s) de ${saleData.soldDose}mg`,
-        points: pointsGained,
-    });
+            referrer.points += pointsGained;
+            referrer.pointHistory.push({
+                date: new Date(),
+                description: `Indicação de ${patient.fullName}`,
+                points: pointsGained,
+            });
+            data.patients[referrerIndex] = referrer;
+        }
+    } else { // Otherwise, give points to the patient making the purchase
+        if(!patient.points) patient.points = 0;
+        if(!patient.pointHistory) patient.pointHistory = [];
+
+        patient.points += pointsGained;
+        patient.pointHistory.push({
+            date: new Date(),
+            description: `Compra de ${saleData.quantity}x dose(s) de ${saleData.soldDose}mg`,
+            points: pointsGained,
+        });
+    }
     
     if (saleData.pointsUsed && saleData.pointsUsed > 0) {
         if (patient.points < saleData.pointsUsed) {
@@ -907,11 +924,6 @@ export const updateCashFlowEntry = async (id: string, updateData: UpdateCashFlow
         throw new Error("Lançamento não encontrado.");
     }
     
-    // Cannot edit parcelled entries
-    if (data.cashFlowEntries[entryIndex].installments) {
-        throw new Error("Não é possível editar um lançamento parcelado. Exclua a compra e lance novamente.");
-    }
-
     const updatedEntry: CashFlowEntry = {
         ...data.cashFlowEntries[entryIndex],
         ...updateData,
@@ -1140,15 +1152,3 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
     return { ruptureDate: null, purchaseDeadline: null };
 }
-
-    
-
-    
-
-
-    
-
-
-
-
-
