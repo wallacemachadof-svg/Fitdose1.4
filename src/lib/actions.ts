@@ -301,6 +301,10 @@ export type Evolution = {
 };
 export type NewEvolutionData = Omit<Evolution, 'id' | 'date'>;
 
+export type VialUsage = {
+    vialId: string;
+    mgUsed: number;
+};
 
 export type Sale = {
   id: string;
@@ -322,6 +326,7 @@ export type Sale = {
   pointsUsed?: number;
   paymentMethod?: "dinheiro" | "pix" | "debito" | "credito" | "payment_link";
   bioimpedance?: Bioimpedance;
+  vialUsage?: VialUsage[];
 };
 
 export type NewSaleData = Omit<Sale, 'id' | 'patientName'> & {
@@ -652,6 +657,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         throw new Error(`Estoque insuficiente. Apenas ${totalRemainingMg.toFixed(2)}mg disponíveis. Necessário: ${totalSoldMg.toFixed(2)}mg.`);
     }
 
+    const vialUsage: VialUsage[] = [];
     // --- Update Stock ---
     const sortedVials = [...data.vials].sort((a, b) => new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime());
     let remainingToDeduct = totalSoldMg;
@@ -662,6 +668,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             vial.remainingMg -= amountToDeduct;
             vial.soldMg += amountToDeduct;
             remainingToDeduct -= amountToDeduct;
+            vialUsage.push({ vialId: vial.id, mgUsed: amountToDeduct });
         }
     }
     
@@ -674,6 +681,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         ...saleData,
         patientName: patient.fullName,
         total: total,
+        vialUsage: vialUsage,
     };
 
     // --- Handle Bioimpedance ---

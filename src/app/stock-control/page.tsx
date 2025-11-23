@@ -1,12 +1,13 @@
 
+
 'use client';
 
-import { useState, useEffect } from 'react';
-import { getVials, getStockForecast, type Vial, type StockForecast, adjustVialStock } from '@/lib/actions';
+import { useState, useEffect, useMemo } from 'react';
+import { getVials, getStockForecast, type Vial, type StockForecast, adjustVialStock, getSales, type Sale } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { PlusCircle, Warehouse, Droplets, FlaskConical, AlertTriangle, Package, CalendarClock, ShoppingCart, SlidersHorizontal, Loader2 } from 'lucide-react';
+import { PlusCircle, Warehouse, Droplets, FlaskConical, AlertTriangle, Package, CalendarClock, ShoppingCart, SlidersHorizontal, Loader2, User } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -19,6 +20,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
 const DELIVERY_LEAD_TIME = 22; // 22 days
@@ -32,6 +34,7 @@ type AdjustmentFormValues = z.infer<typeof adjustmentFormSchema>;
 
 export default function StockControlPage() {
     const [vials, setVials] = useState<Vial[]>([]);
+    const [sales, setSales] = useState<Sale[]>([]);
     const [forecast, setForecast] = useState<StockForecast | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedVial, setSelectedVial] = useState<Vial | null>(null);
@@ -50,12 +53,14 @@ export default function StockControlPage() {
 
     const fetchStockData = async () => {
         setLoading(true);
-        const [vialsData, forecastData] = await Promise.all([
+        const [vialsData, forecastData, salesData] = await Promise.all([
             getVials(),
-            getStockForecast(DELIVERY_LEAD_TIME)
+            getStockForecast(DELIVERY_LEAD_TIME),
+            getSales()
         ]);
         setVials(vialsData);
         setForecast(forecastData);
+        setSales(salesData);
         setLoading(false);
     };
 
@@ -94,10 +99,8 @@ export default function StockControlPage() {
         }
     }
 
-
     const totalMg = vials.reduce((acc, vial) => acc + vial.totalMg, 0);
     const remainingMg = vials.reduce((acc, vial) => acc + vial.remainingMg, 0);
-    const soldMg = totalMg - remainingMg;
     const stockPercentage = totalMg > 0 ? (remainingMg / totalMg) * 100 : 0;
     
     const getProgressColor = () => {
@@ -111,8 +114,7 @@ export default function StockControlPage() {
         return (
              <div className="space-y-6">
                 <Skeleton className="h-12 w-1/3" />
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Skeleton className="h-28" />
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     <Skeleton className="h-28" />
                     <Skeleton className="h-28" />
                     <Skeleton className="h-28" />
@@ -202,7 +204,21 @@ export default function StockControlPage() {
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {vials.length > 0 ? (
-                        vials.map(vial => (
+                        vials.map(vial => {
+                            const vialSales = sales.filter(s => s.vialUsage?.some(vu => vu.vialId === vial.id));
+                            
+                            const usageHistory = vialSales.flatMap(sale => 
+                                (sale.vialUsage || [])
+                                    .filter(vu => vu.vialId === vial.id)
+                                    .map(vu => ({
+                                        patientId: sale.patientId,
+                                        patientName: sale.patientName,
+                                        mgUsed: vu.mgUsed,
+                                        saleDate: sale.saleDate,
+                                    }))
+                            ).sort((a,b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
+
+                            return (
                             <Card key={vial.id} className="flex flex-col">
                                 <CardHeader>
                                     <CardTitle className="text-lg">Frasco {vial.totalMg}mg</CardTitle>
@@ -217,15 +233,44 @@ export default function StockControlPage() {
                                     </div>
                                     <Progress value={(vial.remainingMg / vial.totalMg) * 100} />
                                 </CardContent>
-                                 <CardFooter className="flex justify-between items-center">
-                                    <p className="text-xs text-muted-foreground">ID: {vial.id}</p>
-                                    <Button variant="outline" size="sm" onClick={() => handleOpenAdjustDialog(vial)}>
-                                        <SlidersHorizontal className="h-4 w-4 mr-2" />
-                                        Ajustar
-                                    </Button>
-                                 </CardFooter>
+                                <CardFooter className="flex-col items-start p-0">
+                                    <Accordion type="single" collapsible className="w-full">
+                                        <AccordionItem value="history" className="border-t">
+                                            <AccordionTrigger className="px-6 py-3 text-sm font-semibold">
+                                                Histórico de Uso ({usageHistory.length})
+                                            </AccordionTrigger>
+                                            <AccordionContent className="px-6">
+                                                {usageHistory.length > 0 ? (
+                                                <div className="space-y-2 max-h-40 overflow-y-auto">
+                                                    {usageHistory.map((usage, index) => (
+                                                        <div key={index} className="flex justify-between items-center text-xs">
+                                                            <Link href={`/patients/${usage.patientId}`} className="flex items-center gap-2 hover:underline text-primary">
+                                                                <User className="h-3 w-3" />
+                                                                {usage.patientName}
+                                                            </Link>
+                                                            <div className="text-right">
+                                                                <p className="font-semibold">{usage.mgUsed}mg</p>
+                                                                <p className="text-muted-foreground">{formatDate(usage.saleDate)}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                ) : (
+                                                    <p className="text-xs text-muted-foreground text-center py-4">Nenhum uso registrado para este frasco.</p>
+                                                )}
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
+                                    <div className="w-full flex justify-between items-center p-6 pt-3">
+                                        <p className="text-xs text-muted-foreground">ID: {vial.id}</p>
+                                        <Button variant="outline" size="sm" onClick={() => handleOpenAdjustDialog(vial)}>
+                                            <SlidersHorizontal className="h-4 w-4 mr-2" />
+                                            Ajustar
+                                        </Button>
+                                    </div>
+                                </CardFooter>
                             </Card>
-                        ))
+                        )})
                     ) : (
                          <div className="col-span-full text-center py-12 text-muted-foreground">
                             <p>Nenhum frasco no estoque.</p>
