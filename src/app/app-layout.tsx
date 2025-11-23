@@ -48,6 +48,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { resetAllData } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import { FloatingBmiCalculator } from '@/components/ui/floating-bmi-calculator';
+
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -289,6 +291,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <div>{/* User Menu can be added here */}</div>
           </header>
           <main className="p-4 md:p-6">{children}</main>
+           <FloatingBmiCalculator />
         </SidebarInset>
       </SidebarProvider>
   );
