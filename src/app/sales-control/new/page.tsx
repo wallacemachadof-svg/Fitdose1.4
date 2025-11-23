@@ -27,7 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CalendarIcon, ArrowLeft, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { addSale, getPatients, getPatientById, getSettings, type Patient, type Bioimpedance, type DosePrice } from "@/lib/actions";
@@ -231,14 +231,23 @@ export default function NewSalePage() {
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                    {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
+                                                    <div className="relative">
+                                                        <Input
+                                                            placeholder="dd/MM/yyyy"
+                                                            value={field.value ? format(field.value, 'dd/MM/yyyy') : ''}
+                                                            onChange={(e) => {
+                                                                const date = parse(e.target.value, 'dd/MM/yyyy', new Date());
+                                                                if (!isNaN(date.getTime())) {
+                                                                    field.onChange(date);
+                                                                }
+                                                            }}
+                                                        />
+                                                        <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50" />
+                                                    </div>
                                                 </FormControl>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus captionLayout="dropdown-buttons" fromYear={2020} toYear={new Date().getFullYear() + 5} />
                                             </PopoverContent>
                                         </Popover>
                                         <FormMessage />
@@ -289,7 +298,7 @@ export default function NewSalePage() {
                                                         <FormItem>
                                                             <FormLabel className="text-xs">{field.label}</FormLabel>
                                                             <FormControl>
-                                                                <Input type="number" step="0.1" placeholder="-" {...formField} value={formField.value ?? ''} />
+                                                                <Input type="number" step="0.1" placeholder="-" {...formField} />
                                                             </FormControl>
                                                         </FormItem>
                                                     )}
@@ -377,14 +386,23 @@ export default function NewSalePage() {
                                                     <Popover>
                                                         <PopoverTrigger asChild>
                                                             <FormControl>
-                                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                                {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                            </Button>
+                                                              <div className="relative">
+                                                                  <Input
+                                                                      placeholder="dd/MM/yyyy"
+                                                                      value={field.value ? format(field.value, 'dd/MM/yyyy') : ''}
+                                                                      onChange={(e) => {
+                                                                          const date = parse(e.target.value, 'dd/MM/yyyy', new Date());
+                                                                          if (!isNaN(date.getTime())) {
+                                                                              field.onChange(date);
+                                                                          }
+                                                                      }}
+                                                                  />
+                                                                  <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50" />
+                                                              </div>
                                                             </FormControl>
                                                         </PopoverTrigger>
                                                         <PopoverContent className="w-auto p-0" align="start">
-                                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus captionLayout="dropdown-buttons" fromYear={2020} toYear={new Date().getFullYear() + 5}/>
                                                         </PopoverContent>
                                                     </Popover>
                                                 <FormMessage />
@@ -422,14 +440,23 @@ export default function NewSalePage() {
                                                     <Popover>
                                                         <PopoverTrigger asChild>
                                                             <FormControl>
-                                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                                {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                            </Button>
+                                                            <div className="relative">
+                                                                <Input
+                                                                    placeholder="dd/MM/yyyy"
+                                                                    value={field.value ? format(field.value, 'dd/MM/yyyy') : ''}
+                                                                    onChange={(e) => {
+                                                                        const date = parse(e.target.value, 'dd/MM/yyyy', new Date());
+                                                                        if (!isNaN(date.getTime())) {
+                                                                            field.onChange(date);
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50" />
+                                                            </div>
                                                             </FormControl>
                                                         </PopoverTrigger>
                                                         <PopoverContent className="w-auto p-0" align="start">
-                                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus captionLayout="dropdown-buttons" fromYear={2020} toYear={new Date().getFullYear() + 5} />
                                                         </PopoverContent>
                                                     </Popover>
                                                 <FormMessage />
@@ -460,14 +487,23 @@ export default function NewSalePage() {
                                                 <Popover>
                                                     <PopoverTrigger asChild>
                                                         <FormControl>
-                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                            {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                        </Button>
+                                                        <div className="relative">
+                                                            <Input
+                                                                placeholder="dd/MM/yyyy"
+                                                                value={field.value ? format(field.value, 'dd/MM/yyyy') : ''}
+                                                                onChange={(e) => {
+                                                                    const date = parse(e.target.value, 'dd/MM/yyyy', new Date());
+                                                                    if (!isNaN(date.getTime())) {
+                                                                        field.onChange(date);
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50" />
+                                                        </div>
                                                         </FormControl>
                                                     </PopoverTrigger>
                                                     <PopoverContent className="w-auto p-0" align="start">
-                                                        <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                        <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus captionLayout="dropdown-buttons" fromYear={2020} toYear={new Date().getFullYear() + 5} />
                                                     </PopoverContent>
                                                 </Popover>
                                             <FormMessage />

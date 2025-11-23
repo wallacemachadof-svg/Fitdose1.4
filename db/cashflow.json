@@ -311,5 +311,14 @@
     "paymentMethod": "credito_parcelado",
     "dueDate": "2026-03-06T03:00:00.000Z",
     "installments": "4/4"
+  },
+  {
+    "id": "sale-30",
+    "type": "entrada",
+    "purchaseDate": "2025-09-22T03:00:00.000Z",
+    "description": "Venda 1x 2.5mg p/ AMANDA ALVES DOS SANTOS",
+    "amount": 200,
+    "status": "pago",
+    "paymentMethod": "pix"
   }
 ]

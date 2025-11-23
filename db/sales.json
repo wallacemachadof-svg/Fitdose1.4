@@ -698,5 +698,42 @@
     "observations": "",
     "bioimpedance": {},
     "patientName": "DANIEL"
+  },
+  {
+    "id": "30",
+    "patientId": "9",
+    "saleDate": "2025-09-22T03:00:00.000Z",
+    "soldDose": "2.5",
+    "quantity": 1,
+    "price": 220,
+    "discount": 20,
+    "pointsUsed": 0,
+    "total": 200,
+    "serviceModel": "presencial",
+    "paymentStatus": "pago",
+    "paymentMethod": "pix",
+    "paymentDate": "2025-09-22T03:00:00.000Z",
+    "deliveryStatus": "entregue",
+    "deliveryDate": "2025-09-29T03:00:00.000Z",
+    "observations": "",
+    "bioimpedance": {
+      "weight": 71.8,
+      "bmi": 29.9,
+      "fatPercentage": 41.9,
+      "skeletalMusclePercentage": 29.7,
+      "visceralFat": 9.5,
+      "hydration": 45.1,
+      "metabolism": 1268.3,
+      "obesityPercentage": 0,
+      "boneMass": 3.6,
+      "protein": 5.7
+    },
+    "patientName": "AMANDA ALVES DOS SANTOS",
+    "vialUsage": [
+      {
+        "vialId": "vial-1763915805546-0",
+        "mgUsed": 2.5
+      }
+    ]
   }
 ]
