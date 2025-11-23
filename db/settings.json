@@ -19,6 +19,11 @@
     {
       "dose": "7.05",
       "price": 620
+    },
+    {
+      "dose": "1,25",
+      "price": 110
     }
-  ]
+  ],
+  "dailyLateFee": 1
 }
