@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { calculateBmi } from "./utils";
@@ -364,6 +365,7 @@ export type Sale = {
   paymentDate?: Date;
   paymentDueDate?: Date;
   paymentStatus: 'pago' | 'pendente';
+  cashFlowMethod: 'unique' | 'installments';
   deliveries: Delivery[];
   observations?: string;
   pointsUsed?: number;
@@ -946,32 +948,46 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     
     // --- Create Cash Flow Entry ---
     if (newSale.paymentStatus === 'pago') {
-        const netAmount = newSale.total - (newSale.operatorFee || 0);
-        let entryDescription = `Venda p/ ${patient.fullName}`;
-        let entryDate = newSale.paymentDate || newSale.saleDate;
-
-        if (newSale.paymentMethod === 'credito_parcelado') {
-            entryDescription = `Venda parcelada p/ ${patient.fullName}`;
-            let nextBusinessDay = addDays(newSale.saleDate, 1);
-            while (isWeekend(nextBusinessDay)) {
-                nextBusinessDay = addDays(nextBusinessDay, 1);
+        if (newSale.cashFlowMethod === 'installments' && newSale.installments && newSale.installments > 1) {
+            const installmentAmount = (newSale.total - (newSale.operatorFee || 0)) / newSale.installments;
+            const firstDueDate = newSale.paymentDate || newSale.saleDate;
+            for (let i = 0; i < newSale.installments; i++) {
+                const newDueDate = new Date(firstDueDate);
+                newDueDate.setMonth(firstDueDate.getMonth() + i);
+                data.cashFlowEntries.push({
+                    id: `sale-${newSale.id}-${i}`,
+                    type: 'entrada',
+                    purchaseDate: newSale.saleDate,
+                    description: `Venda p/ ${patient.fullName} (Parc. ${i + 1}/${newSale.installments})`,
+                    amount: installmentAmount,
+                    status: 'pendente',
+                    dueDate: newDueDate,
+                    paymentMethod: newSale.paymentMethod,
+                    installments: `${i + 1}/${newSale.installments}`,
+                });
             }
-            entryDate = nextBusinessDay;
+        } else {
+            // Lançamento Único
+            let entryDate = newSale.paymentDate || newSale.saleDate;
+             if (newSale.paymentMethod === 'credito_parcelado' || newSale.paymentMethod === 'credito') {
+                let nextBusinessDay = addDays(newSale.saleDate, 1);
+                while (isWeekend(nextBusinessDay)) {
+                    nextBusinessDay = addDays(nextBusinessDay, 1);
+                }
+                entryDate = nextBusinessDay;
+            }
+            data.cashFlowEntries.push({
+                id: `sale-${newSale.id}`,
+                type: 'entrada',
+                purchaseDate: entryDate,
+                description: `Venda p/ ${patient.fullName}`,
+                amount: newSale.total - (newSale.operatorFee || 0),
+                status: 'pago',
+                paymentMethod: newSale.paymentMethod,
+            });
         }
-
-        const cashFlowEntry: CashFlowEntry = {
-            id: `sale-${newSale.id}`,
-            type: 'entrada',
-            purchaseDate: entryDate,
-            description: entryDescription,
-            amount: netAmount,
-            status: 'pago',
-            paymentMethod: newSale.paymentMethod,
-        };
-        data.cashFlowEntries.push(cashFlowEntry);
-
     } else if (newSale.paymentStatus === 'pendente') {
-        const cashFlowEntry: CashFlowEntry = {
+         data.cashFlowEntries.push({
             id: `sale-${newSale.id}`,
             type: 'entrada',
             purchaseDate: newSale.saleDate,
@@ -980,8 +996,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             status: 'pendente',
             paymentMethod: newSale.paymentMethod,
             dueDate: newSale.paymentDueDate,
-        };
-        data.cashFlowEntries.push(cashFlowEntry);
+        });
     }
     
     data.sales.push(newSale);
@@ -1001,11 +1016,10 @@ export const deleteSale = async (id: string): Promise<void> => {
         throw new Error("Venda não encontrada");
     }
 
-    const cashFlowEntryId = `sale-${id}`;
-    const cashFlowIndex = data.cashFlowEntries.findIndex(cf => cf.id === cashFlowEntryId);
-    if (cashFlowIndex !== -1) {
-        data.cashFlowEntries.splice(cashFlowIndex, 1);
-    }
+    // Remove all related cash flow entries (unique and installments)
+    const saleIdPrefix = `sale-${id}`;
+    data.cashFlowEntries = data.cashFlowEntries.filter(cf => !cf.id.startsWith(saleIdPrefix));
+
     writeData({ sales: data.sales, cashFlowEntries: data.cashFlowEntries });
     await new Promise(resolve => setTimeout(resolve, 100));
 };

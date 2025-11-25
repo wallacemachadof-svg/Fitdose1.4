@@ -24,7 +24,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CalendarIcon, ArrowLeft, Loader2, ChevronDown } from "lucide-react";
+import { CalendarIcon, ArrowLeft, Loader2, ChevronDown, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -54,6 +54,7 @@ const saleFormSchema = z.object({
     paymentMethod: z.enum(['dinheiro', 'pix', 'debito', 'credito', 'credito_parcelado', 'payment_link']).optional(),
     installments: z.coerce.number().min(2).max(12).optional(),
     operatorFee: z.coerce.number().min(0).optional().default(0),
+    cashFlowMethod: z.enum(['unique', 'installments']).default('unique'),
     paymentDate: z.date().optional(),
     paymentDueDate: z.date().optional(),
     observations: z.string().optional(),
@@ -110,6 +111,7 @@ export default function NewSalePage() {
             total: 0,
             observations: "",
             operatorFee: 0,
+            cashFlowMethod: 'unique',
             bioimpedance: {
                 weight: undefined, bmi: undefined, fatPercentage: undefined, skeletalMusclePercentage: undefined, visceralFat: undefined, hydration: undefined, metabolism: undefined, obesityPercentage: undefined, boneMass: undefined, protein: undefined,
             },
@@ -126,6 +128,8 @@ export default function NewSalePage() {
     const watchQuantity = watch("quantity");
     const watchPaymentStatus = watch("paymentStatus");
     const watchPaymentMethod = watch("paymentMethod");
+    const watchInstallments = watch("installments");
+    const watchTotal = watch("total");
 
     const { fields, replace } = useFieldArray({
         control,
@@ -197,6 +201,45 @@ export default function NewSalePage() {
         setValue("total", total > 0 ? total : 0);
         setTotalDiscount(discount * quantity);
     }, [watchPrice, watchDiscountPerDose, watchPointsUsed, watchQuantity, setValue]);
+
+    const handleCalculateFee = () => {
+        const total = watchTotal;
+        const installments = watchInstallments || 1;
+        
+        // As taxas da InfinityPay podem variar, este é um exemplo aproximado
+        // Crédito 1x: ~4-5%
+        // Débito: ~1.4-2%
+        // Parcelado: a taxa aumenta com o número de parcelas
+        let rate = 0;
+        if (watchPaymentMethod === 'credito') {
+            rate = 0.0499; // Exemplo: 4.99%
+        } else if (watchPaymentMethod === 'debito') {
+            rate = 0.0199; // Exemplo: 1.99%
+        } else if (watchPaymentMethod === 'credito_parcelado') {
+            // Tabela de exemplo progressiva, pode ser ajustada
+            const rateMap: { [key: number]: number } = {
+                2: 0.075, 3: 0.085, 4: 0.095, 5: 0.105, 6: 0.115,
+                7: 0.125, 8: 0.135, 9: 0.145, 10: 0.155, 11: 0.165, 12: 0.175,
+            };
+            rate = rateMap[installments] || 0.175;
+        }
+
+        if (rate > 0) {
+            const fee = total * rate;
+            setValue('operatorFee', parseFloat(fee.toFixed(2)));
+            toast({
+                title: "Taxa Calculada!",
+                description: `Estimativa de taxa: R$ ${fee.toFixed(2)} (${(rate * 100).toFixed(2)}%)`
+            });
+        } else {
+             toast({
+                variant: 'destructive',
+                title: "Não aplicável",
+                description: `O cálculo automático de taxa não se aplica a esta forma de pagamento.`
+            });
+        }
+    }
+
 
     async function onSubmit(data: SaleFormValues) {
         setIsSubmitting(true);
@@ -480,9 +523,9 @@ export default function NewSalePage() {
                                      )}
                                 </div>
                                 {watchPaymentMethod === 'credito_parcelado' && (
-                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                                         <FormField control={control} name="installments" render={({ field }) => (
-                                            <FormItem><FormLabel>Nº de Parcelas</FormLabel>
+                                            <FormItem><FormLabel>Nº de Parcelas (Cliente)</FormLabel>
                                                 <Select onValueChange={(v) => field.onChange(parseInt(v, 10))} value={String(field.value || '')}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
                                                     <SelectContent>
@@ -491,11 +534,38 @@ export default function NewSalePage() {
                                                 </Select>
                                             <FormMessage /></FormItem>
                                         )}/>
-                                        <FormField control={control} name="operatorFee" render={({ field }) => (
-                                            <FormItem><FormLabel>Taxa da Operadora (R$)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
-                                        )}/>
                                      </div>
                                 )}
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                                     <FormField control={control} name="cashFlowMethod" render={({ field }) => (
+                                        <FormItem className="space-y-3">
+                                            <FormLabel>Como registrar no Caixa?</FormLabel>
+                                            <FormControl>
+                                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col space-y-1">
+                                                    <FormItem className="flex items-center space-x-3 space-y-0">
+                                                        <FormControl><RadioGroupItem value="unique" /></FormControl>
+                                                        <FormLabel className="font-normal">Lançamento Único (Valor Total Líquido)</FormLabel>
+                                                    </FormItem>
+                                                    <FormItem className="flex items-center space-x-3 space-y-0">
+                                                        <FormControl><RadioGroupItem value="installments" /></FormControl>
+                                                        <FormLabel className="font-normal">Lançamento Parcelado (Mês a Mês)</FormLabel>
+                                                    </FormItem>
+                                                </RadioGroup>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                     )}/>
+                                      <FormField control={control} name="operatorFee" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Taxa da Operadora (R$)</FormLabel>
+                                                <div className="flex items-center gap-2">
+                                                    <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                                                     <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={handleCalculateFee}><Wand2 className="h-4 w-4"/></Button>
+                                                </div>
+                                                <FormDescription>Valor descontado pela maquininha.</FormDescription>
+                                            </FormItem>
+                                        )}/>
+                                 </div>
                             </div>
                            
                             <div className="space-y-4 pt-4 border-t">
