@@ -59,6 +59,7 @@ export default function NutritionPage() {
     }
     
     const handleSendPlanViaWhatsApp = async (patient: Patient) => {
+        // Redundant check, as button should be disabled, but good for safety.
         if (patient.foodPlanStatus === 'pending') {
             toast({
                 variant: 'destructive',
