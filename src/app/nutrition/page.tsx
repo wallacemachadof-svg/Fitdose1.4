@@ -59,16 +59,6 @@ export default function NutritionPage() {
     }
     
     const handleSendPlanViaWhatsApp = async (patient: Patient) => {
-        // Redundant check, as button should be disabled, but good for safety.
-        if (patient.foodPlanStatus === 'pending') {
-            toast({
-                variant: 'destructive',
-                title: 'Ação Bloqueada',
-                description: 'O paciente ainda não preencheu o formulário de avaliação.'
-            });
-            return;
-        }
-
         const whatsappUrl = generateFoodPlanWhatsAppLink(patient);
         window.open(whatsappUrl, '_blank');
         
@@ -136,8 +126,10 @@ export default function NutritionPage() {
                         <TableBody>
                             {patients.map(patient => {
                                 const formStatus = getStatusVariant(patient.nutritionalAssessmentStatus);
+                                
+                                // Determine the plan status and button availability
                                 const planStatus = getStatusVariant(patient.foodPlanStatus);
-                                const isPlanPending = patient.foodPlanStatus === 'pending';
+                                const isPlanActionable = patient.foodPlanStatus === 'available' || patient.foodPlanStatus === 'sent';
 
                                 return (
                                     <TableRow key={patient.id}>
@@ -172,13 +164,14 @@ export default function NutritionPage() {
                                                     Formulário
                                                 </Button>
                                                 <Button
-                                                    variant={isPlanPending ? "secondary" : "default"}
                                                     size="sm"
+                                                    disabled={!isPlanActionable}
                                                     className={cn(
-                                                        !isPlanPending && "bg-green-600 hover:bg-green-700 text-white"
+                                                        isPlanActionable
+                                                            ? "bg-green-600 hover:bg-green-700 text-white"
+                                                            : "bg-secondary text-secondary-foreground hover:bg-secondary"
                                                     )}
                                                     onClick={() => handleSendPlanViaWhatsApp(patient)}
-                                                    disabled={isPlanPending}
                                                 >
                                                     <Utensils className="h-4 w-4 mr-2" />
                                                     Plano
