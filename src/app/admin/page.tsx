@@ -45,8 +45,16 @@ export default function AdminPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Logo state
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoHeight, setLogoHeight] = useState<number>(50);
+
+  // Letterhead state
+  const [letterheadPreview, setLetterheadPreview] = useState<string | null>(null);
+  const [marginTop, setMarginTop] = useState<number>(100);
+  const [marginBottom, setMarginBottom] = useState<number>(100);
+
   const [improvements, setImprovements] = useState('');
   const [isSavingImprovements, setIsSavingImprovements] = useState(false);
 
@@ -74,18 +82,17 @@ export default function AdminPage() {
                 dailyLateFee: settings.dailyLateFee || 0,
             });
         }
-        const storedLogo = localStorage.getItem('customLogo');
-        if (storedLogo) {
-            setLogoPreview(storedLogo);
-        }
-        const storedHeight = localStorage.getItem('customLogoHeight');
-        if (storedHeight) {
-            setLogoHeight(parseInt(storedHeight, 10));
-        }
-        const savedImprovements = localStorage.getItem('systemImprovements');
-        if (savedImprovements) {
-            setImprovements(savedImprovements);
-        }
+        // Load logo
+        setLogoPreview(localStorage.getItem('customLogo'));
+        setLogoHeight(parseInt(localStorage.getItem('customLogoHeight') || '50', 10));
+
+        // Load letterhead
+        setLetterheadPreview(localStorage.getItem('customLetterhead'));
+        setMarginTop(parseInt(localStorage.getItem('letterheadMarginTop') || '100', 10));
+        setMarginBottom(parseInt(localStorage.getItem('letterheadMarginBottom') || '100', 10));
+
+        setImprovements(localStorage.getItem('systemImprovements') || '');
+
       } catch (error) {
         console.error("Failed to load settings:", error);
         toast({
@@ -98,78 +105,33 @@ export default function AdminPage() {
     }
     loadSettings();
   }, [form, toast]);
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'letterhead') => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         const dataUrl = reader.result as string;
-        setLogoPreview(dataUrl);
-        localStorage.setItem('customLogo', dataUrl);
-        toast({
-          title: "Logotipo Atualizado!",
-          description: "O novo logotipo foi salvo localmente e será exibido na aplicação.",
-        });
-        window.dispatchEvent(new Event('logo-updated'));
+        if (type === 'logo') {
+          setLogoPreview(dataUrl);
+          localStorage.setItem('customLogo', dataUrl);
+          window.dispatchEvent(new Event('logo-updated'));
+          toast({ title: "Logotipo Atualizado!" });
+        } else {
+          setLetterheadPreview(dataUrl);
+          localStorage.setItem('customLetterhead', dataUrl);
+          window.dispatchEvent(new Event('letterhead-updated'));
+          toast({ title: "Papel Timbrado Atualizado!" });
+        }
       };
       reader.readAsDataURL(file);
     }
   };
-  
-  const handleSizeChange = (value: number[]) => {
-    setLogoHeight(value[0]);
-  }
 
-  const handleSizeCommit = (value: number[]) => {
-    localStorage.setItem('customLogoHeight', value[0].toString());
-    window.dispatchEvent(new Event('logo-updated'));
-    toast({
-        title: "Tamanho do logotipo salvo!",
-    })
-  }
-  
-  const removeLogo = () => {
-      localStorage.removeItem('customLogo');
-      localStorage.removeItem('customLogoHeight');
-      setLogoPreview(null);
-      setLogoHeight(50); // Reset to default
-      toast({
-        title: "Logotipo Removido",
-      });
-      window.dispatchEvent(new Event('logo-updated'));
-  }
-
-  async function onSubmit(data: SettingsFormValues) {
-    setIsSubmitting(true);
-    try {
-      const settingsToSave: Settings = {
-        dosePrices: data.dosePrices,
-        dailyLateFee: data.dailyLateFee,
-      };
-      await updateSettings(settingsToSave);
-      toast({
-        title: "Configurações Salvas!",
-        description: "As configurações globais foram atualizadas com sucesso.",
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro ao Salvar",
-        description: "Não foi possível salvar as configurações. Tente novamente.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-  
-  const handleSaveImprovements = () => {
-    setIsSavingImprovements(true);
-    localStorage.setItem('systemImprovements', improvements);
-    setTimeout(() => {
-        toast({ title: 'Lista de melhorias salva!' });
-        setIsSavingImprovements(false);
-    }, 500)
+  const commitSliderValue = (value: number[], storageKey: string, eventName: string, toastTitle: string) => {
+    localStorage.setItem(storageKey, value[0].toString());
+    window.dispatchEvent(new Event(eventName));
+    toast({ title: toastTitle });
   }
 
   if (loading) {
@@ -196,7 +158,7 @@ export default function AdminPage() {
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-8">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Logotipo</CardTitle>
@@ -204,69 +166,43 @@ export default function AdminPage() {
                             </CardHeader>
                             <CardContent className="flex flex-col items-center gap-4">
                                 <div className="w-full h-32 flex items-center justify-center rounded-md border border-dashed bg-muted/50 p-2">
-                                    {logoPreview ? (
-                                        <Image 
-                                            src={logoPreview} 
-                                            alt="Logo Preview" 
-                                            width={400}
-                                            height={logoHeight}
-                                            className="object-contain" 
-                                            style={{ height: `${logoHeight}px`}}
-                                        />
-                                    ) : (
-                                        <span className="text-sm text-muted-foreground">Sem logotipo</span>
-                                    )}
+                                    {logoPreview ? <Image src={logoPreview} alt="Logo Preview" width={400} height={logoHeight} className="object-contain" style={{ height: `${logoHeight}px`}} /> : <span className="text-sm text-muted-foreground">Sem logotipo</span>}
                                 </div>
                                 <div className="w-full space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="logo-size">Ajustar Tamanho (Altura)</Label>
-                                        <Slider
-                                            id="logo-size"
-                                            min={20}
-                                            max={200}
-                                            step={1}
-                                            value={[logoHeight]}
-                                            onValueChange={handleSizeChange}
-                                            onValueCommit={handleSizeCommit}
-                                        />
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Button asChild variant="outline" className="flex-1" type="button">
-                                            <label htmlFor="logo-upload" className="cursor-pointer">
-                                                <Upload className="mr-2 h-4 w-4" />
-                                                Alterar Logotipo
-                                            </label>
-                                        </Button>
-                                        <Input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-                                        {logoPreview && (
-                                            <Button type="button" variant="destructive" size="icon" onClick={removeLogo}>
-                                                <Trash2 className="h-4 w-4"/>
-                                            </Button>
-                                        )}
-                                    </div>
+                                    <div className="space-y-2"><Label htmlFor="logo-size">Ajustar Altura</Label><Slider id="logo-size" min={20} max={200} step={1} value={[logoHeight]} onValueChange={(v) => setLogoHeight(v[0])} onValueCommit={(v) => commitSliderValue(v, 'customLogoHeight', 'logo-updated', "Tamanho do logotipo salvo!")} /></div>
+                                    <div className="flex gap-2"><Button asChild variant="outline" className="flex-1" type="button"><label htmlFor="logo-upload" className="cursor-pointer"><Upload className="mr-2 h-4 w-4" />Alterar Logotipo</label></Button><Input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'logo')} />{logoPreview && (<Button type="button" variant="destructive" size="icon" onClick={() => { localStorage.removeItem('customLogo'); localStorage.removeItem('customLogoHeight'); setLogoPreview(null); setLogoHeight(50); window.dispatchEvent(new Event('logo-updated')); toast({ title: "Logotipo Removido" }); }}><Trash2 className="h-4 w-4"/></Button>)}</div>
                                 </div>
                             </CardContent>
                         </Card>
+                        
+                         <Card>
+                            <CardHeader>
+                                <CardTitle>Papel Timbrado</CardTitle>
+                                <CardDescription>Envie a imagem de fundo para prescrições e ajuste as margens.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex flex-col items-center gap-4">
+                                <div className="w-full h-32 flex items-center justify-center rounded-md border border-dashed bg-muted/50 p-2 overflow-hidden">
+                                    {letterheadPreview ? <Image src={letterheadPreview} alt="Papel Timbrado Preview" width={200} height={128} className="object-cover w-full h-full" /> : <span className="text-sm text-muted-foreground">Sem papel timbrado</span>}
+                                </div>
+                                <div className="w-full space-y-4">
+                                    <div className="space-y-2"><Label htmlFor="margin-top">Margem Superior (pixels): {marginTop}px</Label><Slider id="margin-top" min={0} max={400} step={10} value={[marginTop]} onValueChange={(v) => setMarginTop(v[0])} onValueCommit={(v) => commitSliderValue(v, 'letterheadMarginTop', 'letterhead-updated', "Margem superior salva!")} /></div>
+                                    <div className="space-y-2"><Label htmlFor="margin-bottom">Margem Inferior (pixels): {marginBottom}px</Label><Slider id="margin-bottom" min={0} max={400} step={10} value={[marginBottom]} onValueChange={(v) => setMarginBottom(v[0])} onValueCommit={(v) => commitSliderValue(v, 'letterheadMarginBottom', 'letterhead-updated', "Margem inferior salva!")} /></div>
+                                    <div className="flex gap-2"><Button asChild variant="outline" className="flex-1" type="button"><label htmlFor="letterhead-upload" className="cursor-pointer"><Upload className="mr-2 h-4 w-4" />Alterar Imagem</label></Button><Input id="letterhead-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'letterhead')} />{letterheadPreview && (<Button type="button" variant="destructive" size="icon" onClick={() => { localStorage.removeItem('customLetterhead'); localStorage.removeItem('letterheadMarginTop'); localStorage.removeItem('letterheadMarginBottom'); setLetterheadPreview(null); setMarginTop(100); setMarginBottom(100); window.dispatchEvent(new Event('letterhead-updated')); toast({ title: "Papel Timbrado Removido" }); }}><Trash2 className="h-4 w-4"/></Button>)}</div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         <Card className="flex flex-col">
                             <CardHeader>
                                 <CardTitle>Lista de Melhorias</CardTitle>
                                 <CardDescription>Anote aqui os erros, bugs e ideias de melhorias para o sistema.</CardDescription>
                             </CardHeader>
                             <CardContent className="flex-grow">
-                                <Textarea 
-                                    className="h-full resize-none"
-                                    placeholder="Ex: Corrigir cálculo de IMC na tela de cadastro..."
-                                    value={improvements}
-                                    onChange={(e) => setImprovements(e.target.value)}
-                                />
+                                <Textarea className="h-full resize-none" placeholder="Ex: Corrigir cálculo de IMC na tela de cadastro..." value={improvements} onChange={(e) => setImprovements(e.target.value)} />
                             </CardContent>
                             <CardFooter className="justify-end">
-                                <Button type="button" onClick={handleSaveImprovements} disabled={isSavingImprovements}>
-                                    {isSavingImprovements ? (
-                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Salvando...</>
-                                    ) : (
-                                        <><Save className="mr-2 h-4 w-4" /> Salvar Lista</>
-                                    )}
+                                <Button type="button" onClick={() => { localStorage.setItem('systemImprovements', improvements); toast({ title: 'Lista de melhorias salva!' }); }} disabled={isSavingImprovements}>
+                                    {isSavingImprovements ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Salvando...</> : <><Save className="mr-2 h-4 w-4" /> Salvar Lista</>}
                                 </Button>
                             </CardFooter>
                         </Card>
@@ -279,78 +215,23 @@ export default function AdminPage() {
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="max-w-xs">
-                                 <FormField
-                                    control={form.control}
-                                    name="dailyLateFee"
-                                    render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Multa por Atraso (R$ / dia)</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" step="0.01" placeholder="Ex: 1.00" {...field} />
-                                        </FormControl>
-                                        <FormDescription>Valor a ser cobrado por cada dia de atraso no pagamento.</FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
+                                 <FormField control={form.control} name="dailyLateFee" render={({ field }) => (<FormItem><FormLabel>Multa por Atraso (R$ / dia)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ex: 1.00" {...field} /></FormControl><FormDescription>Valor a ser cobrado por cada dia de atraso no pagamento.</FormDescription><FormMessage /></FormItem>)} />
                             </div>
-
                              <div>
                                 <h3 className="text-md font-semibold">Tabela de Preços por Dose</h3>
                                 <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Dose (mg)</TableHead>
-                                            <TableHead>Preço (R$)</TableHead>
-                                            <TableHead className="text-right">Ação</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
+                                    <TableHeader><TableRow><TableHead>Dose (mg)</TableHead><TableHead>Preço (R$)</TableHead><TableHead className="text-right">Ação</TableHead></TableRow></TableHeader>
                                     <TableBody>
                                         {fields.map((field, index) => (
                                             <TableRow key={field.id}>
-                                                <TableCell>
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`dosePrices.${index}.dose`}
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormControl><Input placeholder="Ex: 2.5" {...field} /></FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                </TableCell>
-                                                <TableCell>
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`dosePrices.${index}.price`}
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormControl><Input type="number" step="0.01" placeholder="Ex: 220.00" {...field} /></FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                                    </Button>
-                                                </TableCell>
+                                                <TableCell><FormField control={form.control} name={`dosePrices.${index}.dose`} render={({ field }) => (<FormItem><FormControl><Input placeholder="Ex: 2.5" {...field} /></FormControl><FormMessage /></FormItem>)} /></TableCell>
+                                                <TableCell><FormField control={form.control} name={`dosePrices.${index}.price`} render={({ field }) => (<FormItem><FormControl><Input type="number" step="0.01" placeholder="Ex: 220.00" {...field} /></FormControl><FormMessage /></FormItem>)} /></TableCell>
+                                                <TableCell className="text-right"><Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="mt-4"
-                                    onClick={() => append({ dose: "", price: 0 })}
-                                >
-                                    <PlusCircle className="h-4 w-4 mr-2" />
-                                    Adicionar Dose
-                                </Button>
+                                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ dose: "", price: 0 })}><PlusCircle className="h-4 w-4 mr-2" />Adicionar Dose</Button>
                              </div>
                         </CardContent>
                     </Card>
@@ -365,5 +246,3 @@ export default function AdminPage() {
     </div>
   )
 }
-
-    
