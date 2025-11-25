@@ -166,35 +166,41 @@ export default function MarketingPage() {
                         className="aspect-square w-full max-w-xl bg-white"
                         style={{ width: '1080px', height: '1080px' }}
                     >
-                        <div className="flex h-full w-full flex-col items-center justify-center p-12 bg-gradient-to-br from-primary/10 via-background to-background">
-                            <header className="flex w-full items-start justify-between pb-8">
-                               {logoUrl ? <Image src={logoUrl} alt="Logo" width={150} height={50} className="object-contain" /> : <div className="h-12 w-36" />}
+                        <div className="relative flex h-full w-full flex-col items-center justify-between p-12 bg-gradient-to-br from-primary/10 via-background to-background">
+                            <header className="flex w-full items-start justify-between z-10">
+                               {logoUrl ? <Image src={logoUrl} alt="Logo" width={200} height={60} className="object-contain" /> : <div className="h-12 w-36" />}
                                 <div className="text-right">
                                     <h2 className="font-bold text-4xl leading-tight text-foreground">{patientName || "Nome do Paciente"}</h2>
                                     <p className="text-xl text-primary font-semibold">{timeFrame || "em X semanas"}</p>
                                 </div>
                             </header>
 
-                            <main className="flex-grow w-full grid grid-cols-2 gap-6 relative">
-                                <div className="relative h-full w-full overflow-hidden rounded-xl shadow-lg">
-                                    <p className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/50 text-white text-xs font-semibold px-3 py-1 rounded-full z-10">ANTES</p>
-                                    {beforeImage ? <Image src={beforeImage} layout="fill" objectFit="cover" alt="Antes" /> : <div className="flex items-center justify-center h-full bg-muted/50"><ImageIcon size={48} className="text-muted-foreground" /></div>}
+                            <main className="absolute inset-0 flex items-center justify-center w-full h-full gap-6 px-12">
+                                <div className="relative h-3/5 w-1/2 overflow-hidden rounded-xl shadow-lg">
+                                    <p className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-lg font-semibold px-6 py-2 rounded-full z-20 backdrop-blur-sm">ANTES</p>
+                                    <div className="absolute top-[25%] left-0 w-full h-16 bg-black/70 flex items-center justify-center z-10 backdrop-blur-sm">
+                                        {logoUrl && <Image src={logoUrl} alt="Logo" width={100} height={30} className="object-contain opacity-80" />}
+                                    </div>
+                                    {beforeImage ? <Image src={beforeImage} layout="fill" objectFit="cover" alt="Antes" className="saturate-50" /> : <div className="flex items-center justify-center h-full bg-muted/50"><ImageIcon size={48} className="text-muted-foreground" /></div>}
                                 </div>
-                                <div className="relative h-full w-full overflow-hidden rounded-xl shadow-lg">
-                                    <p className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/50 text-white text-xs font-semibold px-3 py-1 rounded-full z-10">DEPOIS</p>
+                                <div className="relative h-3/5 w-1/2 overflow-hidden rounded-xl shadow-lg">
+                                    <p className="absolute top-4 left-1/2 -translate-x-1/2 bg-primary text-white text-lg font-semibold px-6 py-2 rounded-full z-20 backdrop-blur-sm">DEPOIS</p>
+                                     <div className="absolute top-[25%] left-0 w-full h-16 bg-black/70 flex items-center justify-center z-10 backdrop-blur-sm">
+                                        {logoUrl && <Image src={logoUrl} alt="Logo" width={100} height={30} className="object-contain opacity-80" />}
+                                    </div>
                                     {afterImage ? <Image src={afterImage} layout="fill" objectFit="cover" alt="Depois" /> : <div className="flex items-center justify-center h-full bg-muted/50"><ImageIcon size={48} className="text-muted-foreground" /></div>}
                                 </div>
                                 
-                                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-64 h-32 flex items-center justify-center">
+                                <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 w-72 h-36 flex items-center justify-center z-20">
                                   <Star className="absolute text-yellow-400 w-full h-full" fill="currentColor" />
                                   <div className="relative text-center text-primary-foreground drop-shadow-md">
-                                    <p className="font-bold text-5xl">{weightLoss.split('kg')[0] || "X"}</p>
+                                    <p className="font-bold text-6xl">{weightLoss.split('kg')[0] || "X"}</p>
                                     <p className="font-semibold -mt-2">kg OFF</p>
                                   </div>
                                 </div>
                             </main>
 
-                            <footer className="w-full text-center pt-16">
+                            <footer className="w-full text-center z-10">
                                 <p className="text-lg italic text-muted-foreground flex items-center justify-center gap-2">
                                   <Sparkles className="h-4 w-4 text-yellow-500" />
                                   {quote}
