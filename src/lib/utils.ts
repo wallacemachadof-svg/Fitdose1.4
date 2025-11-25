@@ -1,6 +1,5 @@
 
 
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format, differenceInDays, parseISO, addDays, startOfToday } from "date-fns";
@@ -232,4 +231,12 @@ export function generateNutritionalAssessmentLink(patientId: string): string {
         return `${window.location.origin}/avaliacao-nutricional/${patientId}`;
     }
     return `/avaliacao-nutricional/${patientId}`;
+}
+
+export function generateNutritionalAssessmentWhatsAppLink(patient: Patient): string {
+    const link = generateNutritionalAssessmentLink(patient.id);
+    const message = `Olá, ${patient.fullName.split(' ')[0]}! Para personalizar ainda mais seu acompanhamento, por favor, preencha nossa avaliação nutricional. Leva apenas alguns minutos! Clique no link: ${link}`;
+    const encodedMessage = encodeURIComponent(message);
+    const cleanPhoneNumber = patient.phone?.replace(/\D/g, '') || '';
+    return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
 }

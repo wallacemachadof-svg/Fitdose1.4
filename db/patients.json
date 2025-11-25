@@ -338,7 +338,39 @@
     ],
     "points": 180,
     "birthDate": "1998-12-28T02:00:00.000Z",
-    "serviceModel": "presencial"
+    "serviceModel": "presencial",
+    "nutritionalAssessmentData": {
+      "wakeupTime": "07:00",
+      "sleepTime": "21:00",
+      "breakfastTime": "08:00",
+      "breakfastDescription": "2 ovos cozidos, cafe com açucar.",
+      "morningSnackTime": "10:00",
+      "morningSnackDescription": "cafe com acucar",
+      "lunchTime": "12:00",
+      "lunchDescription": "arroz, feijão, carne.",
+      "afternoonSnackTime": "16:00",
+      "afternoonSnackDescription": "cafe",
+      "dinnerTime": "19:00",
+      "dinnerDescription": "pao com ovo",
+      "eveningSnackTime": "22:00",
+      "eveningSnackDescription": "leite com toddy",
+      "waterIntake": "2l",
+      "otherLiquids": "energetico e agua com gas",
+      "foodPreferences": "carne assada, lasanha, ovo cozido, omelete ",
+      "foodAversions": "abacate, mamao ",
+      "weekendHabits": "nao muito, normamlmnete como mais churasco ",
+      "dietExperience": "dieta do ovo",
+      "mainGoal": "perda d epeso",
+      "mainDifficulty": "custo dos alimentos ",
+      "hasAllergies": "no",
+      "favoriteFoods": [
+        "laticinios",
+        "proteinas"
+      ],
+      "bowelFunction": "aopos o uso de moauro estu indo ao banheiro 1x ao dia"
+    },
+    "nutritionalAssessmentStatus": "completed",
+    "foodPlanStatus": "available"
   },
   {
     "id": "2",

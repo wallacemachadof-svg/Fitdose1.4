@@ -7,11 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Apple, Link as LinkIcon, Copy } from 'lucide-react';
+import { Apple, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { generateNutritionalAssessmentLink } from '@/lib/utils';
+import { generateNutritionalAssessmentLink, generateNutritionalAssessmentWhatsAppLink } from '@/lib/utils';
+import { FaWhatsapp } from 'react-icons/fa';
 
 export default function NutritionPage() {
     const [patients, setPatients] = useState<Patient[]>([]);
@@ -49,6 +50,11 @@ export default function NutritionPage() {
             title: "Link Copiado!",
             description: `O link para ${patientName} foi copiado.`,
         })
+    }
+    
+    const handleSendAssessmentViaWhatsApp = (patient: Patient) => {
+        const whatsappUrl = generateNutritionalAssessmentWhatsAppLink(patient);
+        window.open(whatsappUrl, '_blank');
     }
 
     if (loading) {
@@ -88,7 +94,7 @@ export default function NutritionPage() {
                                 <TableHead>Paciente</TableHead>
                                 <TableHead>Status do Formulário</TableHead>
                                 <TableHead>Plano Alimentar</TableHead>
-                                <TableHead>Ações</TableHead>
+                                <TableHead className="text-right">Ações</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -109,11 +115,22 @@ export default function NutritionPage() {
                                         <TableCell>
                                             <Badge variant={planStatus.variant} className={planStatus.className}>{planStatus.label}</Badge>
                                         </TableCell>
-                                        <TableCell>
-                                            <Button variant="outline" size="sm" onClick={() => handleCopyLink(patient.id, patient.fullName)}>
-                                                <Copy className="h-3 w-3 mr-2" />
-                                                Copiar Link
-                                            </Button>
+                                        <TableCell className="text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Button variant="outline" size="sm" onClick={() => handleCopyLink(patient.id, patient.fullName)}>
+                                                    <Copy className="h-3 w-3 mr-2" />
+                                                    Copiar Link
+                                                </Button>
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    className="text-green-600 border-green-600/50 hover:bg-green-50 hover:text-green-700"
+                                                    onClick={() => handleSendAssessmentViaWhatsApp(patient)}
+                                                >
+                                                    <FaWhatsapp className="h-4 w-4 mr-2" />
+                                                    Enviar
+                                                </Button>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 );
@@ -125,4 +142,3 @@ export default function NutritionPage() {
         </div>
     );
 }
-
