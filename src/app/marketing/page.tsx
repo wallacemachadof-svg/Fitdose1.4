@@ -243,13 +243,16 @@ export default function MarketingPage() {
                     <CardDescription>Esta é a imagem que será gerada para download (1080x1080).</CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center bg-muted/20 p-4">
-                    <div
-                        className="aspect-square w-full max-w-xl bg-white"
-                    >
+                     <div className="w-full max-w-xl aspect-square overflow-hidden">
                         <div 
                           ref={montageRef}
-                          style={{ width: 1080, height: 1080 }}
-                          className="relative flex h-full w-full flex-col items-center justify-between p-12 bg-gradient-to-br from-primary/10 via-background to-background"
+                          style={{ 
+                            width: 1080, 
+                            height: 1080,
+                            transform: 'scale(calc(1 / (1080 / 100%)))',
+                            transformOrigin: 'top left',
+                           }}
+                          className="relative flex flex-col items-center justify-between p-12 bg-gradient-to-br from-primary/10 via-background to-background"
                         >
                             <header className="flex w-full items-start justify-between z-10">
                                {logoUrl ? <Image src={logoUrl} alt="Logo" width={200} height={60} className="object-contain" /> : <div className="h-12 w-36" />}
