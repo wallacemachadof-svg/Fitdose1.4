@@ -19,6 +19,7 @@ import {
   Settings,
   Cake,
   Apple,
+  Palette,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -205,6 +206,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <Link href="/rewards">
                     <Award />
                     <span>Recompensas</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+               <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/marketing')}
+                  tooltip="Marketing"
+                >
+                  <Link href="/marketing">
+                    <Palette />
+                    <span>Marketing</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
