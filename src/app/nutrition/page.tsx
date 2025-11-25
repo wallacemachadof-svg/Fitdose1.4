@@ -127,6 +127,7 @@ export default function NutritionPage() {
                             {patients.map(patient => {
                                 const formStatus = getStatusVariant(patient.nutritionalAssessmentStatus);
                                 const planStatus = getStatusVariant(patient.foodPlanStatus);
+                                const isPlanPending = patient.foodPlanStatus === 'pending';
 
                                 return (
                                     <TableRow key={patient.id}>
@@ -164,10 +165,10 @@ export default function NutritionPage() {
                                                     variant="outline" 
                                                     size="sm" 
                                                     className={cn(
-                                                        patient.foodPlanStatus !== 'pending' && "text-primary border-primary/50 hover:bg-primary/10 hover:text-primary"
+                                                        !isPlanPending && "text-primary border-primary/50 hover:bg-primary/10 hover:text-primary"
                                                     )}
                                                     onClick={() => handleSendPlanViaWhatsApp(patient)}
-                                                    disabled={patient.foodPlanStatus === 'pending'}
+                                                    disabled={isPlanPending}
                                                 >
                                                     <Utensils className="h-4 w-4 mr-2" />
                                                     Plano
