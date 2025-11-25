@@ -2,9 +2,10 @@
 'use client';
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { getPatientById, type Patient } from "@/lib/actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Download, Pencil } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,12 +15,17 @@ export default function FoodPlanDisplay({ patientId }: { patientId: string }) {
     const { toast } = useToast();
     const [patient, setPatient] = useState<Patient | null>(null);
     const [loading, setLoading] = useState(true);
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
     useEffect(() => {
         async function fetchPatient() {
             try {
                 const fetchedPatient = await getPatientById(patientId);
                 setPatient(fetchedPatient);
+                 const storedLogo = localStorage.getItem('customLogo');
+                 if (storedLogo) {
+                    setLogoUrl(storedLogo);
+                 }
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Erro ao carregar paciente.' });
             } finally {
@@ -28,13 +34,9 @@ export default function FoodPlanDisplay({ patientId }: { patientId: string }) {
         }
         fetchPatient();
     }, [patientId, toast]);
-
-    const handleEdit = () => {
-        toast({ title: "Funcionalidade em desenvolvimento", description: "A edição do plano será implementada em breve." });
-    };
-
+    
     const handleDownload = () => {
-        toast({ title: "Funcionalidade em desenvolvimento", description: "O download em PDF será implementado em breve." });
+        window.print();
     };
 
     if (loading) {
@@ -63,59 +65,61 @@ export default function FoodPlanDisplay({ patientId }: { patientId: string }) {
     };
 
     return (
-        <Card className="w-full max-w-4xl">
-            <CardHeader>
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle className="text-3xl">Seu Plano Alimentar, {patient.fullName.split(' ')[0]}!</CardTitle>
-                        <CardDescription>Este plano foi criado para te ajudar a alcançar seus objetivos. Siga com disciplina!</CardDescription>
+        <div className="w-full max-w-4xl print:shadow-none print:border-none">
+             <div className="flex justify-end mb-4 print:hidden">
+                <Button onClick={handleDownload}><Download className="mr-2 h-4 w-4"/> Baixar PDF</Button>
+            </div>
+            <Card className="w-full" id="food-plan-document">
+                <CardHeader className="text-center border-b pb-4">
+                     {logoUrl && (
+                        <div className="mx-auto mb-4 h-20 flex items-center justify-center">
+                            <Image src={logoUrl} alt="Logo" width={200} height={60} className="object-contain" />
+                        </div>
+                    )}
+                    <CardTitle className="text-2xl">Plano Alimentar</CardTitle>
+                    <CardDescription className="text-lg font-semibold text-primary">{patient.fullName}</CardDescription>
+                    <div className="flex justify-center gap-4 pt-2">
+                        <Badge variant="secondary">Meta: {mealPlan.calories} kcal</Badge>
+                        <Badge variant="secondary">Proteínas: {mealPlan.macros.protein}g</Badge>
+                        <Badge variant="secondary">Carboidratos: {mealPlan.macros.carbs}g</Badge>
+                        <Badge variant="secondary">Gorduras: {mealPlan.macros.fat}g</Badge>
                     </div>
-                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={handleEdit}><Pencil className="mr-2 h-4 w-4"/> Editar</Button>
-                        <Button onClick={handleDownload}><Download className="mr-2 h-4 w-4"/> Baixar PDF</Button>
-                    </div>
-                </div>
-                <div className="flex gap-4 pt-4">
-                    <Badge variant="secondary">Meta: {mealPlan.calories} kcal</Badge>
-                    <Badge variant="secondary">Proteínas: {mealPlan.macros.protein}g</Badge>
-                    <Badge variant="secondary">Carboidratos: {mealPlan.macros.carbs}g</Badge>
-                    <Badge variant="secondary">Gorduras: {mealPlan.macros.fat}g</Badge>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-24">Horário</TableHead>
-                            <TableHead>Refeição</TableHead>
-                            <TableHead>Itens</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {mealPlan.meals.map(meal => (
-                            <TableRow key={meal.name}>
-                                <TableCell className="font-semibold">{meal.time}</TableCell>
-                                <TableCell className="font-medium">{meal.name}</TableCell>
-                                <TableCell>
-                                    <ul className="list-disc pl-5 space-y-1">
-                                        {meal.items.map((item, index) => <li key={index}>{item}</li>)}
-                                    </ul>
-                                </TableCell>
+                </CardHeader>
+                <CardContent className="pt-6">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-24">Horário</TableHead>
+                                <TableHead>Refeição</TableHead>
+                                <TableHead>Itens</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-                 <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                    <h4 className="font-semibold mb-2">Recomendações Gerais</h4>
-                    <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
-                        <li>Beba no mínimo 2 litros de água por dia, fracionados ao longo do dia.</li>
-                        <li>Evite o consumo de bebidas açucaradas, como refrigerantes e sucos industrializados.</li>
-                        <li>Mastigue bem os alimentos e coma devagar, prestando atenção aos sinais de saciedade.</li>
-                        <li>Prefira temperos naturais como ervas, alho, cebola, e evite os industrializados.</li>
-                        <li>A prática de atividade física regular é fundamental para potencializar seus resultados.</li>
-                    </ul>
-                </div>
-            </CardContent>
-        </Card>
+                        </TableHeader>
+                        <TableBody>
+                            {mealPlan.meals.map(meal => (
+                                <TableRow key={meal.name}>
+                                    <TableCell className="font-semibold">{meal.time}</TableCell>
+                                    <TableCell className="font-medium">{meal.name}</TableCell>
+                                    <TableCell>
+                                        <ul className="list-disc pl-5 space-y-1">
+                                            {meal.items.map((item, index) => <li key={index}>{item}</li>)}
+                                        </ul>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                     <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                        <h4 className="font-semibold mb-2">Recomendações Gerais</h4>
+                        <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
+                            <li>Beba no mínimo 2 litros de água por dia, fracionados ao longo do dia.</li>
+                            <li>Evite o consumo de bebidas açucaradas, como refrigerantes e sucos industrializados.</li>
+                            <li>Mastigue bem os alimentos e coma devagar, prestando atenção aos sinais de saciedade.</li>
+                            <li>Prefira temperos naturais como ervas, alho, cebola, e evite os industrializados.</li>
+                            <li>A prática de atividade física regular é fundamental para potencializar seus resultados.</li>
+                        </ul>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
     );
 }

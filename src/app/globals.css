@@ -83,3 +83,15 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+    body {
+        background-color: white !important;
+    }
+    .print-only {
+        display: block !important;
+    }
+    .no-print {
+        display: none !important;
+    }
+}
