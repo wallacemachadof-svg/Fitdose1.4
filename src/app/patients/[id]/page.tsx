@@ -1,6 +1,5 @@
 
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -557,7 +556,7 @@ export default function PatientDetailPage() {
                 const totalAmountDue = (dose.payment.amount || 0) + lateFee;
 
                 return (
-                  <TableRow key={dose.id}>
+                  <TableRow key={`${dose.id}-${dose.doseNumber}`}>
                     <TableCell className="font-semibold">{dose.doseNumber}</TableCell>
                     <TableCell>
                       {dose.status === 'pending' ? (
@@ -751,6 +750,7 @@ const isSameDay = (date1: Date, date2: Date) =>
   date1.getDate() === date2.getDate();
 
     
+
 
 
 
