@@ -43,6 +43,15 @@ export default function NutritionPage() {
         }
     };
     
+    const handleCopyLink = (patientId: string) => {
+        const link = generateNutritionalAssessmentLink(patientId);
+        navigator.clipboard.writeText(link);
+        toast({
+          title: "Link Copiado!",
+          description: "O link para a avaliação nutricional foi copiado.",
+        });
+    };
+
     const handleSendAssessmentViaWhatsApp = (patient: Patient) => {
         const whatsappUrl = generateNutritionalAssessmentWhatsAppLink(patient);
         window.open(whatsappUrl, '_blank');
@@ -119,11 +128,19 @@ export default function NutritionPage() {
                                                 <Button 
                                                     variant="outline" 
                                                     size="sm" 
+                                                    onClick={() => handleCopyLink(patient.id)}
+                                                >
+                                                    <Copy className="h-4 w-4 mr-2" />
+                                                    Copiar Link
+                                                </Button>
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
                                                     className="text-green-600 border-green-600/50 hover:bg-green-50 hover:text-green-700"
                                                     onClick={() => handleSendAssessmentViaWhatsApp(patient)}
                                                 >
-                                                    <FileText className="h-4 w-4 mr-2" />
-                                                    Enviar Formulário
+                                                    <FaWhatsapp className="h-4 w-4 mr-2" />
+                                                    Formulário
                                                 </Button>
                                                 <Button 
                                                     variant="outline" 
@@ -133,7 +150,7 @@ export default function NutritionPage() {
                                                     disabled={planStatus.label !== 'Disponível'}
                                                 >
                                                     <Utensils className="h-4 w-4 mr-2" />
-                                                    Enviar Plano
+                                                    Plano
                                                 </Button>
                                             </div>
                                         </TableCell>

@@ -235,7 +235,7 @@ export function generateNutritionalAssessmentLink(patientId: string): string {
 
 export function generateNutritionalAssessmentWhatsAppLink(patient: Patient): string {
     const link = generateNutritionalAssessmentLink(patient.id);
-    const message = `Olá, ${patient.fullName.split(' ')[0]}! Para personalizar ainda mais seu acompanhamento, por favor, preencha nossa avaliação nutricional. Leva apenas alguns minutos! Clique no link: ${link}`;
+    const message = `Olá, ${patient.fullName.split(' ')[0]}! Tudo bem? 💖 Para que eu possa criar um plano alimentar delicioso e perfeito para sua rotina e seus objetivos, preciso que você preencha nossa avaliação nutricional. É super rápido e fará toda a diferença na sua jornada! Vamos começar? ✨ Clique aqui: ${link}`;
     const encodedMessage = encodeURIComponent(message);
     const cleanPhoneNumber = patient.phone?.replace(/\D/g, '') || '';
     return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
