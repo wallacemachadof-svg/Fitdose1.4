@@ -1,14 +1,14 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
 import { getPatients, type Patient } from '@/lib/actions';
-import { Loader2, Download, Image as ImageIcon, Sparkles, Star } from 'lucide-react';
+import { Loader2, Download, Image as ImageIcon, Sparkles, Star, Maximize } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { toPng } from 'html-to-image';
@@ -26,6 +26,8 @@ const motivationalQuotes = [
   "O corpo alcança o que a mente acredita."
 ];
 
+type Box = { x: number; y: number; width: number; height: number; };
+
 export default function MarketingPage() {
   const { toast } = useToast();
   const [patients, setPatients] = useState<{ value: string; label: string }[]>([]);
@@ -39,6 +41,9 @@ export default function MarketingPage() {
   const [quote, setQuote] = useState('');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const montageRef = useRef<HTMLDivElement>(null);
+  
+  const [beforeBox, setBeforeBox] = useState<Box>({ x: 50, y: 50, width: 150, height: 50 });
+  const [afterBox, setAfterBox] = useState<Box>({ x: 50, y: 50, width: 150, height: 50 });
 
   useEffect(() => {
     async function fetchPatients() {
@@ -48,7 +53,6 @@ export default function MarketingPage() {
     fetchPatients();
     setQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
     
-    // Fetch logo from local storage
     const storedLogo = localStorage.getItem('customLogo');
     if (storedLogo) {
       setLogoUrl(storedLogo);
@@ -73,7 +77,7 @@ export default function MarketingPage() {
     try {
       const dataUrl = await toPng(montageRef.current, { 
         quality: 1, 
-        pixelRatio: 2,
+        pixelRatio: 1, // Use 1 for direct mapping of 1080x1080
         width: 1080,
         height: 1080,
       });
@@ -97,7 +101,84 @@ export default function MarketingPage() {
     setSelectedPatientId(value);
     setPatientName(label);
   };
+
+  const DraggableResizableBox = ({ box, setBox, parentRef }: { box: Box, setBox: (b: Box) => void, parentRef: React.RefObject<HTMLDivElement> }) => {
+    const boxRef = useRef<HTMLDivElement>(null);
+    const dragInfo = useRef({ active: false, type: '', startX: 0, startY: 0, startBox: box });
   
+    const onMouseDown = (e: React.MouseEvent, type: string) => {
+      e.stopPropagation();
+      dragInfo.current = {
+        active: true,
+        type,
+        startX: e.clientX,
+        startY: e.clientY,
+        startBox: box
+      };
+    };
+  
+    const onMouseMove = useCallback((e: MouseEvent) => {
+      if (!dragInfo.current.active || !parentRef.current) return;
+      const dx = e.clientX - dragInfo.current.startX;
+      const dy = e.clientY - dragInfo.current.startY;
+      const parentRect = parentRef.current.getBoundingClientRect();
+  
+      let newBox = { ...dragInfo.current.startBox };
+  
+      const scaleX = 1080 / parentRect.width;
+      const scaleY = (1080 * 0.6) / (parentRect.height * 0.6); // Since height is 3/5 of parent
+  
+      if (dragInfo.current.type === 'move') {
+        newBox.x += dx * scaleX;
+        newBox.y += dy * scaleY;
+      } else {
+        if (dragInfo.current.type.includes('r')) newBox.width += dx * scaleX;
+        if (dragInfo.current.type.includes('l')) { newBox.width -= dx * scaleX; newBox.x += dx * scaleX; }
+        if (dragInfo.current.type.includes('b')) newBox.height += dy * scaleY;
+        if (dragInfo.current.type.includes('t')) { newBox.height -= dy * scaleY; newBox.y += dy * scaleY; }
+      }
+      
+      if (newBox.width < 20) newBox.width = 20;
+      if (newBox.height < 20) newBox.height = 20;
+      
+      setBox(newBox);
+  
+    }, [setBox, parentRef]);
+  
+    const onMouseUp = useCallback(() => {
+      dragInfo.current.active = false;
+    }, []);
+  
+    useEffect(() => {
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      };
+    }, [onMouseMove, onMouseUp]);
+  
+    return (
+      <div
+        ref={boxRef}
+        className="absolute border-2 border-dashed border-white cursor-move"
+        style={{
+          left: `${(box.x / 1080) * 100}%`,
+          top: `${(box.y / (1080 * 0.6)) * 100}%`,
+          width: `${(box.width / 1080) * 100}%`,
+          height: `${(box.height / (1080 * 0.6)) * 100}%`,
+          backgroundColor: 'rgba(0,0,0,0.8)'
+        }}
+        onMouseDown={(e) => onMouseDown(e, 'move')}
+      >
+        <div onMouseDown={(e) => onMouseDown(e, 'tl')} className="absolute -top-1 -left-1 w-2 h-2 bg-white rounded-full cursor-nwse-resize" />
+        <div onMouseDown={(e) => onMouseDown(e, 'tr')} className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full cursor-nesw-resize" />
+        <div onMouseDown={(e) => onMouseDown(e, 'bl')} className="absolute -bottom-1 -left-1 w-2 h-2 bg-white rounded-full cursor-nesw-resize" />
+        <div onMouseDown={(e) => onMouseDown(e, 'br')} className="absolute -bottom-1 -right-1 w-2 h-2 bg-white rounded-full cursor-nwse-resize" />
+      </div>
+    );
+  };
+
   const isReadyForDownload = beforeImage && afterImage && patientName && weightLoss && timeFrame;
 
   return (
@@ -151,6 +232,7 @@ export default function MarketingPage() {
                     <Input id="after-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'after')} />
                 </div>
             </div>
+            <p className="text-xs text-muted-foreground pt-2">Dica: Para proteger a privacidade, adicione uma tarja preta nos rostos arrastando e redimensionando os quadrados sobre as imagens na prévia.</p>
           </CardContent>
         </Card>
 
@@ -158,15 +240,17 @@ export default function MarketingPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>2. Prévia da Imagem</CardTitle>
-                    <CardDescription>Esta é a imagem que será gerada para download (tamanho 1080x1080).</CardDescription>
+                    <CardDescription>Esta é a imagem que será gerada para download (1080x1080).</CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center bg-muted/20 p-4">
                     <div
-                        ref={montageRef}
                         className="aspect-square w-full max-w-xl bg-white"
-                        style={{ width: '1080px', height: '1080px' }}
                     >
-                        <div className="relative flex h-full w-full flex-col items-center justify-between p-12 bg-gradient-to-br from-primary/10 via-background to-background">
+                        <div 
+                          ref={montageRef}
+                          style={{ width: 1080, height: 1080 }}
+                          className="relative flex h-full w-full flex-col items-center justify-between p-12 bg-gradient-to-br from-primary/10 via-background to-background"
+                        >
                             <header className="flex w-full items-start justify-between z-10">
                                {logoUrl ? <Image src={logoUrl} alt="Logo" width={200} height={60} className="object-contain" /> : <div className="h-12 w-36" />}
                                 <div className="text-right">
@@ -176,19 +260,15 @@ export default function MarketingPage() {
                             </header>
 
                             <main className="absolute inset-0 flex items-center justify-center w-full h-full gap-6 px-12">
-                                <div className="relative h-3/5 w-1/2 overflow-hidden rounded-xl shadow-lg">
+                                <div className="relative h-3/5 w-1/2 overflow-hidden rounded-xl shadow-lg" ref={useRef<HTMLDivElement>(null)}>
                                     <p className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-lg font-semibold px-6 py-2 rounded-full z-20 backdrop-blur-sm">ANTES</p>
-                                    <div className="absolute top-[25%] left-0 w-full h-16 bg-black/70 flex items-center justify-center z-10 backdrop-blur-sm">
-                                        {logoUrl && <Image src={logoUrl} alt="Logo" width={100} height={30} className="object-contain opacity-80" />}
-                                    </div>
                                     {beforeImage ? <Image src={beforeImage} layout="fill" objectFit="cover" alt="Antes" className="saturate-50" /> : <div className="flex items-center justify-center h-full bg-muted/50"><ImageIcon size={48} className="text-muted-foreground" /></div>}
+                                    {beforeImage && <DraggableResizableBox box={beforeBox} setBox={setBeforeBox} parentRef={montageRef} />}
                                 </div>
-                                <div className="relative h-3/5 w-1/2 overflow-hidden rounded-xl shadow-lg">
+                                <div className="relative h-3/5 w-1/2 overflow-hidden rounded-xl shadow-lg" ref={useRef<HTMLDivElement>(null)}>
                                     <p className="absolute top-4 left-1/2 -translate-x-1/2 bg-primary text-white text-lg font-semibold px-6 py-2 rounded-full z-20 backdrop-blur-sm">DEPOIS</p>
-                                     <div className="absolute top-[25%] left-0 w-full h-16 bg-black/70 flex items-center justify-center z-10 backdrop-blur-sm">
-                                        {logoUrl && <Image src={logoUrl} alt="Logo" width={100} height={30} className="object-contain opacity-80" />}
-                                    </div>
                                     {afterImage ? <Image src={afterImage} layout="fill" objectFit="cover" alt="Depois" /> : <div className="flex items-center justify-center h-full bg-muted/50"><ImageIcon size={48} className="text-muted-foreground" /></div>}
+                                    {afterImage && <DraggableResizableBox box={afterBox} setBox={setAfterBox} parentRef={montageRef} />}
                                 </div>
                                 
                                 <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 w-72 h-36 flex items-center justify-center z-20">
