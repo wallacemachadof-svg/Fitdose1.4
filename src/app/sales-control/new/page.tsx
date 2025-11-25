@@ -483,7 +483,7 @@ export default function NewSalePage() {
                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
                                         <FormField control={control} name="installments" render={({ field }) => (
                                             <FormItem><FormLabel>Nº de Parcelas</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                                                <Select onValueChange={(v) => field.onChange(parseInt(v, 10))} value={String(field.value || '')}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
                                                     <SelectContent>
                                                         {Array.from({length: 11}, (_, i) => i + 2).map(n => <SelectItem key={n} value={String(n)}>{n}x</SelectItem>)}

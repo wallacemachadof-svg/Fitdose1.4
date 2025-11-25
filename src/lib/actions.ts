@@ -310,7 +310,7 @@ export type Dose = {
     status: 'pago' | 'pendente';
     date?: Date;
     dueDate?: Date;
-    method?: "dinheiro" | "pix" | "debito" | "credito" | "payment_link";
+    method?: "dinheiro" | "pix" | "debito" | "credito" | "credito_parcelado" | "payment_link";
     installments?: number;
     amount?: number;
   };
@@ -357,7 +357,6 @@ export type Sale = {
   quantity: number;
   price: number;
   discountPerDose?: number;
-  discount?: number; // Legacy, can be removed after migration
   total: number;
   patientId: string;
   patientName: string;
@@ -900,9 +899,9 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     // --- Create Cash Flow Entry ---
     const cashFlowAmount = newSale.total - (newSale.operatorFee || 0);
 
-    if (newSale.paymentMethod === 'credito_parcelado' && newSale.installments && newSale.installments > 1 && newSale.paymentDueDate) {
+    if (newSale.paymentMethod === 'credito_parcelado' && newSale.installments && newSale.installments > 1 && newSale.paymentDate) {
         const installmentAmount = cashFlowAmount / newSale.installments;
-        const firstDueDate = new Date(newSale.paymentDueDate);
+        const firstDueDate = new Date(newSale.paymentDate); // Base due date on payment date for installments
         
         for (let i = 0; i < newSale.installments; i++) {
             const newDueDate = new Date(firstDueDate);
@@ -913,7 +912,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
                 purchaseDate: newSale.saleDate,
                 description: `Venda p/ ${patient.fullName} (Parc. ${i + 1}/${newSale.installments})`,
                 amount: installmentAmount,
-                status: 'pendente',
+                status: 'pendente', // Installments are always pending initially
                 dueDate: newDueDate,
                 paymentMethod: newSale.paymentMethod,
                 installments: `${i + 1}/${newSale.installments}`
@@ -1269,6 +1268,7 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
     return { ruptureDate: null, purchaseDeadline: null };
 }
+
 
 
 
