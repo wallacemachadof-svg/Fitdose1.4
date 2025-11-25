@@ -1420,7 +1420,8 @@
       }
     ],
     "consentGiven": true,
-    "consentDate": "2025-11-23T14:36:23.284Z"
+    "consentDate": "2025-11-23T14:36:23.284Z",
+    "foodPlanStatus": "sent"
   },
   {
     "id": "7",
