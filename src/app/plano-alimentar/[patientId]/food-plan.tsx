@@ -66,7 +66,8 @@ export default function FoodPlanDisplay({ patientId }: { patientId: string }) {
 
     return (
         <div className="w-full max-w-4xl print:shadow-none print:border-none">
-             <div className="flex justify-end mb-4 print:hidden">
+             <div className="flex justify-between items-center mb-4 print:hidden">
+                <p className="text-sm text-muted-foreground">Clique em "Baixar PDF" e escolha "Salvar como PDF".</p>
                 <Button onClick={handleDownload}><Download className="mr-2 h-4 w-4"/> Baixar PDF</Button>
             </div>
             <Card className="w-full" id="food-plan-document">
