@@ -1,5 +1,6 @@
 
 
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format, differenceInDays, parseISO, addDays, startOfToday } from "date-fns";
@@ -224,4 +225,11 @@ export function getHighestReward(points: number) {
         label: `Até ${formatCurrency(discountValue)} de desconto`,
         discountValue,
     };
+}
+
+export function generateNutritionalAssessmentLink(patientId: string): string {
+    if (typeof window !== 'undefined') {
+        return `${window.location.origin}/avaliacao-nutricional/${patientId}`;
+    }
+    return `/avaliacao-nutricional/${patientId}`;
 }

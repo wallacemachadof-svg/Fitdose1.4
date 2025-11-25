@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -22,7 +23,8 @@ import {
   getDoseStatus,
   generateWhatsAppLink,
   formatCurrency,
-  getPaymentStatusVariant
+  getPaymentStatusVariant,
+  generateNutritionalAssessmentLink
 } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -63,6 +65,7 @@ import {
     Trash2,
     Network,
     AlertTriangle,
+    Apple,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -161,6 +164,14 @@ export default function PatientDetailPage() {
 
   const handleNotifyClick = (patient: Patient, dose: Dose) => {
     const whatsappUrl = generateWhatsAppLink(patient, dose);
+    window.open(whatsappUrl, '_blank');
+  };
+  
+  const handleSendAssessment = () => {
+    if(!patient) return;
+    const link = generateNutritionalAssessmentLink(patient.id);
+    const message = `Olá, ${patient.fullName.split(' ')[0]}! Para personalizar ainda mais seu acompanhamento, por favor, preencha nossa avaliação nutricional. Leva apenas alguns minutos! Clique no link: ${link}`;
+    const whatsappUrl = `https://wa.me/55${patient.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
   
@@ -296,12 +307,18 @@ export default function PatientDetailPage() {
                 Voltar para Pacientes
             </Link>
         </Button>
-        <Button asChild>
-            <Link href={`/patients/${patientId}/edit`}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Editar Perfil
-            </Link>
-        </Button>
+        <div className='flex gap-2'>
+            <Button variant="outline" onClick={handleSendAssessment}>
+                <Apple className="mr-2 h-4 w-4" />
+                Avaliação Nutricional
+            </Button>
+            <Button asChild>
+                <Link href={`/patients/${patientId}/edit`}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Editar Perfil
+                </Link>
+            </Button>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row items-start gap-6">
@@ -734,6 +751,7 @@ const isSameDay = (date1: Date, date2: Date) =>
   date1.getDate() === date2.getDate();
 
     
+
 
 
 
