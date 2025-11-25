@@ -171,9 +171,9 @@ export default function NutritionPage() {
                                                     <FaWhatsapp className="h-4 w-4 mr-2" />
                                                     Formulário
                                                 </Button>
-                                                <Button 
+                                                <Button
                                                     variant={isPlanPending ? "secondary" : "default"}
-                                                    size="sm" 
+                                                    size="sm"
                                                     className={cn(
                                                         !isPlanPending && "bg-green-600 hover:bg-green-700 text-white"
                                                     )}
