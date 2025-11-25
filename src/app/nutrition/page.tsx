@@ -164,6 +164,7 @@ export default function NutritionPage() {
                                                     size="sm" 
                                                     className="text-primary border-primary/50 hover:bg-primary/10 hover:text-primary"
                                                     onClick={() => handleSendPlanViaWhatsApp(patient)}
+                                                    disabled={patient.foodPlanStatus === 'pending'}
                                                 >
                                                     <Utensils className="h-4 w-4 mr-2" />
                                                     Plano
