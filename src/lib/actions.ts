@@ -953,9 +953,8 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         const cashFlowEntry: CashFlowEntry = {
             id: `sale-${newSale.id}`,
             type: 'entrada',
-            // The payment is received 1 business day later. addDays(1) is a simplification.
             purchaseDate: addDays(newSale.saleDate, 1),
-            description: `Venda parcelada p/ ${patient.fullName} (${newSale.installments}x)`,
+            description: `Venda parcelada p/ ${patient.fullName}`,
             amount: netAmount,
             status: 'pago',
             paymentMethod: newSale.paymentMethod,
@@ -1313,5 +1312,7 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
     return { ruptureDate: null, purchaseDeadline: null };
 }
 
+
+    
 
     
