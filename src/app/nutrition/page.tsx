@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getPatients, type Patient } from '@/lib/actions';
+import { getPatients, updatePatient, type Patient } from '@/lib/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import { Apple, Copy, Utensils, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { generateNutritionalAssessmentLink, generateNutritionalAssessmentWhatsAppLink } from '@/lib/utils';
+import { generateNutritionalAssessmentLink, generateNutritionalAssessmentWhatsAppLink, generateFoodPlanWhatsAppLink } from '@/lib/utils';
 import { FaWhatsapp } from 'react-icons/fa';
 
 export default function NutritionPage() {
@@ -57,12 +57,29 @@ export default function NutritionPage() {
         window.open(whatsappUrl, '_blank');
     }
     
-    const handleSendPlanViaWhatsApp = (patient: Patient) => {
-        // Placeholder for future functionality
-        toast({
-            title: "Funcionalidade em desenvolvimento",
-            description: `O envio do plano alimentar para ${patient.fullName} será implementado em breve.`,
-        });
+    const handleSendPlanViaWhatsApp = async (patient: Patient) => {
+        const whatsappUrl = generateFoodPlanWhatsAppLink(patient);
+        window.open(whatsappUrl, '_blank');
+        
+        // Optimistic UI update
+        const originalPatients = [...patients];
+        setPatients(patients.map(p => p.id === patient.id ? {...p, foodPlanStatus: 'sent'} : p));
+
+        try {
+            await updatePatient(patient.id, { foodPlanStatus: 'sent' });
+            toast({
+                title: "Plano Alimentar Enviado!",
+                description: `O status para ${patient.fullName} foi atualizado.`,
+            });
+        } catch(error) {
+            // Revert UI on error
+            setPatients(originalPatients);
+            toast({
+                variant: 'destructive',
+                title: 'Erro ao atualizar status',
+                description: 'Não foi possível atualizar o status do paciente.',
+            });
+        }
     }
 
     if (loading) {

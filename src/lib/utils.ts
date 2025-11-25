@@ -1,5 +1,4 @@
 
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format, differenceInDays, parseISO, addDays, startOfToday } from "date-fns";
@@ -236,6 +235,28 @@ export function generateNutritionalAssessmentLink(patientId: string): string {
 export function generateNutritionalAssessmentWhatsAppLink(patient: Patient): string {
     const link = generateNutritionalAssessmentLink(patient.id);
     const message = `Olá, ${patient.fullName.split(' ')[0]}! Tudo bem? 💖 Para que eu possa criar um plano alimentar delicioso e perfeito para sua rotina e seus objetivos, preciso que você preencha nossa avaliação nutricional. É super rápido e fará toda a diferença na sua jornada! Vamos começar? ✨ Clique aqui: ${link}`;
+    const encodedMessage = encodeURIComponent(message);
+    const cleanPhoneNumber = patient.phone?.replace(/\D/g, '') || '';
+    return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
+}
+
+export function generateFoodPlanLink(patientId: string): string {
+    if (typeof window !== 'undefined') {
+        return `${window.location.origin}/plano-alimentar/${patientId}`;
+    }
+    return `/plano-alimentar/${patientId}`;
+}
+
+export function generateFoodPlanWhatsAppLink(patient: Patient): string {
+    const link = generateFoodPlanLink(patient.id);
+    const message = `Olá, ${patient.fullName.split(' ')[0]}! ✨ Tenho uma ótima notícia: seu plano alimentar personalizado está pronto!
+
+Preparei tudo com muito carinho, pensando nos seus objetivos e nas suas preferências. Tenho certeza que você vai adorar!
+
+Clique no link abaixo para acessar seu plano:
+${link}
+
+Qualquer dúvida, é só me chamar! Vamos com tudo! 💪`;
     const encodedMessage = encodeURIComponent(message);
     const cleanPhoneNumber = patient.phone?.replace(/\D/g, '') || '';
     return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
