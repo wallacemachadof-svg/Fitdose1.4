@@ -1,13 +1,12 @@
 
-
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { getVials, getStockForecast, type Vial, type StockForecast, adjustVialStock, getSales, type Sale, updateVialDetails } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { PlusCircle, Warehouse, Droplets, FlaskConical, AlertTriangle, Package, CalendarClock, ShoppingCart, SlidersHorizontal, Loader2, User, Edit } from 'lucide-react';
+import { PlusCircle, Warehouse, Droplets, FlaskConical, AlertTriangle, Package, CalendarClock, ShoppingCart, SlidersHorizontal, Loader2, User, Edit, CloudDrizzle } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -15,10 +14,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useForm, useController } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -28,8 +27,6 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-
 
 const DELIVERY_LEAD_TIME = 22; // 22 days
 
@@ -163,12 +160,15 @@ export default function StockControlPage() {
         return 'bg-primary';
     }
 
+    const requiredVials = forecast?.totalPendingMg ? Math.ceil(forecast.totalPendingMg / 90) : 0;
+
 
     if (loading) {
         return (
              <div className="space-y-6">
                 <Skeleton className="h-12 w-1/3" />
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <Skeleton className="h-28" />
                     <Skeleton className="h-28" />
                     <Skeleton className="h-28" />
                     <Skeleton className="h-28" />
@@ -193,10 +193,10 @@ export default function StockControlPage() {
                 </Button>
             </div>
             
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                  <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Estoque Restante</CardTitle>
+                        <CardTitle className="text-sm font-medium">Estoque Físico</CardTitle>
                         <FlaskConical className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -209,6 +209,21 @@ export default function StockControlPage() {
                                 Estoque baixo!
                             </div>
                          )}
+                    </CardContent>
+                </Card>
+                 <Card className="border-dashed border-sky-500 bg-sky-500/5">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-sky-700">Demanda Futura (Virtual)</CardTitle>
+                        <CloudDrizzle className="h-4 w-4 text-sky-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-sky-600">{forecast?.totalPendingMg?.toFixed(1) ?? '0.0'} mg</div>
+                        <p className="text-xs text-muted-foreground">
+                            {requiredVials > 0 
+                                ? `Necessário comprar: ${requiredVials} frasco(s) de 90mg`
+                                : "Demanda de doses futuras ainda não entregues"
+                            }
+                        </p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -253,7 +268,7 @@ export default function StockControlPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Lista de Frascos</CardTitle>
+                    <CardTitle>Lista de Frascos Físicos</CardTitle>
                     <CardDescription>Detalhes de cada frasco em seu inventário.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -454,10 +469,4 @@ export default function StockControlPage() {
         </div>
     );
 }
-
-    
-
-    
-
-
 

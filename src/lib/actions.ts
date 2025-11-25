@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { calculateBmi } from "./utils";
@@ -448,6 +447,7 @@ export type Settings = {
 export type StockForecast = {
   ruptureDate: Date | null;
   purchaseDeadline: Date | null;
+  totalPendingMg: number;
 };
 
 // --- Data Access Functions ---
@@ -863,7 +863,6 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             doseToUpdate.payment.dueDate = newSale.paymentDueDate;
             doseToUpdate.payment.installments = newSale.installments;
 
-            // Only update administration status if explicitly delivered at time of sale
             if (deliveryInfo && deliveryInfo.status === 'entregue' && deliveryInfo.deliveryDate) {
                  updateSaleDelivery(newSale.id, doseToUpdate.doseNumber, 'entregue', deliveryInfo.deliveryDate);
             }
@@ -1320,34 +1319,33 @@ export const resetAllData = async (): Promise<void> => {
 }
 
 export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<StockForecast> => {
-    const { patients, vials } = readData();
+    const { patients, vials, sales } = readData();
     let currentStockMg = vials.reduce((acc, v) => acc + v.remainingMg, 0);
-
-    if (currentStockMg <= 0) {
-        return { ruptureDate: new Date(), purchaseDeadline: new Date() };
-    }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const futureDoses = patients
-        .flatMap(p => p.doses.map(d => ({ ...d, patient: p })))
-        .filter(d => d.status === 'pending' && d.date >= today)
-        .map(d => ({
-            date: d.date,
-            mg: parseFloat(d.patient.defaultDose || '2.5') // Fallback to 2.5mg
-        }))
-        .sort((a, b) => a.date.getTime() - b.date.getTime());
+    // Calculate demand from future doses NOT yet delivered
+    const futureDoses = sales.flatMap(sale => 
+        sale.deliveries
+            .filter(d => d.status !== 'entregue' && new Date(sale.saleDate) >= today) // Only consider future/pending deliveries
+            .map(delivery => ({
+                date: delivery.deliveryDate || new Date(sale.saleDate), // Use deliveryDate if available
+                mg: parseFloat(sale.soldDose)
+            }))
+    ).filter(d => !isNaN(d.mg)).sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    if (futureDoses.length === 0) {
-        return { ruptureDate: null, purchaseDeadline: null };
+    const totalPendingMg = futureDoses.reduce((acc, dose) => acc + dose.mg, 0);
+
+    if (currentStockMg <= 0) {
+        return { ruptureDate: new Date(), purchaseDeadline: new Date(), totalPendingMg };
     }
-
+    
     let ruptureDate: Date | null = null;
-
+    let tempStock = currentStockMg;
     for (const dose of futureDoses) {
-        currentStockMg -= dose.mg;
-        if (currentStockMg <= 0) {
+        tempStock -= dose.mg;
+        if (tempStock <= 0) {
             ruptureDate = dose.date;
             break;
         }
@@ -1356,16 +1354,9 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
     if (ruptureDate) {
         const purchaseDeadline = new Date(ruptureDate);
         purchaseDeadline.setDate(purchaseDeadline.getDate() - deliveryLeadTimeDays);
-        return { ruptureDate, purchaseDeadline };
+        return { ruptureDate, purchaseDeadline, totalPendingMg };
     }
 
-    return { ruptureDate: null, purchaseDeadline: null };
+    return { ruptureDate: null, purchaseDeadline: null, totalPendingMg };
 }
-
-
-    
-
-    
-
-
 
