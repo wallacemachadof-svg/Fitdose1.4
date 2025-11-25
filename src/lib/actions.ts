@@ -815,31 +815,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         throw new Error("Paciente não encontrado");
     }
     const patient = data.patients[patientIndex];
-
-    const soldMgPerDose = parseFloat(saleData.soldDose);
-    if (isNaN(soldMgPerDose)) {
-        throw new Error("Dose vendida inválida.");
-    }
     
-    const totalSoldMg = soldMgPerDose * saleData.quantity;
-
-    const vialUsage: VialUsage[] = [];
-    // Don't deduct from stock on sale, only on delivery.
-    // We still log the intention to use vials.
-    const sortedVials = [...data.vials].sort((a, b) => new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime());
-    let remainingToAllocate = totalSoldMg;
-    for (const vial of sortedVials) {
-        if (remainingToAllocate <= 0) break;
-        // This is a "virtual" allocation for now. The actual deduction happens on delivery update.
-        // We can still check against available stock if we want to warn the user.
-        const amountToAllocate = Math.min(vial.remainingMg, remainingToAllocate);
-        if (amountToAllocate > 0) {
-            vialUsage.push({ vialId: vial.id, mgUsed: amountToAllocate });
-            remainingToAllocate -= amountToAllocate;
-        }
-    }
-
-
     // --- Create Sale ---
     const newId = (data.sales.length > 0 ? Math.max(...data.sales.map(s => parseInt(s.id, 10))) : 0) + 1;
     const total = saleData.total;
@@ -849,7 +825,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         ...saleData,
         patientName: patient.fullName,
         total: total,
-        vialUsage: vialUsage,
+        vialUsage: [], // Initially empty, populated on delivery
     };
 
     // --- Handle Bioimpedance ---
@@ -862,7 +838,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         
         const newEvolution: Evolution = {
             id: `evo-sale-${newSale.id}`,
-            date: newSale.saleDate, // Use sale date for bioimpedance
+            date: newSale.saleDate,
             notes: "Registro de bioimpedância no momento da venda.",
             bioimpedance: bioimpedance,
         };
@@ -887,32 +863,12 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             doseToUpdate.payment.dueDate = newSale.paymentDueDate;
             doseToUpdate.payment.installments = newSale.installments;
 
-            // Update administration status only if delivered
+            // Only update administration status if explicitly delivered at time of sale
             if (deliveryInfo && deliveryInfo.status === 'entregue' && deliveryInfo.deliveryDate) {
-                doseToUpdate.status = 'administered';
-                doseToUpdate.date = deliveryInfo.deliveryDate;
-                doseToUpdate.administeredDose = parseFloat(saleData.soldDose) || undefined;
-                
-                // Add bioimpedance to the first administered dose of the sale
-                if (hasBioimpedance && saleData.bioimpedance?.weight && i === 0) {
-                    doseToUpdate.weight = saleData.bioimpedance.weight;
-                    doseToUpdate.bmi = saleData.bioimpedance.bmi;
-                }
+                 updateSaleDelivery(newSale.id, doseToUpdate.doseNumber, 'entregue', deliveryInfo.deliveryDate);
             }
         }
     }
-
-    // Reschedule subsequent pending doses after administration updates
-    patient.doses.sort((a, b) => a.doseNumber - b.doseNumber);
-    for (let i = 1; i < patient.doses.length; i++) {
-        if (patient.doses[i].status === 'pending') {
-            const prevDose = patient.doses[i - 1];
-            const newDate = new Date(prevDose.date);
-            newDate.setDate(newDate.getDate() + 7);
-            patient.doses[i].date = newDate;
-        }
-    }
-
 
     // --- Handle Points ---
     const settings = data.settings;
@@ -967,7 +923,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
                 });
             }
         } else {
-             // Single entry, even for "Crédito Parcelado" if "Lançamento Único" is chosen
+             // Single entry
              let entryDate = newSale.paymentDate || newSale.saleDate;
              if (newSale.paymentMethod === 'credito_parcelado' || newSale.paymentMethod === 'credito') {
                  let nextBusinessDay = addDays(newSale.saleDate, 1);
@@ -1023,6 +979,85 @@ export const deleteSale = async (id: string): Promise<void> => {
     writeData({ sales: data.sales, cashFlowEntries: data.cashFlowEntries });
     await new Promise(resolve => setTimeout(resolve, 100));
 };
+
+export const updateSaleDelivery = async (saleId: string, doseNumber: number, newStatus: Delivery['status'], deliveryDate?: Date): Promise<Sale> => {
+    const data = readData();
+    const saleIndex = data.sales.findIndex(s => s.id === saleId);
+    if (saleIndex === -1) throw new Error("Venda não encontrada.");
+    
+    const sale = data.sales[saleIndex];
+    const delivery = sale.deliveries.find(d => d.doseNumber === doseNumber);
+    if (!delivery) throw new Error("Entrega da dose não encontrada na venda.");
+
+    const originalStatus = delivery.status;
+    delivery.status = newStatus;
+    delivery.deliveryDate = newStatus === 'entregue' ? (deliveryDate || new Date()) : undefined;
+
+    // --- STOCK & PATIENT DOSE LOGIC ---
+    if (newStatus === 'entregue' && originalStatus !== 'entregue') {
+        const patientIndex = data.patients.findIndex(p => p.id === sale.patientId);
+        if (patientIndex === -1) throw new Error("Paciente da venda não encontrado.");
+        
+        const patient = data.patients[patientIndex];
+        const dose = patient.doses.find(d => d.doseNumber === doseNumber);
+        if (!dose) throw new Error("Dose correspondente na agenda do paciente não encontrada.");
+
+        const mgUsed = parseFloat(sale.soldDose);
+        if (isNaN(mgUsed)) throw new Error("Dose vendida inválida.");
+
+        // Deduct from physical stock
+        const sortedVials = data.vials.sort((a, b) => new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime());
+        let remainingToDeduct = mgUsed;
+
+        for (const vial of sortedVials) {
+            if (remainingToDeduct > 0 && vial.remainingMg > 0) {
+                const amountToDeduct = Math.min(vial.remainingMg, remainingToDeduct);
+                
+                vial.remainingMg -= amountToDeduct;
+                vial.soldMg += amountToDeduct;
+                remainingToDeduct -= amountToDeduct;
+
+                if (!sale.vialUsage) sale.vialUsage = [];
+                const existingUsageIndex = sale.vialUsage.findIndex(vu => vu.vialId === vial.id);
+                if (existingUsageIndex !== -1) {
+                    sale.vialUsage[existingUsageIndex].mgUsed += amountToDeduct;
+                } else {
+                    sale.vialUsage.push({ vialId: vial.id, mgUsed: amountToDeduct });
+                }
+            }
+        }
+
+        if (remainingToDeduct > 0) {
+            // This should not happen if stock is sufficient, but we throw error to alert the user.
+             throw new Error(`Estoque insuficiente para a dose de ${mgUsed}mg. Faltam ${remainingToDeduct}mg.`);
+        }
+
+        // Update patient's dose
+        dose.status = 'administered';
+        dose.date = delivery.deliveryDate!;
+        dose.administeredDose = mgUsed;
+        
+        // Reschedule subsequent doses
+        patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
+        const doseIndex = patient.doses.findIndex(d => d.doseNumber === doseNumber);
+        for (let i = doseIndex + 1; i < patient.doses.length; i++) {
+            if (patient.doses[i].status === 'pending') {
+                const prevDoseDate = patient.doses[i-1].date;
+                const newDate = new Date(prevDoseDate);
+                newDate.setDate(newDate.getDate() + 7);
+                patient.doses[i].date = newDate;
+            }
+        }
+
+        data.patients[patientIndex] = patient;
+    }
+    
+    data.sales[saleIndex] = sale;
+    writeData({ sales: data.sales, patients: data.patients, vials: data.vials });
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return sale;
+}
     
 export const getCashFlowEntries = async (): Promise<CashFlowEntry[]> => {
   const { cashFlowEntries } = readData();
@@ -1331,5 +1366,6 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
     
 
     
+
 
 

@@ -1,21 +1,24 @@
 
-
 'use client';
 
 import { useState, useEffect } from "react";
-import { getSales, deleteSale, type Sale } from "@/lib/actions";
+import { getSales, deleteSale, updateSaleDelivery, type Sale, type Delivery } from "@/lib/actions";
 import { formatCurrency, formatDate, getPaymentStatusVariant, getDeliveryStatusVariant } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, MoreVertical, Edit, Trash2, Search, DollarSign, PackageX, ShoppingCart } from "lucide-react";
+import { PlusCircle, MoreVertical, Edit, Trash2, Search, DollarSign, PackageX, ShoppingCart, Truck, Check } from "lucide-react";
 import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal
 } from "@/components/ui/dropdown-menu";
 import {
     AlertDialog,
@@ -45,16 +48,34 @@ export default function SalesControlPage() {
     const [selectedMonth, setSelectedMonth] = useState<string>('current');
     const [searchTerm, setSearchTerm] = useState('');
 
+    const fetchSales = async () => {
+        setLoading(true);
+        const data = await getSales();
+        setSales(data);
+        setLoading(false);
+    };
 
     useEffect(() => {
-        const fetchSales = async () => {
-            setLoading(true);
-            const data = await getSales();
-            setSales(data);
-            setLoading(false);
-        };
         fetchSales();
     }, []);
+
+    const handleDeliveryStatusChange = async (saleId: string, doseNumber: number, newStatus: Delivery['status']) => {
+        try {
+            await updateSaleDelivery(saleId, doseNumber, newStatus);
+            toast({
+                title: "Status de Entrega Atualizado!",
+                description: `A entrega para a dose ${doseNumber} foi atualizada.`,
+            });
+            fetchSales(); // Refresh data
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Erro ao atualizar entrega",
+                description: error instanceof Error ? error.message : "Não foi possível atualizar o status.",
+            });
+        }
+    };
+
 
     const availableMonths = sales.reduce((acc, sale) => {
         const date = sale.paymentStatus === 'pago' && sale.paymentDate ? sale.paymentDate : sale.saleDate;
@@ -276,7 +297,6 @@ export default function SalesControlPage() {
                             {filteredSales.length > 0 ? (
                                 filteredSales.map((sale) => {
                                     const paymentStatus = getPaymentStatusVariant(sale.paymentStatus);
-                                    
                                     const firstDeliveryStatus = sale.deliveries?.[0]?.status || sale.deliveryStatus;
                                     const deliveryStatus = getDeliveryStatusVariant(firstDeliveryStatus);
                                     
@@ -293,10 +313,31 @@ export default function SalesControlPage() {
                                                 <Badge variant={'default'} className={`${paymentStatus.color} ${paymentStatus.textColor} border-none`}>{paymentStatus.label}</Badge>
                                             </TableCell>
                                              <TableCell>
-                                                <Badge variant={'default'} className={`${deliveryStatus.color} ${deliveryStatus.textColor} border-none`}>
-                                                    {deliveryStatus.label}
-                                                    {sale.deliveries && sale.deliveries.length > 1 ? ` (1/${sale.deliveries.length})` : ''}
-                                                </Badge>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" className="p-0 h-auto">
+                                                            <Badge variant={'default'} className={`${deliveryStatus.color} ${deliveryStatus.textColor} border-none cursor-pointer`}>
+                                                                {deliveryStatus.label}
+                                                                {sale.deliveries && sale.deliveries.length > 1 ? ` (1/${sale.deliveries.length})` : ''}
+                                                            </Badge>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent>
+                                                        {sale.deliveries?.map((delivery) => (
+                                                            <DropdownMenuSub key={delivery.doseNumber}>
+                                                                <DropdownMenuSubTrigger>
+                                                                    Dose {delivery.doseNumber}: {getDeliveryStatusVariant(delivery.status).label}
+                                                                </DropdownMenuSubTrigger>
+                                                                <DropdownMenuPortal>
+                                                                    <DropdownMenuSubContent>
+                                                                        <DropdownMenuItem onClick={() => handleDeliveryStatusChange(sale.id, delivery.doseNumber, 'em agendamento')}><Truck className="mr-2 h-4 w-4" />Em Agendamento</DropdownMenuItem>
+                                                                        <DropdownMenuItem onClick={() => handleDeliveryStatusChange(sale.id, delivery.doseNumber, 'entregue')}><Check className="mr-2 h-4 w-4" />Entregue</DropdownMenuItem>
+                                                                    </DropdownMenuSubContent>
+                                                                </DropdownMenuPortal>
+                                                            </DropdownMenuSub>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                              </TableCell>
                                             <TableCell className="text-right">
                                                 <DropdownMenu>
@@ -351,3 +392,4 @@ export default function SalesControlPage() {
         </div>
     );
 }
+
