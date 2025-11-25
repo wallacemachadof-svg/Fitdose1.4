@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Apple, Copy } from 'lucide-react';
+import { Apple, Copy, Utensils, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -43,18 +43,17 @@ export default function NutritionPage() {
         }
     };
     
-    const handleCopyLink = (patientId: string, patientName: string) => {
-        const link = generateNutritionalAssessmentLink(patientId);
-        navigator.clipboard.writeText(link);
-        toast({
-            title: "Link Copiado!",
-            description: `O link para ${patientName} foi copiado.`,
-        })
-    }
-    
     const handleSendAssessmentViaWhatsApp = (patient: Patient) => {
         const whatsappUrl = generateNutritionalAssessmentWhatsAppLink(patient);
         window.open(whatsappUrl, '_blank');
+    }
+    
+    const handleSendPlanViaWhatsApp = (patient: Patient) => {
+        // Placeholder for future functionality
+        toast({
+            title: "Funcionalidade em desenvolvimento",
+            description: `O envio do plano alimentar para ${patient.fullName} será implementado em breve.`,
+        });
     }
 
     if (loading) {
@@ -117,18 +116,24 @@ export default function NutritionPage() {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => handleCopyLink(patient.id, patient.fullName)}>
-                                                    <Copy className="h-3 w-3 mr-2" />
-                                                    Copiar Link
-                                                </Button>
                                                 <Button 
                                                     variant="outline" 
                                                     size="sm" 
                                                     className="text-green-600 border-green-600/50 hover:bg-green-50 hover:text-green-700"
                                                     onClick={() => handleSendAssessmentViaWhatsApp(patient)}
                                                 >
-                                                    <FaWhatsapp className="h-4 w-4 mr-2" />
-                                                    Enviar
+                                                    <FileText className="h-4 w-4 mr-2" />
+                                                    Enviar Formulário
+                                                </Button>
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    className="text-primary border-primary/50 hover:bg-primary/10 hover:text-primary"
+                                                    onClick={() => handleSendPlanViaWhatsApp(patient)}
+                                                    disabled={planStatus.label !== 'Disponível'}
+                                                >
+                                                    <Utensils className="h-4 w-4 mr-2" />
+                                                    Enviar Plano
                                                 </Button>
                                             </div>
                                         </TableCell>
