@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { calculateBmi } from "./utils";
@@ -820,45 +819,46 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         patient.evolutions.push(newEvolution);
     }
     
-    // --- Handle Dose Administration based on Delivery Status ---
-    const deliveredDoses = saleData.deliveries.filter(d => d.status === 'entregue' && d.deliveryDate);
-    if (deliveredDoses.length > 0) {
-        patient.doses.sort((a, b) => a.doseNumber - b.doseNumber);
+    // --- Handle Dose Updates (Payment & Administration) ---
+    patient.doses.sort((a, b) => a.doseNumber - b.doseNumber);
+    const pendingDoses = patient.doses.filter(d => d.status === 'pending');
+    
+    for (let i = 0; i < saleData.quantity; i++) {
+        if (i < pendingDoses.length) {
+            const doseToUpdate = pendingDoses[i];
+            const deliveryInfo = saleData.deliveries.find(d => d.doseNumber === doseToUpdate.doseNumber);
 
-        let administeredCount = 0;
-        for (let i = 0; i < patient.doses.length && administeredCount < deliveredDoses.length; i++) {
-            if (patient.doses[i].status === 'pending') {
-                const deliveryInfo = deliveredDoses[administeredCount];
-                const doseToUpdate = patient.doses[i];
-                
+            // Update payment status for all doses in the package
+            if (!doseToUpdate.payment) doseToUpdate.payment = { status: 'pendente' };
+            doseToUpdate.payment.status = newSale.paymentStatus;
+            doseToUpdate.payment.date = newSale.paymentDate || (newSale.paymentStatus === 'pago' ? newSale.saleDate : undefined);
+            doseToUpdate.payment.amount = newSale.total / saleData.quantity;
+            doseToUpdate.payment.method = newSale.paymentMethod;
+            doseToUpdate.payment.dueDate = newSale.paymentDueDate;
+
+            // Update administration status only if delivered
+            if (deliveryInfo && deliveryInfo.status === 'entregue' && deliveryInfo.deliveryDate) {
                 doseToUpdate.status = 'administered';
-                doseToUpdate.date = deliveryInfo.deliveryDate!;
+                doseToUpdate.date = deliveryInfo.deliveryDate;
                 doseToUpdate.administeredDose = parseFloat(saleData.soldDose) || undefined;
                 
-                if (hasBioimpedance && saleData.bioimpedance?.weight && administeredCount === 0) {
+                // Add bioimpedance to the first administered dose of the sale
+                if (hasBioimpedance && saleData.bioimpedance?.weight && i === 0) {
                     doseToUpdate.weight = saleData.bioimpedance.weight;
                     doseToUpdate.bmi = saleData.bioimpedance.bmi;
                 }
-
-                if (!doseToUpdate.payment) doseToUpdate.payment = { status: 'pendente' };
-                doseToUpdate.payment.status = newSale.paymentStatus;
-                doseToUpdate.payment.date = newSale.paymentDate || (newSale.paymentStatus === 'pago' ? newSale.saleDate : undefined);
-                doseToUpdate.payment.amount = newSale.total / saleData.quantity; // Simplified payment per dose
-                doseToUpdate.payment.method = newSale.paymentMethod;
-                doseToUpdate.payment.dueDate = newSale.paymentDueDate;
-
-                administeredCount++;
             }
         }
+    }
 
-        patient.doses.sort((a, b) => a.doseNumber - b.doseNumber);
-        for (let i = 1; i < patient.doses.length; i++) {
-            if (patient.doses[i].status === 'pending') {
-                const prevDose = patient.doses[i - 1];
-                const newDate = new Date(prevDose.date);
-                newDate.setDate(newDate.getDate() + 7);
-                patient.doses[i].date = newDate;
-            }
+    // Reschedule subsequent pending doses after administration updates
+    patient.doses.sort((a, b) => a.doseNumber - b.doseNumber);
+    for (let i = 1; i < patient.doses.length; i++) {
+        if (patient.doses[i].status === 'pending') {
+            const prevDose = patient.doses[i - 1];
+            const newDate = new Date(prevDose.date);
+            newDate.setDate(newDate.getDate() + 7);
+            patient.doses[i].date = newDate;
         }
     }
 
@@ -1268,6 +1268,7 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
     return { ruptureDate: null, purchaseDeadline: null };
 }
+
 
 
 
