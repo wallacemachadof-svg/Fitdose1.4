@@ -91,7 +91,7 @@ export default function NutritionPage() {
             });
         }
     }
-
+    
     if (loading) {
         return (
              <div className="space-y-6">
@@ -171,10 +171,10 @@ export default function NutritionPage() {
                                                     Formulário
                                                 </Button>
                                                 <Button 
-                                                    variant="outline" 
+                                                    variant={isPlanPending ? "secondary" : "default"}
                                                     size="sm" 
                                                     className={cn(
-                                                        !isPlanPending && "text-primary border-primary/50 hover:bg-primary/10 hover:text-primary"
+                                                        !isPlanPending && "bg-green-600 hover:bg-green-700 text-white"
                                                     )}
                                                     onClick={() => handleSendPlanViaWhatsApp(patient)}
                                                     disabled={isPlanPending}
