@@ -4,6 +4,7 @@
 import { calculateBmi } from "./utils";
 import fs from 'fs';
 import path from 'path';
+import { addDays } from 'date-fns';
 
 // --- Data Persistence Setup ---
 const dataDir = path.join(process.cwd(), 'db');
@@ -650,31 +651,45 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     return patient;
 };
 
-export const updateDosePayment = async (patientId: string, doseNumber: number, paymentData: Partial<Dose['payment']>): Promise<Patient | null> => {
+export const updateDosePayment = async (patientId: string, doseId: number, paymentData: Partial<Dose['payment']>): Promise<Patient | null> => {
     const data = readData();
     const patientIndex = data.patients.findIndex(p => p.id === patientId);
     if (patientIndex === -1) throw new Error("Paciente não encontrado.");
 
     const patient = data.patients[patientIndex];
-    const doseIndex = patient.doses.findIndex(d => d.doseNumber === doseNumber);
+    const doseIndex = patient.doses.findIndex(d => d.id === doseId);
     if (doseIndex === -1) throw new Error("Dose não encontrada.");
+
+    const originalStatus = patient.doses[doseIndex].payment.status;
 
     patient.doses[doseIndex].payment = {
         ...patient.doses[doseIndex].payment,
         ...paymentData,
     };
     
-    // Update cash flow if it exists
-    // Simple logic: find cash flow entry tied to this dose and update it.
-    // This assumes a simple 1:1 for non-installment payments. A more complex system would be needed for packages.
-    const saleId = data.sales.find(s => s.patientId === patientId && s.saleDate.getTime() === patient.doses[doseIndex].date.getTime())?.id;
-    if(saleId) {
-        const cashFlowIndex = data.cashFlowEntries.findIndex(cf => cf.id.startsWith(`sale-${saleId}`));
-        if (cashFlowIndex !== -1) {
-            data.cashFlowEntries[cashFlowIndex].status = paymentData.status || data.cashFlowEntries[cashFlowIndex].status;
-             if(paymentData.status === 'pago') {
-                data.cashFlowEntries[cashFlowIndex].purchaseDate = paymentData.date || new Date();
-             }
+    // If payment status changed to 'pago', find the related cash flow entry and update it.
+    if(originalStatus !== 'pago' && paymentData.status === 'pago') {
+        const dose = patient.doses[doseIndex];
+        const saleId = data.sales.find(s => s.patientId === patientId && s.saleDate.getTime() === dose.date.getTime())?.id;
+        
+        let cashFlowEntryId: string | undefined;
+        if (saleId) {
+            cashFlowEntryId = data.cashFlowEntries.find(cf => cf.id.startsWith(`sale-${saleId}`))?.id;
+        } else {
+            // Find manually created cash flow based on description and patient
+            cashFlowEntryId = data.cashFlowEntries.find(cf => 
+                cf.description.toLowerCase().includes(patient.fullName.toLowerCase()) && 
+                cf.amount === dose.payment.amount
+            )?.id;
+        }
+
+        if(cashFlowEntryId) {
+            const cashFlowIndex = data.cashFlowEntries.findIndex(cf => cf.id === cashFlowEntryId);
+            if(cashFlowIndex !== -1) {
+                data.cashFlowEntries[cashFlowIndex].status = 'pago';
+                data.cashFlowEntries[cashFlowIndex].purchaseDate = paymentData.date || new Date(); // Using payment date as purchase date for paid entries
+                data.cashFlowEntries[cashFlowIndex].paymentMethod = paymentData.method;
+            }
         }
     }
 
@@ -932,36 +947,28 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     data.patients[patientIndex] = patient;
 
     // --- Create Cash Flow Entry ---
-    const cashFlowAmount = newSale.total - (newSale.operatorFee || 0);
+    const netAmount = newSale.total - (newSale.operatorFee || 0);
 
-    if (newSale.paymentMethod === 'credito_parcelado' && newSale.installments && newSale.installments > 1) {
-        const installmentAmount = cashFlowAmount / newSale.installments;
-        // For installments, the first due date should be the sale date or payment date if available
-        const firstDueDate = newSale.paymentDate || newSale.saleDate;
-        
-        for (let i = 0; i < newSale.installments; i++) {
-            const newDueDate = new Date(firstDueDate);
-            newDueDate.setMonth(firstDueDate.getMonth() + i);
-            const cashFlowEntry: CashFlowEntry = {
-                id: `sale-${newSale.id}-${i}`,
-                type: 'entrada',
-                purchaseDate: newSale.saleDate,
-                description: `Venda p/ ${patient.fullName} (Parc. ${i + 1}/${newSale.installments})`,
-                amount: installmentAmount,
-                status: 'pendente', // Installments are always pending until manually paid
-                dueDate: newDueDate,
-                paymentMethod: newSale.paymentMethod,
-                installments: `${i + 1}/${newSale.installments}`
-            };
-            data.cashFlowEntries.push(cashFlowEntry);
-        }
+    if (newSale.paymentMethod === 'credito_parcelado') {
+        const cashFlowEntry: CashFlowEntry = {
+            id: `sale-${newSale.id}`,
+            type: 'entrada',
+            // The payment is received 1 business day later. addDays(1) is a simplification.
+            purchaseDate: addDays(newSale.saleDate, 1),
+            description: `Venda parcelada p/ ${patient.fullName} (${newSale.installments}x)`,
+            amount: netAmount,
+            status: 'pago',
+            paymentMethod: newSale.paymentMethod,
+        };
+        data.cashFlowEntries.push(cashFlowEntry);
+
     } else if (newSale.paymentStatus === 'pago') {
         const cashFlowEntry: CashFlowEntry = {
             id: `sale-${newSale.id}`,
             type: 'entrada',
             purchaseDate: newSale.paymentDate || newSale.saleDate,
             description: `Venda p/ ${patient.fullName}`,
-            amount: cashFlowAmount,
+            amount: netAmount,
             status: 'pago',
             paymentMethod: newSale.paymentMethod,
         };
@@ -972,7 +979,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             type: 'entrada',
             purchaseDate: newSale.saleDate,
             description: `Venda p/ ${patient.fullName}`,
-            amount: cashFlowAmount,
+            amount: netAmount,
             status: 'pendente',
             dueDate: newSale.paymentDueDate,
              paymentMethod: newSale.paymentMethod,
@@ -1306,3 +1313,5 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
     return { ruptureDate: null, purchaseDeadline: null };
 }
 
+
+    
