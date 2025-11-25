@@ -493,7 +493,7 @@ export default function NewSalePage() {
                             </div>
                            
                             <div className="space-y-4 pt-4 border-t">
-                                <h3 className="text-lg font-semibold">Detalhes da Entrega</h3>
+                                <h3 className="text-lg font-semibold">Gerenciamento de Entregas</h3>
                                 {fields.map((field, index) => (
                                     <div key={field.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end p-4 border rounded-lg">
                                         <p className="font-semibold text-sm md:col-span-3">Dose {index + 1}</p>
