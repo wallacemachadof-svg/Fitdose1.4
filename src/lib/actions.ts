@@ -1235,3 +1235,4 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
     return { ruptureDate: null, purchaseDeadline: null };
 }
 
+

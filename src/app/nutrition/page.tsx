@@ -33,11 +33,11 @@ export default function NutritionPage() {
     const getStatusVariant = (status: 'pending' | 'completed' | 'sent' | 'available' | undefined) => {
         switch (status) {
             case 'completed':
-                return { label: 'Preenchido', variant: 'default' as const, className: 'bg-green-500 text-white' };
+                return { label: 'Preenchido', variant: 'default' as const, className: 'bg-yellow-500 text-white' };
+            case 'available':
+                 return { label: 'Disponível p/ Envio', variant: 'default' as const, className: 'bg-green-500 text-primary-foreground' };
             case 'sent':
                 return { label: 'Enviado', variant: 'default' as const, className: 'bg-blue-500 text-white' };
-            case 'available':
-                 return { label: 'Disponível', variant: 'default' as const, className: 'bg-primary text-primary-foreground' };
             case 'pending':
             default:
                 return { label: 'Pendente', variant: 'secondary' as const };
@@ -165,7 +165,8 @@ export default function NutritionPage() {
                                                     variant="outline" 
                                                     size="sm" 
                                                     className={cn(
-                                                        !isPlanPending && "text-primary border-primary/50 hover:bg-primary/10 hover:text-primary"
+                                                        !isPlanPending && "text-primary border-primary/50 hover:bg-primary/10 hover:text-primary",
+                                                        isPlanPending && "bg-gray-200 text-gray-500 border-gray-300"
                                                     )}
                                                     onClick={() => handleSendPlanViaWhatsApp(patient)}
                                                     disabled={isPlanPending}
