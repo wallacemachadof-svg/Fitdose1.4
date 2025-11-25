@@ -18,6 +18,7 @@ import {
   HeartPulse,
   Settings,
   Cake,
+  Apple,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -180,6 +181,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <Link href="/schedule">
                     <CalendarDays />
                     <span>Agenda</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+               <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/nutrition')}
+                  tooltip="Nutrição"
+                >
+                  <Link href="/nutrition">
+                    <Apple />
+                    <span>Nutrição</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

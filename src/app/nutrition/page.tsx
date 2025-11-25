@@ -1,0 +1,108 @@
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import { getPatients, type Patient } from '@/lib/actions';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Apple } from 'lucide-react';
+import Link from 'next/link';
+
+export default function NutritionPage() {
+    const [patients, setPatients] = useState<Patient[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchPatients = async () => {
+            setLoading(true);
+            const data = await getPatients();
+            setPatients(data);
+            setLoading(false);
+        };
+        fetchPatients();
+    }, []);
+
+    const getStatusVariant = (status: 'pending' | 'completed' | 'sent' | 'available' | undefined) => {
+        switch (status) {
+            case 'completed':
+                return { label: 'Preenchido', variant: 'default' as const, className: 'bg-green-500 text-white' };
+            case 'sent':
+                return { label: 'Enviado', variant: 'default' as const, className: 'bg-blue-500 text-white' };
+            case 'available':
+                 return { label: 'Disponível', variant: 'default' as const, className: 'bg-primary text-primary-foreground' };
+            case 'pending':
+            default:
+                return { label: 'Pendente', variant: 'secondary' as const };
+        }
+    };
+    
+    if (loading) {
+        return (
+             <div className="space-y-6">
+                <Skeleton className="h-10 w-1/3" />
+                <Skeleton className="h-6 w-1/2" />
+                <Card>
+                    <CardContent className="pt-6">
+                        <Skeleton className="h-64 w-full" />
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                    <Apple className="h-6 w-6 text-primary" />
+                    Acompanhamento Nutricional
+                </h1>
+                <p className="text-muted-foreground">
+                    Gerencie o status das avaliações e planos alimentares de cada paciente.
+                </p>
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Status dos Pacientes</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Paciente</TableHead>
+                                <TableHead>Status do Formulário</TableHead>
+                                <TableHead>Plano Alimentar</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {patients.map(patient => {
+                                const formStatus = getStatusVariant(patient.nutritionalAssessmentStatus);
+                                const planStatus = getStatusVariant(patient.foodPlanStatus);
+
+                                return (
+                                    <TableRow key={patient.id}>
+                                        <TableCell>
+                                            <Link href={`/patients/${patient.id}`} className="font-medium hover:underline">
+                                                {patient.fullName}
+                                            </Link>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={formStatus.variant} className={formStatus.className}>{formStatus.label}</Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={planStatus.variant} className={planStatus.className}>{planStatus.label}</Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+

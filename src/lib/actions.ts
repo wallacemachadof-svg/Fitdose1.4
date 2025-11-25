@@ -20,6 +20,35 @@ const vialsFilePath = path.join(dataDir, 'vials.json');
 const settingsFilePath = path.join(dataDir, 'settings.json');
 const migrationFilePath = path.join(dataDir, '.migration-check');
 
+// --- Type Definitions ---
+export type NutritionalAssessmentData = {
+    wakeupTime: string;
+    sleepTime: string;
+    breakfastTime?: string;
+    breakfastDescription?: string;
+    morningSnackTime?: string;
+    morningSnackDescription?: string;
+    lunchTime?: string;
+    lunchDescription?: string;
+    afternoonSnackTime?: string;
+    afternoonSnackDescription?: string;
+    dinnerTime?: string;
+    dinnerDescription?: string;
+    eveningSnackTime?: string;
+    eveningSnackDescription?: string;
+    waterIntake: string;
+    otherLiquids?: string;
+    foodPreferences?: string;
+    foodAversions?: string;
+    weekendHabits?: string;
+    dietExperience?: string;
+    mainGoal: string;
+    mainDifficulty: string;
+    hasAllergies: 'yes' | 'no';
+    allergiesDescription?: string;
+    favoriteFoods?: string[];
+    bowelFunction: string;
+};
 
 type MockData = {
     patients: Patient[];
@@ -252,6 +281,9 @@ export type Patient = {
   consentDate?: Date;
   defaultPrice?: number;
   defaultDose?: string;
+  nutritionalAssessmentData?: NutritionalAssessmentData;
+  nutritionalAssessmentStatus?: 'pending' | 'completed';
+  foodPlanStatus?: 'pending' | 'available' | 'sent';
 };
 
 export type NewPatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>> & {
@@ -457,6 +489,8 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         pointHistory: [],
         consentGiven: patientData.consentGiven || false,
         consentDate: patientData.consentGiven ? new Date() : undefined,
+        nutritionalAssessmentStatus: 'pending',
+        foodPlanStatus: 'pending',
     };
 
     data.patients.push(newPatient);
@@ -523,6 +557,26 @@ export const updatePatient = async (id: string, patientData: UpdatePatientData):
 
     await new Promise(resolve => setTimeout(resolve, 100));
     return updatedPatient;
+};
+
+export const saveNutritionalAssessment = async (patientId: string, assessmentData: NutritionalAssessmentData): Promise<Patient> => {
+    const data = readData();
+    const patientIndex = data.patients.findIndex(p => p.id === patientId);
+    if (patientIndex === -1) {
+        throw new Error("Paciente não encontrado.");
+    }
+    
+    const patient = data.patients[patientIndex];
+    patient.nutritionalAssessmentData = assessmentData;
+    patient.nutritionalAssessmentStatus = 'completed';
+    // When form is submitted, the plan is now available to be created.
+    patient.foodPlanStatus = 'available';
+
+    data.patients[patientIndex] = patient;
+    writeData({ patients: data.patients });
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return patient;
 };
 
 

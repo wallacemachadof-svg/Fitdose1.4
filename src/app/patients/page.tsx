@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlusCircle, MoreVertical, Edit, Trash2, Search, User, TrendingUp, TrendingDown, Phone } from "lucide-react";
+import { PlusCircle, MoreVertical, Edit, Trash2, Search, User, TrendingUp, TrendingDown, Phone, Apple } from "lucide-react";
 import Link from "next/link";
 import { FaWhatsapp } from 'react-icons/fa';
 import {
