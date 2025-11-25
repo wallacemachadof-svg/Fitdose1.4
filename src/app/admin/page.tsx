@@ -134,6 +134,27 @@ export default function AdminPage() {
     toast({ title: toastTitle });
   }
 
+  async function onSubmit(data: SettingsFormValues) {
+    setIsSubmitting(true);
+    try {
+      await updateSettings(data);
+      toast({
+        title: "Configurações Salvas!",
+        description: "As configurações financeiras foram atualizadas.",
+      });
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao Salvar",
+        description: "Não foi possível salvar as configurações.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+
   if (loading) {
     return (
         <div className="space-y-6">
@@ -246,3 +267,5 @@ export default function AdminPage() {
     </div>
   )
 }
+
+    
