@@ -378,7 +378,7 @@ export type Sale = {
   deliveryDate?: Date; // Legacy
 };
 
-export type NewSaleData = Omit<Sale, 'id' | 'patientName' | 'deliveries' | 'discount'> & {
+export type NewSaleData = Omit<Sale, 'id' | 'patientName' | 'deliveries'> & {
   bioimpedance?: Bioimpedance;
   deliveries: Delivery[];
 };
@@ -820,28 +820,26 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     if (isNaN(soldMgPerDose)) {
         throw new Error("Dose vendida inválida.");
     }
-
+    
     const totalSoldMg = soldMgPerDose * saleData.quantity;
-    const totalRemainingMg = data.vials.reduce((acc, v) => acc + v.remainingMg, 0);
-    if (totalRemainingMg < totalSoldMg) {
-        throw new Error(`Estoque insuficiente. Apenas ${totalRemainingMg.toFixed(2)}mg disponíveis. Necessário: ${totalSoldMg.toFixed(2)}mg.`);
-    }
 
     const vialUsage: VialUsage[] = [];
-    // --- Update Stock ---
+    // Don't deduct from stock on sale, only on delivery.
+    // We still log the intention to use vials.
     const sortedVials = [...data.vials].sort((a, b) => new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime());
-    let remainingToDeduct = totalSoldMg;
+    let remainingToAllocate = totalSoldMg;
     for (const vial of sortedVials) {
-        if (remainingToDeduct <= 0) break;
-        if (vial.remainingMg > 0) {
-            const amountToDeduct = Math.min(vial.remainingMg, remainingToDeduct);
-            vial.remainingMg -= amountToDeduct;
-            vial.soldMg += amountToDeduct;
-            remainingToDeduct -= amountToDeduct;
-            vialUsage.push({ vialId: vial.id, mgUsed: amountToDeduct });
+        if (remainingToAllocate <= 0) break;
+        // This is a "virtual" allocation for now. The actual deduction happens on delivery update.
+        // We can still check against available stock if we want to warn the user.
+        const amountToAllocate = Math.min(vial.remainingMg, remainingToAllocate);
+        if (amountToAllocate > 0) {
+            vialUsage.push({ vialId: vial.id, mgUsed: amountToAllocate });
+            remainingToAllocate -= amountToAllocate;
         }
     }
-    
+
+
     // --- Create Sale ---
     const newId = (data.sales.length > 0 ? Math.max(...data.sales.map(s => parseInt(s.id, 10))) : 0) + 1;
     const total = saleData.total;
@@ -948,9 +946,11 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     
     // --- Create Cash Flow Entry ---
     if (newSale.paymentStatus === 'pago') {
-        if (newSale.cashFlowMethod === 'installments' && newSale.installments && newSale.installments > 1) {
-            const installmentAmount = (newSale.total - (newSale.operatorFee || 0)) / newSale.installments;
-            const firstDueDate = newSale.paymentDate || newSale.saleDate;
+        const netAmount = newSale.total - (newSale.operatorFee || 0);
+        
+        if (newSale.cashFlowMethod === 'installments' && newSale.installments && newSale.installments > 1 && newSale.paymentDate) {
+            const installmentAmount = netAmount / newSale.installments;
+            const firstDueDate = newSale.paymentDate;
             for (let i = 0; i < newSale.installments; i++) {
                 const newDueDate = new Date(firstDueDate);
                 newDueDate.setMonth(firstDueDate.getMonth() + i);
@@ -960,28 +960,28 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
                     purchaseDate: newSale.saleDate,
                     description: `Venda p/ ${patient.fullName} (Parc. ${i + 1}/${newSale.installments})`,
                     amount: installmentAmount,
-                    status: 'pendente',
+                    status: 'pendente', // Installments are pending until their due date
                     dueDate: newDueDate,
                     paymentMethod: newSale.paymentMethod,
                     installments: `${i + 1}/${newSale.installments}`,
                 });
             }
         } else {
-            // Lançamento Único
-            let entryDate = newSale.paymentDate || newSale.saleDate;
+             // Single entry, even for "Crédito Parcelado" if "Lançamento Único" is chosen
+             let entryDate = newSale.paymentDate || newSale.saleDate;
              if (newSale.paymentMethod === 'credito_parcelado' || newSale.paymentMethod === 'credito') {
-                let nextBusinessDay = addDays(newSale.saleDate, 1);
-                while (isWeekend(nextBusinessDay)) {
-                    nextBusinessDay = addDays(nextBusinessDay, 1);
-                }
-                entryDate = nextBusinessDay;
-            }
-            data.cashFlowEntries.push({
+                 let nextBusinessDay = addDays(newSale.saleDate, 1);
+                 while (isWeekend(nextBusinessDay)) {
+                     nextBusinessDay = addDays(nextBusinessDay, 1);
+                 }
+                 entryDate = nextBusinessDay;
+             }
+             data.cashFlowEntries.push({
                 id: `sale-${newSale.id}`,
                 type: 'entrada',
-                purchaseDate: entryDate,
+                purchaseDate: entryDate, // Date the money is received
                 description: `Venda p/ ${patient.fullName}`,
-                amount: newSale.total - (newSale.operatorFee || 0),
+                amount: netAmount,
                 status: 'pago',
                 paymentMethod: newSale.paymentMethod,
             });
@@ -1331,4 +1331,5 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
     
 
     
+
 
