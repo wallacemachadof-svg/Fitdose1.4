@@ -165,8 +165,7 @@ export default function NutritionPage() {
                                                     variant="outline" 
                                                     size="sm" 
                                                     className={cn(
-                                                        !isPlanPending && "text-primary border-primary/50 hover:bg-primary/10 hover:text-primary",
-                                                        isPlanPending && "bg-gray-200 text-gray-500 border-gray-300"
+                                                        !isPlanPending && "text-primary border-primary/50 hover:bg-primary/10 hover:text-primary"
                                                     )}
                                                     onClick={() => handleSendPlanViaWhatsApp(patient)}
                                                     disabled={isPlanPending}
