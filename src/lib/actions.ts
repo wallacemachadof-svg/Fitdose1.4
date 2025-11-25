@@ -885,6 +885,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             doseToUpdate.payment.amount = newSale.total / saleData.quantity;
             doseToUpdate.payment.method = newSale.paymentMethod;
             doseToUpdate.payment.dueDate = newSale.paymentDueDate;
+            doseToUpdate.payment.installments = newSale.installments;
 
             // Update administration status only if delivered
             if (deliveryInfo && deliveryInfo.status === 'entregue' && deliveryInfo.deliveryDate) {
@@ -942,50 +943,34 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             points: -saleData.pointsUsed,
         });
     }
-
-    data.sales.push(newSale);
-    data.patients[patientIndex] = patient;
-
+    
     // --- Create Cash Flow Entry ---
-    const netAmount = newSale.total - (newSale.operatorFee || 0);
+    if(newSale.paymentStatus === 'pago' || newSale.paymentStatus === 'pendente') {
+        const netAmount = newSale.total - (newSale.operatorFee || 0);
+        let entryDescription = `Venda p/ ${patient.fullName}`;
+        let entryDate = newSale.paymentStatus === 'pago' ? (newSale.paymentDate || newSale.saleDate) : newSale.saleDate;
 
-    if (newSale.paymentMethod === 'credito_parcelado') {
+        if (newSale.paymentMethod === 'credito_parcelado' && newSale.paymentStatus === 'pago') {
+            entryDate = addDays(newSale.saleDate, 1);
+            entryDescription = `Venda parcelada p/ ${patient.fullName}`;
+        }
+        
         const cashFlowEntry: CashFlowEntry = {
             id: `sale-${newSale.id}`,
             type: 'entrada',
-            purchaseDate: addDays(newSale.saleDate, 1),
-            description: `Venda parcelada p/ ${patient.fullName}`,
+            purchaseDate: entryDate,
+            description: entryDescription,
             amount: netAmount,
-            status: 'pago',
+            status: newSale.paymentStatus,
             paymentMethod: newSale.paymentMethod,
-        };
-        data.cashFlowEntries.push(cashFlowEntry);
-
-    } else if (newSale.paymentStatus === 'pago') {
-        const cashFlowEntry: CashFlowEntry = {
-            id: `sale-${newSale.id}`,
-            type: 'entrada',
-            purchaseDate: newSale.paymentDate || newSale.saleDate,
-            description: `Venda p/ ${patient.fullName}`,
-            amount: netAmount,
-            status: 'pago',
-            paymentMethod: newSale.paymentMethod,
-        };
-        data.cashFlowEntries.push(cashFlowEntry);
-    } else if (newSale.paymentStatus === 'pendente') {
-         const cashFlowEntry: CashFlowEntry = {
-            id: `sale-${newSale.id}`,
-            type: 'entrada',
-            purchaseDate: newSale.saleDate,
-            description: `Venda p/ ${patient.fullName}`,
-            amount: netAmount,
-            status: 'pendente',
-            dueDate: newSale.paymentDueDate,
-             paymentMethod: newSale.paymentMethod,
+            dueDate: newSale.paymentStatus === 'pendente' ? newSale.paymentDueDate : undefined,
         };
         data.cashFlowEntries.push(cashFlowEntry);
     }
     
+    data.sales.push(newSale);
+    data.patients[patientIndex] = patient;
+
     writeData({ sales: data.sales, patients: data.patients, cashFlowEntries: data.cashFlowEntries, vials: data.vials });
     await new Promise(resolve => setTimeout(resolve, 100));
     return newSale;
