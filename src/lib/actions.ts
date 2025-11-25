@@ -922,7 +922,6 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
                 });
             }
         } else {
-             // Single entry
              let entryDate = newSale.paymentDate || newSale.saleDate;
              if (newSale.paymentMethod === 'credito_parcelado' || newSale.paymentMethod === 'credito') {
                  let nextBusinessDay = addDays(newSale.saleDate, 1);
@@ -934,7 +933,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
              data.cashFlowEntries.push({
                 id: `sale-${newSale.id}`,
                 type: 'entrada',
-                purchaseDate: entryDate, // Date the money is received
+                purchaseDate: entryDate,
                 description: `Venda p/ ${patient.fullName}`,
                 amount: netAmount,
                 status: 'pago',
@@ -1327,7 +1326,7 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
     // Calculate demand from future doses NOT yet delivered
     const futureDoses = sales.flatMap(sale => 
-        sale.deliveries
+        (sale.deliveries || [])
             .filter(d => d.status !== 'entregue' && new Date(sale.saleDate) >= today) // Only consider future/pending deliveries
             .map(delivery => ({
                 date: delivery.deliveryDate || new Date(sale.saleDate), // Use deliveryDate if available
@@ -1359,4 +1358,5 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
     return { ruptureDate: null, purchaseDeadline: null, totalPendingMg };
 }
+
 
