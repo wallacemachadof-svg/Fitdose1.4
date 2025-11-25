@@ -24,15 +24,15 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CalendarIcon, ArrowLeft, Loader2, ChevronDown, Wand2 } from "lucide-react";
+import { CalendarIcon, ArrowLeft, Loader2, ChevronDown, Wand2, PlusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
-import { addSale, getPatients, getPatientById, getSettings, type Patient, type Bioimpedance, type DosePrice } from "@/lib/actions";
+import { addSale, getPatients, getPatientById, getSettings, type Patient, type Bioimpedance, type DosePrice, addVial } from "@/lib/actions";
 import { Combobox } from "@/components/ui/combobox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 
 const deliverySchema = z.object({
   doseNumber: z.number(),
@@ -73,6 +73,14 @@ const saleFormSchema = z.object({
     deliveries: z.array(deliverySchema).optional(),
 });
 
+const vialFormSchema = z.object({
+    purchaseDate: z.date({ required_error: 'A data da compra é obrigatória.' }),
+    totalMg: z.enum(['40', '60', '90'], { required_error: 'A quantidade total de mg é obrigatória.' }),
+    cost: z.coerce.number().positive('O custo deve ser um valor positivo.'),
+    quantity: z.coerce.number().int().min(1, 'A quantidade deve ser pelo menos 1.'),
+});
+
+type VialFormValues = z.infer<typeof vialFormSchema>;
 type SaleFormValues = z.infer<typeof saleFormSchema>;
 
 const bioimpedanceFields: { key: keyof Bioimpedance, label: string }[] = [
@@ -88,6 +96,95 @@ const bioimpedanceFields: { key: keyof Bioimpedance, label: string }[] = [
     { key: 'protein', label: 'Proteína(%)' },
 ];
 
+function NewVialDialog({ onVialAdded }: { onVialAdded: () => void }) {
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [open, setOpen] = useState(false);
+
+    const form = useForm<VialFormValues>({
+        resolver: zodResolver(vialFormSchema),
+        defaultValues: { quantity: 1 },
+    });
+
+    async function onSubmit(data: VialFormValues) {
+        setIsSubmitting(true);
+        try {
+            await addVial({ ...data, totalMg: parseInt(data.totalMg, 10) as 40 | 60 | 90 });
+            toast({
+                title: "Frasco Adicionado!",
+                description: `Novo frasco de ${data.totalMg}mg adicionado ao estoque.`,
+            });
+            onVialAdded();
+            setOpen(false);
+            form.reset();
+        } catch (error) {
+            toast({ variant: "destructive", title: "Erro ao adicionar frasco", description: error instanceof Error ? error.message : "Tente novamente." });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button type="button" variant="outline" size="sm"><PlusCircle className="mr-2 h-4 w-4" />Novo Frasco</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Adicionar Novo Frasco ao Estoque</DialogTitle>
+                    <DialogDescription>Preencha as informações do frasco comprado.</DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField control={form.control} name="purchaseDate" render={({ field }) => (
+                            <FormItem className="flex flex-col"><FormLabel>Data da Compra</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                            {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                    </PopoverContent>
+                                </Popover>
+                            <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField control={form.control} name="totalMg" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Dosagem Total do Frasco</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione a dosagem" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="40">40 mg</SelectItem>
+                                        <SelectItem value="60">60 mg</SelectItem>
+                                        <SelectItem value="90">90 mg</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField control={form.control} name="cost" render={({ field }) => (
+                            <FormItem><FormLabel>Custo Total (R$)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                         <FormField control={form.control} name="quantity" render={({ field }) => (
+                            <FormItem><FormLabel>Quantidade de Frascos</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                        <DialogFooter>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Salvando...</> : 'Salvar no Estoque'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 export default function NewSalePage() {
     const router = useRouter();
@@ -265,9 +362,12 @@ export default function NewSalePage() {
     return (
         <div className="space-y-6">
             <Card className="w-full max-w-4xl mx-auto">
-                <CardHeader>
-                    <CardTitle>Lançar Venda e Aplicação</CardTitle>
-                    <CardDescription>Preencha os dados abaixo para registrar uma nova venda e aplicação.</CardDescription>
+                <CardHeader className="flex flex-row justify-between items-start">
+                    <div>
+                        <CardTitle>Lançar Venda e Aplicação</CardTitle>
+                        <CardDescription>Preencha os dados abaixo para registrar uma nova venda e aplicação.</CardDescription>
+                    </div>
+                    <NewVialDialog onVialAdded={() => {}} />
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
