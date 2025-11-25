@@ -4,7 +4,7 @@
 import { calculateBmi } from "./utils";
 import fs from 'fs';
 import path from 'path';
-import { addDays } from 'date-fns';
+import { addDays, isWeekend } from 'date-fns';
 
 // --- Data Persistence Setup ---
 const dataDir = path.join(process.cwd(), 'db');
@@ -945,25 +945,41 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     }
     
     // --- Create Cash Flow Entry ---
-    if(newSale.paymentStatus === 'pago' || newSale.paymentStatus === 'pendente') {
+    if (newSale.paymentStatus === 'pago') {
         const netAmount = newSale.total - (newSale.operatorFee || 0);
         let entryDescription = `Venda p/ ${patient.fullName}`;
-        let entryDate = newSale.paymentStatus === 'pago' ? (newSale.paymentDate || newSale.saleDate) : newSale.saleDate;
+        let entryDate = newSale.paymentDate || newSale.saleDate;
 
-        if (newSale.paymentMethod === 'credito_parcelado' && newSale.paymentStatus === 'pago') {
-            entryDate = addDays(newSale.saleDate, 1);
+        if (newSale.paymentMethod === 'credito_parcelado') {
             entryDescription = `Venda parcelada p/ ${patient.fullName}`;
+            let nextBusinessDay = addDays(newSale.saleDate, 1);
+            while (isWeekend(nextBusinessDay)) {
+                nextBusinessDay = addDays(nextBusinessDay, 1);
+            }
+            entryDate = nextBusinessDay;
         }
-        
+
         const cashFlowEntry: CashFlowEntry = {
             id: `sale-${newSale.id}`,
             type: 'entrada',
             purchaseDate: entryDate,
             description: entryDescription,
             amount: netAmount,
-            status: newSale.paymentStatus,
+            status: 'pago',
             paymentMethod: newSale.paymentMethod,
-            dueDate: newSale.paymentStatus === 'pendente' ? newSale.paymentDueDate : undefined,
+        };
+        data.cashFlowEntries.push(cashFlowEntry);
+
+    } else if (newSale.paymentStatus === 'pendente') {
+        const cashFlowEntry: CashFlowEntry = {
+            id: `sale-${newSale.id}`,
+            type: 'entrada',
+            purchaseDate: newSale.saleDate,
+            description: `Venda p/ ${patient.fullName}`,
+            amount: newSale.total,
+            status: 'pendente',
+            paymentMethod: newSale.paymentMethod,
+            dueDate: newSale.paymentDueDate,
         };
         data.cashFlowEntries.push(cashFlowEntry);
     }
@@ -1301,3 +1317,4 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
     
 
     
+
