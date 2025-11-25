@@ -1318,26 +1318,32 @@ export const resetAllData = async (): Promise<void> => {
 }
 
 export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<StockForecast> => {
-    const { patients, vials, sales } = readData();
+    const { patients, vials } = readData();
     let currentStockMg = vials.reduce((acc, v) => acc + v.remainingMg, 0);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Calculate demand from future doses NOT yet delivered
-    const futureDoses = sales.flatMap(sale => 
-        (sale.deliveries || [])
-            .filter(d => d.status !== 'entregue' && new Date(sale.saleDate) >= today) // Only consider future/pending deliveries
-            .map(delivery => ({
-                date: delivery.deliveryDate || new Date(sale.saleDate), // Use deliveryDate if available
-                mg: parseFloat(sale.soldDose)
+    // Calculate demand from ALL future pending doses across all patients
+    const futureDoses = patients.flatMap(patient => 
+        patient.doses
+            .filter(d => d.status === 'pending' && new Date(d.date) >= today)
+            .map(dose => ({
+                date: new Date(dose.date),
+                mg: dose.administeredDose || parseFloat(patient.defaultDose || '2.5')
             }))
     ).filter(d => !isNaN(d.mg)).sort((a, b) => a.date.getTime() - b.date.getTime());
 
     const totalPendingMg = futureDoses.reduce((acc, dose) => acc + dose.mg, 0);
 
-    if (currentStockMg <= 0) {
-        return { ruptureDate: new Date(), purchaseDeadline: new Date(), totalPendingMg };
+    if (currentStockMg <= 0 && totalPendingMg > 0) {
+        const firstDemandDate = futureDoses[0].date;
+        const purchaseDeadline = new Date(firstDemandDate);
+        purchaseDeadline.setDate(purchaseDeadline.getDate() - deliveryLeadTimeDays);
+        return { ruptureDate: firstDemandDate, purchaseDeadline, totalPendingMg };
+    }
+     if (totalPendingMg === 0) {
+        return { ruptureDate: null, purchaseDeadline: null, totalPendingMg };
     }
     
     let ruptureDate: Date | null = null;
@@ -1358,5 +1364,3 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
     return { ruptureDate: null, purchaseDeadline: null, totalPendingMg };
 }
-
-
