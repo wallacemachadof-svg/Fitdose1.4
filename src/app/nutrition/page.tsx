@@ -30,7 +30,7 @@ export default function NutritionPage() {
         fetchPatients();
     }, []);
 
-    const getStatusVariant = (status: 'pending' | 'completed' | 'sent' | 'available' | undefined) => {
+    const getStatusVariant = (status: 'pending' | 'completed' | 'available' | 'sent' | undefined) => {
         switch (status) {
             case 'completed':
                 return { label: 'Preenchido', variant: 'default' as const, className: 'bg-yellow-500 text-white' };
@@ -59,6 +59,15 @@ export default function NutritionPage() {
     }
     
     const handleSendPlanViaWhatsApp = async (patient: Patient) => {
+        if (patient.foodPlanStatus === 'pending') {
+            toast({
+                variant: 'destructive',
+                title: 'Ação Bloqueada',
+                description: 'O paciente ainda não preencheu o formulário de avaliação.'
+            });
+            return;
+        }
+
         const whatsappUrl = generateFoodPlanWhatsAppLink(patient);
         window.open(whatsappUrl, '_blank');
         
