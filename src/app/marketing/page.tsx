@@ -1,197 +1,128 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
 import { getPatients, type Patient } from '@/lib/actions';
-import { Loader2, Download, Image as ImageIcon, Sparkles, Star, Maximize } from 'lucide-react';
-import Image from 'next/image';
+import { Loader2, Copy, Bot, Edit, Hash, ThumbsUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { toPng } from 'html-to-image';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const motivationalQuotes = [
-  "A jornada de mil milhas começa com um único passo.",
-  "Acredite em você e tudo será possível.",
-  "O segredo do progresso é começar.",
-  "Sua dedicação hoje é o seu resultado amanhã.",
-  "Não é sobre perfeição, é sobre esforço.",
-  "Cada pequena mudança é um grande avanço.",
-  "Você é mais forte do que imagina.",
-  "Transforme a dor em poder e o poder em progresso.",
-  "A disciplina é a ponte entre metas e realizações.",
-  "O corpo alcança o que a mente acredita."
-];
+// A mock function to simulate AI content generation
+async function generateMarketingContent(progressSummary: string): Promise<{ testimonial: string; socialPost: string; hashtags: string; }> {
+    // In a real scenario, this would be a Genkit flow.
+    // For now, we simulate the output based on a template.
+    
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-type Box = { x: number; y: number; width: number; height: number; };
+    const testimonial = `Eu nem acredito quando olho no espelho. Graças ao acompanhamento incrível, eu ${progressSummary}. Não foi só sobre perder peso, foi sobre ganhar minha autoestima de volta. Eu me sinto mais disposta, mais confiante e, o mais importante, mais saudável. Para quem está pensando em começar, meu conselho é: não espere mais. Vale cada segundo!`;
+    
+    const socialPost = `🎉 RESULTADO INCRÍVEL! 🎉
+
+Mais um paciente alcançando seus objetivos e transformando a saúde! Com nosso acompanhamento personalizado, ele(a) ${progressSummary}.
+
+Resultados assim nos enchem de orgulho e provam que com dedicação e o método certo, a mudança é real.
+
+Quer ser o próximo caso de sucesso? Mande uma mensagem e vamos conversar sobre como podemos te ajudar a alcançar sua melhor versão! ✨`;
+
+    const hashtags = "#emagrecimento #saude #bemestar #transformação #vidasaudavel #qualidadedevida #emagrecercomsaude #antesedepois #foco #resultado";
+
+    return { testimonial, socialPost, hashtags };
+}
+
+type MarketingContent = {
+    testimonial: string;
+    socialPost: string;
+    hashtags: string;
+};
 
 export default function MarketingPage() {
   const { toast } = useToast();
   const [patients, setPatients] = useState<{ value: string; label: string }[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState('');
-  const [patientName, setPatientName] = useState('');
-  const [weightLoss, setWeightLoss] = useState('');
-  const [timeFrame, setTimeFrame] = useState('');
-  const [beforeImage, setBeforeImage] = useState<string | null>(null);
-  const [afterImage, setAfterImage] = useState<string | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [quote, setQuote] = useState('');
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const montageRef = useRef<HTMLDivElement>(null);
-  
-  const [beforeBox, setBeforeBox] = useState<Box>({ x: 50, y: 50, width: 150, height: 50 });
-  const [afterBox, setAfterBox] = useState<Box>({ x: 50, y: 50, width: 150, height: 50 });
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState<MarketingContent | null>(null);
+  const [progressSummary, setProgressSummary] = useState('');
 
   useEffect(() => {
     async function fetchPatients() {
-      const patientData = await getPatients();
-      setPatients(patientData.map(p => ({ value: p.id, label: p.fullName })));
+        setIsLoading(true);
+        const patientData = await getPatients();
+        setPatients(patientData.map(p => ({ value: p.id, label: p.fullName })));
+        setIsLoading(false);
     }
     fetchPatients();
-    setQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
-    
-    const storedLogo = localStorage.getItem('customLogo');
-    if (storedLogo) {
-      setLogoUrl(storedLogo);
-    }
   }, []);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'before' | 'after') => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (type === 'before') setBeforeImage(reader.result as string);
-        if (type === 'after') setAfterImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    async function fetchPatientDetails() {
+        if (!selectedPatientId) {
+            setSelectedPatient(null);
+            setProgressSummary('');
+            return;
+        }
+        setIsLoading(true);
+        const patientData = await getPatientById(selectedPatientId);
+        setSelectedPatient(patientData);
+        if (patientData) {
+            const lastEvolution = patientData.evolutions.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+            const weightLoss = patientData.initialWeight - (lastEvolution?.bioimpedance?.weight || patientData.initialWeight);
+            
+            let summary = `perdeu ${weightLoss.toFixed(1)}kg`;
+            if (patientData.firstDoseDate) {
+                const today = new Date();
+                const startDate = new Date(patientData.firstDoseDate);
+                const diffWeeks = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
+                if(diffWeeks > 0) {
+                    summary += ` em apenas ${diffWeeks} semanas`;
+                }
+            }
+            setProgressSummary(summary);
+        }
+        setIsLoading(false);
     }
-  };
+    fetchPatientDetails();
+  }, [selectedPatientId]);
 
-  const handleDownload = async () => {
-    if (!montageRef.current) return;
-    setIsDownloading(true);
+  const handleGenerateContent = async () => {
+    if (!progressSummary) return;
+    setIsGenerating(true);
+    setGeneratedContent(null);
     try {
-      const dataUrl = await toPng(montageRef.current, { 
-        quality: 1, 
-        pixelRatio: 1, // Use 1 for direct mapping of 1080x1080
-        width: 1080,
-        height: 1080,
-      });
-      const link = document.createElement('a');
-      link.download = `${patientName.replace(/\s+/g, '-')}-antes-depois.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (error) {
-      console.error('oops, something went wrong!', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao baixar imagem',
-        description: 'Não foi possível gerar a imagem para download. Tente novamente.',
-      });
+        const content = await generateMarketingContent(progressSummary);
+        setGeneratedContent(content);
+    } catch (e) {
+        toast({ variant: 'destructive', title: 'Erro ao gerar conteúdo' });
     } finally {
-      setIsDownloading(false);
+        setIsGenerating(false);
     }
   };
 
-  const handlePatientSelect = (value: string, label: string) => {
-    setSelectedPatientId(value);
-    setPatientName(label);
+  const copyToClipboard = (text: string, title: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: `${title} Copiado!`,
+      description: "O conteúdo está pronto para ser colado.",
+    });
   };
-
-  const DraggableResizableBox = ({ box, setBox, parentRef }: { box: Box, setBox: (b: Box) => void, parentRef: React.RefObject<HTMLDivElement> }) => {
-    const boxRef = useRef<HTMLDivElement>(null);
-    const dragInfo = useRef({ active: false, type: '', startX: 0, startY: 0, startBox: box });
-  
-    const onMouseDown = (e: React.MouseEvent, type: string) => {
-      e.stopPropagation();
-      dragInfo.current = {
-        active: true,
-        type,
-        startX: e.clientX,
-        startY: e.clientY,
-        startBox: box
-      };
-    };
-  
-    const onMouseMove = useCallback((e: MouseEvent) => {
-      if (!dragInfo.current.active || !parentRef.current) return;
-      const dx = e.clientX - dragInfo.current.startX;
-      const dy = e.clientY - dragInfo.current.startY;
-      const parentRect = parentRef.current.getBoundingClientRect();
-  
-      let newBox = { ...dragInfo.current.startBox };
-  
-      const scaleX = 1080 / parentRect.width;
-      const scaleY = (1080 * 0.6) / (parentRect.height * 0.6); // Since height is 3/5 of parent
-  
-      if (dragInfo.current.type === 'move') {
-        newBox.x += dx * scaleX;
-        newBox.y += dy * scaleY;
-      } else {
-        if (dragInfo.current.type.includes('r')) newBox.width += dx * scaleX;
-        if (dragInfo.current.type.includes('l')) { newBox.width -= dx * scaleX; newBox.x += dx * scaleX; }
-        if (dragInfo.current.type.includes('b')) newBox.height += dy * scaleY;
-        if (dragInfo.current.type.includes('t')) { newBox.height -= dy * scaleY; newBox.y += dy * scaleY; }
-      }
-      
-      if (newBox.width < 20) newBox.width = 20;
-      if (newBox.height < 20) newBox.height = 20;
-      
-      setBox(newBox);
-  
-    }, [setBox, parentRef]);
-  
-    const onMouseUp = useCallback(() => {
-      dragInfo.current.active = false;
-    }, []);
-  
-    useEffect(() => {
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
-      return () => {
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
-      };
-    }, [onMouseMove, onMouseUp]);
-  
-    return (
-      <div
-        ref={boxRef}
-        className="absolute border-2 border-dashed border-white cursor-move"
-        style={{
-          left: `${(box.x / 1080) * 100}%`,
-          top: `${(box.y / (1080 * 0.6)) * 100}%`,
-          width: `${(box.width / 1080) * 100}%`,
-          height: `${(box.height / (1080 * 0.6)) * 100}%`,
-          backgroundColor: 'rgba(0,0,0,0.8)'
-        }}
-        onMouseDown={(e) => onMouseDown(e, 'move')}
-      >
-        <div onMouseDown={(e) => onMouseDown(e, 'tl')} className="absolute -top-1 -left-1 w-2 h-2 bg-white rounded-full cursor-nwse-resize" />
-        <div onMouseDown={(e) => onMouseDown(e, 'tr')} className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full cursor-nesw-resize" />
-        <div onMouseDown={(e) => onMouseDown(e, 'bl')} className="absolute -bottom-1 -left-1 w-2 h-2 bg-white rounded-full cursor-nesw-resize" />
-        <div onMouseDown={(e) => onMouseDown(e, 'br')} className="absolute -bottom-1 -right-1 w-2 h-2 bg-white rounded-full cursor-nwse-resize" />
-      </div>
-    );
-  };
-
-  const isReadyForDownload = beforeImage && afterImage && patientName && weightLoss && timeFrame;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Marketing: Antes e Depois</h1>
-        <p className="text-muted-foreground">Crie imagens comparativas do progresso dos seus pacientes para suas redes sociais.</p>
+        <h1 className="text-2xl font-bold">Marketing: Gerador de Conteúdo com IA</h1>
+        <p className="text-muted-foreground">Crie depoimentos e posts para redes sociais baseados em resultados reais dos seus pacientes.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle>1. Preencha os dados</CardTitle>
+            <CardTitle>1. Selecione o Caso de Sucesso</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -199,104 +130,65 @@ export default function MarketingPage() {
               <Combobox
                 options={patients}
                 value={selectedPatientId}
-                onChange={handlePatientSelect}
-                placeholder="Selecione ou digite o nome..."
+                onChange={(value) => setSelectedPatientId(value)}
+                placeholder="Selecione um paciente..."
                 noResultsText="Nenhum paciente encontrado."
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="weight-loss">Perda de peso (Ex: 10kg OFF)</Label>
-              <Input id="weight-loss" value={weightLoss} onChange={(e) => setWeightLoss(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="time-frame">Tempo (Ex: em 8 semanas)</Label>
-              <Input id="time-frame" value={timeFrame} onChange={(e) => setTimeFrame(e.target.value)} />
-            </div>
-             <div className="grid grid-cols-2 gap-4 pt-4">
-                <div className="space-y-2">
-                    <Label htmlFor="before-upload">Foto "Antes"</Label>
-                    <Button asChild variant="outline" className="w-full">
-                        <label htmlFor="before-upload" className="cursor-pointer">
-                            <ImageIcon className="mr-2 h-4 w-4" /> Enviar Antes
-                        </label>
-                    </Button>
-                    <Input id="before-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'before')} />
+            {isLoading && !selectedPatient && <Skeleton className="h-10 w-full" />}
+            {selectedPatient && (
+                 <div className="p-4 bg-muted/50 border rounded-lg">
+                    <h4 className="font-semibold text-sm">Resumo do Progresso</h4>
+                    <p className="text-muted-foreground text-sm">{progressSummary}</p>
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="after-upload">Foto "Depois"</Label>
-                    <Button asChild variant="outline" className="w-full">
-                        <label htmlFor="after-upload" className="cursor-pointer">
-                            <ImageIcon className="mr-2 h-4 w-4" /> Enviar Depois
-                        </label>
-                    </Button>
-                    <Input id="after-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'after')} />
-                </div>
-            </div>
-            <p className="text-xs text-muted-foreground pt-2">Dica: Para proteger a privacidade, adicione uma tarja preta nos rostos arrastando e redimensionando os quadrados sobre as imagens na prévia.</p>
+            )}
+            <Button className="w-full" onClick={handleGenerateContent} disabled={!selectedPatient || isGenerating}>
+                {isGenerating ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando...</>
+                ) : (
+                    <><Bot className="mr-2 h-4 w-4" /> Gerar Conteúdo com IA</>
+                )}
+            </Button>
           </CardContent>
         </Card>
 
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>2. Prévia da Imagem</CardTitle>
-                    <CardDescription>Esta é a imagem que será gerada para download (1080x1080).</CardDescription>
-                </CardHeader>
-                <CardContent className="flex items-center justify-center bg-muted/20 p-4">
-                     <div className="w-full max-w-xl aspect-square overflow-hidden">
-                        <div 
-                          ref={montageRef}
-                          style={{ 
-                            width: 1080, 
-                            height: 1080,
-                            transform: 'scale(calc(1 / (1080 / 100%)))',
-                            transformOrigin: 'top left',
-                           }}
-                          className="relative flex flex-col items-center justify-between p-12 bg-gradient-to-br from-primary/10 via-background to-background"
-                        >
-                            <header className="flex w-full items-start justify-between z-10">
-                               {logoUrl ? <Image src={logoUrl} alt="Logo" width={200} height={60} className="object-contain" /> : <div className="h-12 w-36" />}
-                                <div className="text-right">
-                                    <h2 className="font-bold text-4xl leading-tight text-foreground">{patientName || "Nome do Paciente"}</h2>
-                                    <p className="text-xl text-primary font-semibold">{timeFrame || "em X semanas"}</p>
-                                </div>
-                            </header>
-
-                            <main className="absolute inset-0 flex items-center justify-center w-full h-full gap-6 px-12">
-                                <div className="relative h-3/5 w-1/2 overflow-hidden rounded-xl shadow-lg" ref={useRef<HTMLDivElement>(null)}>
-                                    <p className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-lg font-semibold px-6 py-2 rounded-full z-20 backdrop-blur-sm">ANTES</p>
-                                    {beforeImage ? <Image src={beforeImage} layout="fill" objectFit="cover" alt="Antes" className="saturate-50" /> : <div className="flex items-center justify-center h-full bg-muted/50"><ImageIcon size={48} className="text-muted-foreground" /></div>}
-                                    {beforeImage && <DraggableResizableBox box={beforeBox} setBox={setBeforeBox} parentRef={montageRef} />}
-                                </div>
-                                <div className="relative h-3/5 w-1/2 overflow-hidden rounded-xl shadow-lg" ref={useRef<HTMLDivElement>(null)}>
-                                    <p className="absolute top-4 left-1/2 -translate-x-1/2 bg-primary text-white text-lg font-semibold px-6 py-2 rounded-full z-20 backdrop-blur-sm">DEPOIS</p>
-                                    {afterImage ? <Image src={afterImage} layout="fill" objectFit="cover" alt="Depois" /> : <div className="flex items-center justify-center h-full bg-muted/50"><ImageIcon size={48} className="text-muted-foreground" /></div>}
-                                    {afterImage && <DraggableResizableBox box={afterBox} setBox={setAfterBox} parentRef={montageRef} />}
-                                </div>
-                                
-                                <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 w-72 h-36 flex items-center justify-center z-20">
-                                  <Star className="absolute text-yellow-400 w-full h-full" fill="currentColor" />
-                                  <div className="relative text-center text-primary-foreground drop-shadow-md">
-                                    <p className="font-bold text-6xl">{weightLoss.split('kg')[0] || "X"}</p>
-                                    <p className="font-semibold -mt-2">kg OFF</p>
-                                  </div>
-                                </div>
-                            </main>
-
-                            <footer className="w-full text-center z-10">
-                                <p className="text-lg italic text-muted-foreground flex items-center justify-center gap-2">
-                                  <Sparkles className="h-4 w-4 text-yellow-500" />
-                                  {quote}
-                                </p>
-                            </footer>
-                        </div>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="flex items-center gap-2"><ThumbsUp className="h-5 w-5 text-primary"/>Depoimento (1ª Pessoa)</CardTitle>
+                        {generatedContent && <Button variant="ghost" size="sm" onClick={() => copyToClipboard(generatedContent.testimonial, 'Depoimento')}><Copy className="mr-2 h-4 w-4" />Copiar</Button>}
                     </div>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground min-h-[120px]">
+                    {isGenerating && <Skeleton className="h-24 w-full" />}
+                    {!isGenerating && generatedContent ? <p>{generatedContent.testimonial}</p> : !isGenerating && <p>O depoimento gerado pela IA aparecerá aqui...</p>}
                 </CardContent>
             </Card>
-            <Button onClick={handleDownload} disabled={!isReadyForDownload || isDownloading} className="w-full lg:w-auto lg:float-right">
-                {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                Baixar Imagem
-            </Button>
+             <Card>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="flex items-center gap-2"><Edit className="h-5 w-5 text-primary"/>Post para Rede Social</CardTitle>
+                        {generatedContent && <Button variant="ghost" size="sm" onClick={() => copyToClipboard(generatedContent.socialPost, 'Post')}><Copy className="mr-2 h-4 w-4" />Copiar</Button>}
+                    </div>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground min-h-[180px] whitespace-pre-wrap">
+                    {isGenerating && <Skeleton className="h-36 w-full" />}
+                    {!isGenerating && generatedContent ? <p>{generatedContent.socialPost}</p> : !isGenerating && <p>O post para redes sociais gerado pela IA aparecerá aqui...</p>}
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                     <div className="flex justify-between items-center">
+                        <CardTitle className="flex items-center gap-2"><Hash className="h-5 w-5 text-primary"/>Hashtags Sugeridas</CardTitle>
+                        {generatedContent && <Button variant="ghost" size="sm" onClick={() => copyToClipboard(generatedContent.hashtags, 'Hashtags')}><Copy className="mr-2 h-4 w-4" />Copiar</Button>}
+                    </div>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground min-h-[40px]">
+                    {isGenerating && <Skeleton className="h-10 w-full" />}
+                    {!isGenerating && generatedContent ? <p className="text-blue-600">{generatedContent.hashtags}</p> : !isGenerating && <p>As hashtags sugeridas pela IA aparecerão aqui...</p>}
+                </CardContent>
+            </Card>
         </div>
       </div>
     </div>
