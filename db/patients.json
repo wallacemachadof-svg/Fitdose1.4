@@ -2072,27 +2072,37 @@
       {
         "id": 1,
         "doseNumber": 1,
-        "date": "2025-11-25T16:50:29.195Z",
-        "status": "pending",
+        "date": "2025-11-18T03:00:00.000Z",
+        "status": "administered",
         "time": "10:00",
         "payment": {
-          "status": "pendente"
-        }
+          "status": "pago",
+          "date": "2025-11-18T03:00:00.000Z",
+          "amount": 300,
+          "method": "credito_parcelado"
+        },
+        "administeredDose": 3.75,
+        "weight": 101.1,
+        "bmi": 33
       },
       {
         "id": 2,
         "doseNumber": 2,
-        "date": "2025-12-02T16:50:29.195Z",
-        "status": "pending",
+        "date": "2025-11-24T03:00:00.000Z",
+        "status": "administered",
         "time": "10:00",
         "payment": {
-          "status": "pendente"
-        }
+          "status": "pago",
+          "date": "2025-11-18T03:00:00.000Z",
+          "amount": 300,
+          "method": "credito_parcelado"
+        },
+        "administeredDose": 3.75
       },
       {
         "id": 3,
         "doseNumber": 3,
-        "date": "2025-12-09T16:50:29.195Z",
+        "date": "2025-12-01T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2102,7 +2112,7 @@
       {
         "id": 4,
         "doseNumber": 4,
-        "date": "2025-12-16T16:50:29.195Z",
+        "date": "2025-12-08T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2112,7 +2122,7 @@
       {
         "id": 5,
         "doseNumber": 5,
-        "date": "2025-12-23T16:50:29.195Z",
+        "date": "2025-12-15T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2122,7 +2132,7 @@
       {
         "id": 6,
         "doseNumber": 6,
-        "date": "2025-12-30T16:50:29.195Z",
+        "date": "2025-12-22T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2132,7 +2142,7 @@
       {
         "id": 7,
         "doseNumber": 7,
-        "date": "2026-01-06T16:50:29.195Z",
+        "date": "2025-12-29T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2142,7 +2152,7 @@
       {
         "id": 8,
         "doseNumber": 8,
-        "date": "2026-01-13T16:50:29.195Z",
+        "date": "2026-01-05T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2152,7 +2162,7 @@
       {
         "id": 9,
         "doseNumber": 9,
-        "date": "2026-01-20T16:50:29.195Z",
+        "date": "2026-01-12T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2162,7 +2172,7 @@
       {
         "id": 10,
         "doseNumber": 10,
-        "date": "2026-01-27T16:50:29.195Z",
+        "date": "2026-01-19T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2172,7 +2182,7 @@
       {
         "id": 11,
         "doseNumber": 11,
-        "date": "2026-02-03T16:50:29.195Z",
+        "date": "2026-01-26T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2182,7 +2192,7 @@
       {
         "id": 12,
         "doseNumber": 12,
-        "date": "2026-02-10T16:50:29.195Z",
+        "date": "2026-02-02T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2190,7 +2200,24 @@
         }
       }
     ],
-    "evolutions": [],
+    "evolutions": [
+      {
+        "id": "evo-sale-31",
+        "date": "2025-11-18T03:00:00.000Z",
+        "notes": "Registro de bioimpedância no momento da venda.",
+        "bioimpedance": {
+          "weight": 101.1,
+          "bmi": 33,
+          "fatPercentage": 33,
+          "skeletalMusclePercentage": 33.6,
+          "visceralFat": 23.5,
+          "hydration": 49.7,
+          "metabolism": 1922.4,
+          "boneMass": 3.3,
+          "protein": 14.3
+        }
+      }
+    ],
     "dailyMedications": "",
     "oralContraceptive": "no",
     "usedMonjauro": "no",
@@ -2227,27 +2254,37 @@
       {
         "id": 1,
         "doseNumber": 1,
-        "date": "2025-11-25T16:52:32.880Z",
-        "status": "pending",
+        "date": "2025-11-18T03:00:00.000Z",
+        "status": "administered",
         "time": "10:00",
         "payment": {
-          "status": "pendente"
-        }
+          "status": "pago",
+          "date": "2025-11-18T03:00:00.000Z",
+          "amount": 300,
+          "method": "credito_parcelado"
+        },
+        "administeredDose": 3.75,
+        "weight": 85.3,
+        "bmi": 34.6
       },
       {
         "id": 2,
         "doseNumber": 2,
-        "date": "2025-12-02T16:52:32.880Z",
-        "status": "pending",
+        "date": "2025-11-24T03:00:00.000Z",
+        "status": "administered",
         "time": "10:00",
         "payment": {
-          "status": "pendente"
-        }
+          "status": "pago",
+          "date": "2025-11-18T03:00:00.000Z",
+          "amount": 300,
+          "method": "credito_parcelado"
+        },
+        "administeredDose": 3.75
       },
       {
         "id": 3,
         "doseNumber": 3,
-        "date": "2025-12-09T16:52:32.880Z",
+        "date": "2025-12-01T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2257,7 +2294,7 @@
       {
         "id": 4,
         "doseNumber": 4,
-        "date": "2025-12-16T16:52:32.880Z",
+        "date": "2025-12-08T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2267,7 +2304,7 @@
       {
         "id": 5,
         "doseNumber": 5,
-        "date": "2025-12-23T16:52:32.880Z",
+        "date": "2025-12-15T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2277,7 +2314,7 @@
       {
         "id": 6,
         "doseNumber": 6,
-        "date": "2025-12-30T16:52:32.880Z",
+        "date": "2025-12-22T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2287,7 +2324,7 @@
       {
         "id": 7,
         "doseNumber": 7,
-        "date": "2026-01-06T16:52:32.880Z",
+        "date": "2025-12-29T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2297,7 +2334,7 @@
       {
         "id": 8,
         "doseNumber": 8,
-        "date": "2026-01-13T16:52:32.880Z",
+        "date": "2026-01-05T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2307,7 +2344,7 @@
       {
         "id": 9,
         "doseNumber": 9,
-        "date": "2026-01-20T16:52:32.880Z",
+        "date": "2026-01-12T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2317,7 +2354,7 @@
       {
         "id": 10,
         "doseNumber": 10,
-        "date": "2026-01-27T16:52:32.880Z",
+        "date": "2026-01-19T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2327,7 +2364,7 @@
       {
         "id": 11,
         "doseNumber": 11,
-        "date": "2026-02-03T16:52:32.880Z",
+        "date": "2026-01-26T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2337,7 +2374,7 @@
       {
         "id": 12,
         "doseNumber": 12,
-        "date": "2026-02-10T16:52:32.880Z",
+        "date": "2026-02-02T03:00:00.000Z",
         "status": "pending",
         "time": "10:00",
         "payment": {
@@ -2345,7 +2382,24 @@
         }
       }
     ],
-    "evolutions": [],
+    "evolutions": [
+      {
+        "id": "evo-sale-32",
+        "date": "2025-11-18T03:00:00.000Z",
+        "notes": "Registro de bioimpedância no momento da venda.",
+        "bioimpedance": {
+          "weight": 85.3,
+          "bmi": 34.6,
+          "fatPercentage": 34.4,
+          "skeletalMusclePercentage": 31.3,
+          "visceralFat": 20.5,
+          "hydration": 50,
+          "metabolism": 1618.5,
+          "boneMass": 2.5,
+          "protein": 10.9
+        }
+      }
+    ],
     "dailyMedications": "",
     "oralContraceptive": "no",
     "usedMonjauro": "no",

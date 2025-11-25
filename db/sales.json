@@ -735,5 +735,150 @@
         "mgUsed": 2.5
       }
     ]
+  },
+  {
+    "id": "31",
+    "patientId": "10",
+    "saleDate": "2025-11-18T03:00:00.000Z",
+    "soldDose": "3.75",
+    "quantity": 8,
+    "price": 330,
+    "discountPerDose": 30,
+    "pointsUsed": 0,
+    "total": 2400,
+    "serviceModel": "presencial",
+    "paymentStatus": "pago",
+    "paymentMethod": "credito_parcelado",
+    "installments": 12,
+    "operatorFee": 297.6,
+    "paymentDate": "2025-11-18T03:00:00.000Z",
+    "observations": "",
+    "bioimpedance": {
+      "weight": 101.1,
+      "bmi": 33,
+      "fatPercentage": 33,
+      "skeletalMusclePercentage": 33.6,
+      "visceralFat": 23.5,
+      "hydration": 49.7,
+      "metabolism": 1922.4,
+      "boneMass": 3.3,
+      "protein": 14.3
+    },
+    "deliveries": [
+      {
+        "doseNumber": 1,
+        "status": "entregue",
+        "deliveryDate": "2025-11-18T03:00:00.000Z"
+      },
+      {
+        "doseNumber": 2,
+        "status": "entregue",
+        "deliveryDate": "2025-11-24T03:00:00.000Z"
+      },
+      {
+        "doseNumber": 3,
+        "status": "em agendamento",
+        "deliveryDate": "2025-12-02T03:00:00.000Z"
+      },
+      {
+        "doseNumber": 4,
+        "status": "em agendamento"
+      },
+      {
+        "doseNumber": 5,
+        "status": "em agendamento"
+      },
+      {
+        "doseNumber": 6,
+        "status": "em agendamento"
+      },
+      {
+        "doseNumber": 7,
+        "status": "em agendamento"
+      },
+      {
+        "doseNumber": 8,
+        "status": "em agendamento"
+      }
+    ],
+    "patientName": "CRISTIANO",
+    "vialUsage": [
+      {
+        "vialId": "vial-1763915805546-0",
+        "mgUsed": 30
+      }
+    ]
+  },
+  {
+    "id": "32",
+    "patientId": "11",
+    "saleDate": "2025-11-18T03:00:00.000Z",
+    "soldDose": "3.75",
+    "quantity": 8,
+    "price": 330,
+    "discountPerDose": 30,
+    "pointsUsed": 0,
+    "total": 2400,
+    "serviceModel": "presencial",
+    "paymentStatus": "pago",
+    "paymentMethod": "credito_parcelado",
+    "installments": 12,
+    "operatorFee": 297.6,
+    "paymentDate": "2025-11-18T03:00:00.000Z",
+    "observations": "",
+    "bioimpedance": {
+      "weight": 85.3,
+      "bmi": 34.6,
+      "fatPercentage": 34.4,
+      "skeletalMusclePercentage": 31.3,
+      "visceralFat": 20.5,
+      "hydration": 50,
+      "metabolism": 1618.5,
+      "boneMass": 2.5,
+      "protein": 10.9
+    },
+    "deliveries": [
+      {
+        "doseNumber": 1,
+        "status": "entregue",
+        "deliveryDate": "2025-11-18T03:00:00.000Z"
+      },
+      {
+        "doseNumber": 2,
+        "status": "entregue",
+        "deliveryDate": "2025-11-24T03:00:00.000Z"
+      },
+      {
+        "doseNumber": 3,
+        "status": "em agendamento"
+      },
+      {
+        "doseNumber": 4,
+        "status": "em agendamento"
+      },
+      {
+        "doseNumber": 5,
+        "status": "em agendamento"
+      },
+      {
+        "doseNumber": 6,
+        "status": "em agendamento"
+      },
+      {
+        "doseNumber": 7,
+        "status": "em agendamento"
+      },
+      {
+        "doseNumber": 8,
+        "status": "em agendamento"
+      }
+    ],
+    "patientName": "SAMARA",
+    "vialUsage": [
+      {
+        "vialId": "vial-1763915805546-0",
+        "mgUsed": 30
+      }
+    ]
   }
 ]

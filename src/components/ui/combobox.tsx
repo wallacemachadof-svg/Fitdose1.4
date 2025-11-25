@@ -26,27 +26,12 @@ interface ComboboxProps {
     onChange: (value: string, label: string) => void;
     placeholder?: string;
     noResultsText?: string;
-    allowCustom?: boolean;
 }
 
-export function Combobox({ options, value, onChange, placeholder, noResultsText, allowCustom = false }: ComboboxProps) {
+export function Combobox({ options, value, onChange, placeholder, noResultsText }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
-  const [inputValue, setInputValue] = React.useState(value ? options.find(o => o.value === value)?.label : "")
-
-  const handleSelect = (currentValue: string) => {
-    const selectedOption = options.find(option => option.value.toLowerCase() === currentValue.toLowerCase());
-    const label = selectedOption ? selectedOption.label : currentValue;
-    const finalValue = selectedOption ? selectedOption.value : currentValue;
-
-    onChange(finalValue, label);
-    setInputValue(label);
-    setOpen(false);
-  }
-
-  React.useEffect(() => {
-    const currentOption = options.find(option => option.value === value);
-    setInputValue(currentOption?.label || (allowCustom ? value : "") || "");
-  }, [value, options, allowCustom]);
+  
+  const selectedLabel = value ? options.find((option) => option.value === value)?.label : "";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -57,18 +42,24 @@ export function Combobox({ options, value, onChange, placeholder, noResultsText,
           aria-expanded={open}
           className="w-full justify-between"
         >
-          {inputValue || placeholder || "Select option..."}
+          {value ? selectedLabel : placeholder || "Selecione..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command>
             <CommandInput 
-                placeholder={placeholder || "Search..."}
+                placeholder={placeholder || "Buscar..."}
+                onValueChange={(search) => {
+                    const existingOption = options.find(o => o.label.toLowerCase() === search.toLowerCase());
+                    if (!existingOption && search) {
+                        onChange(search, search); // Allow custom input by setting value to the typed search
+                    }
+                }}
             />
           <CommandList>
             <CommandEmpty>
-                {noResultsText || "No results found."}
+                {noResultsText || "Nenhum resultado."}
             </CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
@@ -77,7 +68,8 @@ export function Combobox({ options, value, onChange, placeholder, noResultsText,
                   value={option.label}
                   onSelect={(currentLabel) => {
                     const selectedValue = options.find(o => o.label.toLowerCase() === currentLabel.toLowerCase())?.value || "";
-                    handleSelect(selectedValue);
+                    onChange(selectedValue, currentLabel);
+                    setOpen(false);
                   }}
                 >
                   <Check

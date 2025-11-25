@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -696,7 +695,6 @@ export default function PatientEditPage() {
                                             }}
                                             placeholder="Selecione o paciente que indicou..."
                                             noResultsText="Nenhum paciente encontrado."
-                                            allowCustom={true}
                                         />
                                         <FormMessage />
                                     </FormItem>
@@ -718,3 +716,5 @@ export default function PatientEditPage() {
         </>
     )
 }
+
+    
