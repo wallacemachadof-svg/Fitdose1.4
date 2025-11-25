@@ -7,12 +7,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Apple } from 'lucide-react';
+import { Apple, Link as LinkIcon, Copy } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { generateNutritionalAssessmentLink } from '@/lib/utils';
 
 export default function NutritionPage() {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [loading, setLoading] = useState(true);
+    const { toast } = useToast();
 
     useEffect(() => {
         const fetchPatients = async () => {
@@ -38,6 +42,15 @@ export default function NutritionPage() {
         }
     };
     
+    const handleCopyLink = (patientId: string, patientName: string) => {
+        const link = generateNutritionalAssessmentLink(patientId);
+        navigator.clipboard.writeText(link);
+        toast({
+            title: "Link Copiado!",
+            description: `O link para ${patientName} foi copiado.`,
+        })
+    }
+
     if (loading) {
         return (
              <div className="space-y-6">
@@ -75,6 +88,7 @@ export default function NutritionPage() {
                                 <TableHead>Paciente</TableHead>
                                 <TableHead>Status do Formulário</TableHead>
                                 <TableHead>Plano Alimentar</TableHead>
+                                <TableHead>Ações</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -94,6 +108,12 @@ export default function NutritionPage() {
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant={planStatus.variant} className={planStatus.className}>{planStatus.label}</Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button variant="outline" size="sm" onClick={() => handleCopyLink(patient.id, patient.fullName)}>
+                                                <Copy className="h-3 w-3 mr-2" />
+                                                Copiar Link
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 );
