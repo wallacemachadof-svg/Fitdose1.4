@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
 import { getPatients, type Patient } from '@/lib/actions';
-import { Loader2, Download, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Loader2, Download, Image as ImageIcon, Sparkles, Star } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { toPng } from 'html-to-image';
@@ -73,13 +73,9 @@ export default function MarketingPage() {
     try {
       const dataUrl = await toPng(montageRef.current, { 
         quality: 1, 
-        pixelRatio: 2, // For higher resolution
-        style: {
-           // Temporarily set a specific width for capture if needed
-           width: '1080px',
-           height: '1080px',
-           margin: '0',
-        }
+        pixelRatio: 2,
+        width: 1080,
+        height: 1080,
       });
       const link = document.createElement('a');
       link.download = `${patientName.replace(/\s+/g, '-')}-antes-depois.png`;
@@ -162,44 +158,44 @@ export default function MarketingPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>2. Prévia da Imagem</CardTitle>
-                    <CardDescription>Esta é a imagem que será gerada para download.</CardDescription>
+                    <CardDescription>Esta é a imagem que será gerada para download (tamanho 1080x1080).</CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center bg-muted/20 p-4">
                     <div
                         ref={montageRef}
-                        className="aspect-square w-full max-w-xl bg-background"
+                        className="aspect-square w-full max-w-xl bg-white"
+                        style={{ width: '1080px', height: '1080px' }}
                     >
-                        <div className="flex h-full w-full flex-col items-center justify-center p-8 bg-gradient-to-br from-primary/10 via-transparent to-transparent">
-                            <header className="flex w-full items-center justify-between pb-4">
-                               {logoUrl ? <Image src={logoUrl} alt="Logo" width={120} height={40} className="object-contain" /> : <div className="h-10 w-32" />}
+                        <div className="flex h-full w-full flex-col items-center justify-center p-12 bg-gradient-to-br from-primary/10 via-background to-background">
+                            <header className="flex w-full items-start justify-between pb-8">
+                               {logoUrl ? <Image src={logoUrl} alt="Logo" width={150} height={50} className="object-contain" /> : <div className="h-12 w-36" />}
                                 <div className="text-right">
-                                    <h2 className="font-bold text-lg leading-tight">{patientName || "Nome do Paciente"}</h2>
-                                    <p className="text-sm text-primary font-semibold">{timeFrame || "em X semanas"}</p>
+                                    <h2 className="font-bold text-4xl leading-tight text-foreground">{patientName || "Nome do Paciente"}</h2>
+                                    <p className="text-xl text-primary font-semibold">{timeFrame || "em X semanas"}</p>
                                 </div>
                             </header>
 
-                            <main className="flex-grow w-full grid grid-cols-2 gap-4 relative">
-                                <div className="absolute inset-x-0 -top-2 text-center text-xs font-medium text-muted-foreground z-10">
-                                    <span className="bg-background px-2">ANTES</span>
+                            <main className="flex-grow w-full grid grid-cols-2 gap-6 relative">
+                                <div className="relative h-full w-full overflow-hidden rounded-xl shadow-lg">
+                                    <p className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/50 text-white text-xs font-semibold px-3 py-1 rounded-full z-10">ANTES</p>
+                                    {beforeImage ? <Image src={beforeImage} layout="fill" objectFit="cover" alt="Antes" /> : <div className="flex items-center justify-center h-full bg-muted/50"><ImageIcon size={48} className="text-muted-foreground" /></div>}
                                 </div>
-                                <div className="absolute inset-x-0 -top-2 text-center text-xs font-medium text-muted-foreground z-10">
-                                     <span className="bg-background px-2" style={{marginLeft: "50%"}}>DEPOIS</span>
-                                </div>
-
-                                <div className="relative h-full w-full overflow-hidden rounded-lg border-2 border-dashed">
-                                    {beforeImage ? <Image src={beforeImage} layout="fill" objectFit="cover" alt="Antes" /> : <div className="flex items-center justify-center h-full bg-muted/50"><ImageIcon className="text-muted-foreground" /></div>}
-                                </div>
-                                <div className="relative h-full w-full overflow-hidden rounded-lg border-2 border-dashed">
-                                    {afterImage ? <Image src={afterImage} layout="fill" objectFit="cover" alt="Depois" /> : <div className="flex items-center justify-center h-full bg-muted/50"><ImageIcon className="text-muted-foreground" /></div>}
+                                <div className="relative h-full w-full overflow-hidden rounded-xl shadow-lg">
+                                    <p className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/50 text-white text-xs font-semibold px-3 py-1 rounded-full z-10">DEPOIS</p>
+                                    {afterImage ? <Image src={afterImage} layout="fill" objectFit="cover" alt="Depois" /> : <div className="flex items-center justify-center h-full bg-muted/50"><ImageIcon size={48} className="text-muted-foreground" /></div>}
                                 </div>
                                 
-                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-primary/90 text-primary-foreground rounded-full px-8 py-3 text-center shadow-lg transform -rotate-6">
-                                    <p className="font-bold text-2xl">{weightLoss || "X kg OFF"}</p>
+                                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-64 h-32 flex items-center justify-center">
+                                  <Star className="absolute text-yellow-400 w-full h-full" fill="currentColor" />
+                                  <div className="relative text-center text-primary-foreground drop-shadow-md">
+                                    <p className="font-bold text-5xl">{weightLoss.split('kg')[0] || "X"}</p>
+                                    <p className="font-semibold -mt-2">kg OFF</p>
+                                  </div>
                                 </div>
                             </main>
 
-                            <footer className="w-full text-center pt-6">
-                                <p className="text-sm italic text-muted-foreground flex items-center justify-center gap-2">
+                            <footer className="w-full text-center pt-16">
+                                <p className="text-lg italic text-muted-foreground flex items-center justify-center gap-2">
                                   <Sparkles className="h-4 w-4 text-yellow-500" />
                                   {quote}
                                 </p>
@@ -217,4 +213,3 @@ export default function MarketingPage() {
     </div>
   );
 }
-
