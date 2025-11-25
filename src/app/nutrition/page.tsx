@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { generateNutritionalAssessmentLink, generateNutritionalAssessmentWhatsAppLink, generateFoodPlanWhatsAppLink } from '@/lib/utils';
 import { FaWhatsapp } from 'react-icons/fa';
+import { cn } from '@/lib/utils';
 
 export default function NutritionPage() {
     const [patients, setPatients] = useState<Patient[]>([]);
@@ -162,7 +163,9 @@ export default function NutritionPage() {
                                                 <Button 
                                                     variant="outline" 
                                                     size="sm" 
-                                                    className="text-primary border-primary/50 hover:bg-primary/10 hover:text-primary"
+                                                    className={cn(
+                                                        patient.foodPlanStatus !== 'pending' && "text-primary border-primary/50 hover:bg-primary/10 hover:text-primary"
+                                                    )}
                                                     onClick={() => handleSendPlanViaWhatsApp(patient)}
                                                     disabled={patient.foodPlanStatus === 'pending'}
                                                 >
