@@ -95,6 +95,7 @@ export default function NewSalePage() {
     const [patients, setPatients] = useState<{ value: string, label: string }[]>([]);
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [dosePrices, setDosePrices] = useState<DosePrice[]>([]);
+    const [totalDiscount, setTotalDiscount] = useState(0);
 
     const form = useForm<SaleFormValues>({
         resolver: zodResolver(saleFormSchema),
@@ -194,6 +195,7 @@ export default function NewSalePage() {
         const quantity = watchQuantity || 1;
         const total = (price - discount) * quantity - pointsDiscount;
         setValue("total", total > 0 ? total : 0);
+        setTotalDiscount(discount * quantity);
     }, [watchPrice, watchDiscountPerDose, watchPointsUsed, watchQuantity, setValue]);
 
     async function onSubmit(data: SaleFormValues) {
@@ -360,13 +362,17 @@ export default function NewSalePage() {
                            
                             <div className="space-y-4 pt-4 border-t">
                                 <h3 className="text-lg font-semibold">Detalhes Financeiros</h3>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
                                      <FormField control={control} name="price" render={({ field }) => (
-                                        <FormItem><FormLabel>Preço por Dose (R$) *</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Preço por Dose (R$)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
                                     )}/>
                                      <FormField control={control} name="discountPerDose" render={({ field }) => (
                                         <FormItem><FormLabel>Desconto por Dose (R$)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
                                     )}/>
+                                    <FormItem>
+                                        <FormLabel>Desconto Total (R$)</FormLabel>
+                                        <Input type="number" step="0.01" value={totalDiscount.toFixed(2)} readOnly className="bg-muted" />
+                                    </FormItem>
                                      <FormField control={control} name="pointsUsed" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Pontos Resgatados</FormLabel>
@@ -379,7 +385,7 @@ export default function NewSalePage() {
                                      <FormField control={control} name="total" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Total a Pagar (R$)</FormLabel>
-                                            <FormControl><Input type="number" step="0.01" {...field} readOnly className="bg-muted" /></FormControl>
+                                            <FormControl><Input type="number" step="0.01" {...field} readOnly className="bg-muted font-bold text-lg h-12" /></FormControl>
                                         </FormItem>
                                     )}/>
                                 </div>
