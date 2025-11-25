@@ -2047,5 +2047,315 @@
     "pointHistory": [],
     "consentGiven": true,
     "consentDate": "2025-11-23T21:53:58.820Z"
+  },
+  {
+    "id": "10",
+    "fullName": "CRISTIANO",
+    "age": 46,
+    "birthDate": "1979-03-12T03:00:00.000Z",
+    "initialWeight": 101.1,
+    "height": 175,
+    "desiredWeight": 80,
+    "firstDoseDate": "2025-11-25T16:50:29.195Z",
+    "serviceModel": "presencial",
+    "address": {
+      "zip": "",
+      "street": "",
+      "number": "",
+      "city": "",
+      "state": ""
+    },
+    "phone": "31999598359",
+    "healthContraindications": "Nenhuma observação.",
+    "avatarUrl": "https://i.pravatar.cc/150?u=10",
+    "doses": [
+      {
+        "id": 1,
+        "doseNumber": 1,
+        "date": "2025-11-25T16:50:29.195Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 2,
+        "doseNumber": 2,
+        "date": "2025-12-02T16:50:29.195Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 3,
+        "doseNumber": 3,
+        "date": "2025-12-09T16:50:29.195Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 4,
+        "doseNumber": 4,
+        "date": "2025-12-16T16:50:29.195Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 5,
+        "doseNumber": 5,
+        "date": "2025-12-23T16:50:29.195Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 6,
+        "doseNumber": 6,
+        "date": "2025-12-30T16:50:29.195Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 7,
+        "doseNumber": 7,
+        "date": "2026-01-06T16:50:29.195Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 8,
+        "doseNumber": 8,
+        "date": "2026-01-13T16:50:29.195Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 9,
+        "doseNumber": 9,
+        "date": "2026-01-20T16:50:29.195Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 10,
+        "doseNumber": 10,
+        "date": "2026-01-27T16:50:29.195Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 11,
+        "doseNumber": 11,
+        "date": "2026-02-03T16:50:29.195Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 12,
+        "doseNumber": 12,
+        "date": "2026-02-10T16:50:29.195Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      }
+    ],
+    "evolutions": [],
+    "dailyMedications": "",
+    "oralContraceptive": "no",
+    "usedMonjauro": "no",
+    "monjauroDose": "",
+    "monjauroTime": "",
+    "points": 0,
+    "pointHistory": [],
+    "consentGiven": true,
+    "consentDate": "2025-11-25T16:50:29.196Z",
+    "nutritionalAssessmentStatus": "pending",
+    "foodPlanStatus": "pending"
+  },
+  {
+    "id": "11",
+    "fullName": "SAMARA",
+    "age": 37,
+    "birthDate": "1988-04-26T03:00:00.000Z",
+    "initialWeight": 85.3,
+    "height": 157,
+    "desiredWeight": 60,
+    "firstDoseDate": "2025-11-25T16:52:32.880Z",
+    "serviceModel": "presencial",
+    "address": {
+      "zip": "",
+      "street": "",
+      "number": "",
+      "city": "",
+      "state": ""
+    },
+    "phone": "31972388582",
+    "healthContraindications": "Nenhuma observação.",
+    "avatarUrl": "https://i.pravatar.cc/150?u=11",
+    "doses": [
+      {
+        "id": 1,
+        "doseNumber": 1,
+        "date": "2025-11-25T16:52:32.880Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 2,
+        "doseNumber": 2,
+        "date": "2025-12-02T16:52:32.880Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 3,
+        "doseNumber": 3,
+        "date": "2025-12-09T16:52:32.880Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 4,
+        "doseNumber": 4,
+        "date": "2025-12-16T16:52:32.880Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 5,
+        "doseNumber": 5,
+        "date": "2025-12-23T16:52:32.880Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 6,
+        "doseNumber": 6,
+        "date": "2025-12-30T16:52:32.880Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 7,
+        "doseNumber": 7,
+        "date": "2026-01-06T16:52:32.880Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 8,
+        "doseNumber": 8,
+        "date": "2026-01-13T16:52:32.880Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 9,
+        "doseNumber": 9,
+        "date": "2026-01-20T16:52:32.880Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 10,
+        "doseNumber": 10,
+        "date": "2026-01-27T16:52:32.880Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 11,
+        "doseNumber": 11,
+        "date": "2026-02-03T16:52:32.880Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      },
+      {
+        "id": 12,
+        "doseNumber": 12,
+        "date": "2026-02-10T16:52:32.880Z",
+        "status": "pending",
+        "time": "10:00",
+        "payment": {
+          "status": "pendente"
+        }
+      }
+    ],
+    "evolutions": [],
+    "dailyMedications": "",
+    "oralContraceptive": "no",
+    "usedMonjauro": "no",
+    "monjauroDose": "",
+    "monjauroTime": "",
+    "points": 0,
+    "pointHistory": [],
+    "consentGiven": true,
+    "consentDate": "2025-11-25T16:52:32.881Z",
+    "nutritionalAssessmentStatus": "pending",
+    "foodPlanStatus": "pending"
   }
 ]

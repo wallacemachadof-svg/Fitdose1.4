@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -142,7 +143,7 @@ export default function SalesControlPage() {
 
     const filteredSales = salesInSelectedPeriod.filter(sale => {
         if (paymentFilter !== 'all' && sale.paymentStatus !== paymentFilter) return false;
-        if (deliveryFilter !== 'all' && sale.deliveryStatus !== deliveryFilter) return false;
+        if (deliveryFilter !== 'all' && !sale.deliveries.some(d => d.status === deliveryFilter)) return false;
         if (searchTerm && !sale.patientName.toLowerCase().includes(searchTerm.toLowerCase())) return false;
         return true;
     });
@@ -275,7 +276,10 @@ export default function SalesControlPage() {
                             {filteredSales.length > 0 ? (
                                 filteredSales.map((sale) => {
                                     const paymentStatus = getPaymentStatusVariant(sale.paymentStatus);
-                                    const deliveryStatus = getDeliveryStatusVariant(sale.deliveryStatus);
+                                    
+                                    const firstDeliveryStatus = sale.deliveries?.[0]?.status || sale.deliveryStatus;
+                                    const deliveryStatus = getDeliveryStatusVariant(firstDeliveryStatus);
+                                    
                                     return (
                                         <TableRow key={sale.id}>
                                             <TableCell>{formatDate(sale.saleDate)}</TableCell>
@@ -289,7 +293,10 @@ export default function SalesControlPage() {
                                                 <Badge variant={'default'} className={`${paymentStatus.color} ${paymentStatus.textColor} border-none`}>{paymentStatus.label}</Badge>
                                             </TableCell>
                                              <TableCell>
-                                                <Badge variant={'default'} className={`${deliveryStatus.color} ${deliveryStatus.textColor} border-none`}>{deliveryStatus.label}</Badge>
+                                                <Badge variant={'default'} className={`${deliveryStatus.color} ${deliveryStatus.textColor} border-none`}>
+                                                    {deliveryStatus.label}
+                                                    {sale.deliveries && sale.deliveries.length > 1 ? ` (1/${sale.deliveries.length})` : ''}
+                                                </Badge>
                                              </TableCell>
                                             <TableCell className="text-right">
                                                 <DropdownMenu>

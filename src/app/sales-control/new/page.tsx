@@ -3,10 +3,9 @@
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +32,13 @@ import { useToast } from "@/hooks/use-toast";
 import { addSale, getPatients, getPatientById, getSettings, type Patient, type Bioimpedance, type DosePrice } from "@/lib/actions";
 import { Combobox } from "@/components/ui/combobox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Separator } from "@/components/ui/separator";
 
+const deliverySchema = z.object({
+  doseNumber: z.number(),
+  status: z.enum(['em agendamento', 'entregue', 'em processamento']),
+  deliveryDate: z.date().optional(),
+});
 
 const saleFormSchema = z.object({
     patientId: z.string({ required_error: 'Selecione um paciente.' }),
@@ -41,16 +46,16 @@ const saleFormSchema = z.object({
     soldDose: z.string().min(1, 'A dose vendida é obrigatória.'),
     quantity: z.coerce.number().min(1, 'A quantidade deve ser pelo menos 1.'),
     price: z.coerce.number().min(0, 'O preço é obrigatório.'),
-    discount: z.coerce.number().min(0).optional().default(0),
+    discountPerDose: z.coerce.number().min(0).optional().default(0),
     pointsUsed: z.coerce.number().min(0).optional().default(0),
     total: z.coerce.number().min(0),
     serviceModel: z.enum(['presencial', 'online', 'hibrido']).optional(),
     paymentStatus: z.enum(['pago', 'pendente'], { required_error: 'O status do pagamento é obrigatório.' }),
-    paymentMethod: z.enum(['dinheiro', 'pix', 'debito', 'credito', 'payment_link']).optional(),
+    paymentMethod: z.enum(['dinheiro', 'pix', 'debito', 'credito', 'credito_parcelado', 'payment_link']).optional(),
+    installments: z.coerce.number().min(2).max(12).optional(),
+    operatorFee: z.coerce.number().min(0).optional().default(0),
     paymentDate: z.date().optional(),
     paymentDueDate: z.date().optional(),
-    deliveryStatus: z.enum(['em agendamento', 'entregue', 'em processamento'], { required_error: 'O status da entrega é obrigatório.' }),
-    deliveryDate: z.date().optional(),
     observations: z.string().optional(),
     bioimpedance: z.object({
         weight: z.coerce.number().optional(),
@@ -64,6 +69,7 @@ const saleFormSchema = z.object({
         boneMass: z.coerce.number().optional(),
         protein: z.coerce.number().optional(),
     }).optional(),
+    deliveries: z.array(deliverySchema).optional(),
 });
 
 type SaleFormValues = z.infer<typeof saleFormSchema>;
@@ -90,6 +96,55 @@ export default function NewSalePage() {
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [dosePrices, setDosePrices] = useState<DosePrice[]>([]);
 
+    const form = useForm<SaleFormValues>({
+        resolver: zodResolver(saleFormSchema),
+        defaultValues: {
+            saleDate: new Date(),
+            quantity: 1,
+            discountPerDose: 0,
+            pointsUsed: 0,
+            paymentStatus: "pendente",
+            price: 0,
+            soldDose: "",
+            total: 0,
+            observations: "",
+            operatorFee: 0,
+            bioimpedance: {
+                weight: undefined, bmi: undefined, fatPercentage: undefined, skeletalMusclePercentage: undefined, visceralFat: undefined, hydration: undefined, metabolism: undefined, obesityPercentage: undefined, boneMass: undefined, protein: undefined,
+            },
+            deliveries: [{ doseNumber: 1, status: 'em agendamento', deliveryDate: undefined }]
+        },
+    });
+    
+    const { watch, setValue, control } = form;
+    const watchPatientId = watch("patientId");
+    const watchSoldDose = watch("soldDose");
+    const watchPrice = watch("price");
+    const watchDiscountPerDose = watch("discountPerDose");
+    const watchPointsUsed = watch("pointsUsed");
+    const watchQuantity = watch("quantity");
+    const watchPaymentStatus = watch("paymentStatus");
+    const watchPaymentMethod = watch("paymentMethod");
+
+    const { fields, replace } = useFieldArray({
+        control,
+        name: "deliveries",
+    });
+
+    useEffect(() => {
+        const numDoses = watchQuantity || 1;
+        const currentDeliveries = form.getValues('deliveries') || [];
+        const newDeliveries = Array.from({ length: numDoses }, (_, i) => {
+            return currentDeliveries[i] || {
+                doseNumber: i + 1,
+                status: 'em agendamento' as const,
+                deliveryDate: undefined,
+            };
+        });
+        replace(newDeliveries);
+    }, [watchQuantity, form, replace]);
+
+
     useEffect(() => {
         async function fetchInitialData() {
             const [patientData, settings] = await Promise.all([
@@ -102,50 +157,11 @@ export default function NewSalePage() {
         fetchInitialData();
     }, []);
 
-
-    const form = useForm<SaleFormValues>({
-        resolver: zodResolver(saleFormSchema),
-        defaultValues: {
-            saleDate: new Date(),
-            quantity: 1,
-            discount: 0,
-            pointsUsed: 0,
-            paymentStatus: "pendente",
-            deliveryStatus: "em agendamento",
-            price: 0,
-            soldDose: "",
-            total: 0,
-            observations: "",
-            bioimpedance: {
-                weight: undefined,
-                bmi: undefined,
-                fatPercentage: undefined,
-                skeletalMusclePercentage: undefined,
-                visceralFat: undefined,
-                hydration: undefined,
-                metabolism: undefined,
-                obesityPercentage: undefined,
-                boneMass: undefined,
-                protein: undefined,
-            }
-        },
-    });
-    
-    const { watch, setValue } = form;
-    const watchPatientId = watch("patientId");
-    const watchSoldDose = watch("soldDose");
-    const watchPrice = watch("price");
-    const watchDiscount = watch("discount");
-    const watchPointsUsed = watch("pointsUsed");
-    const watchQuantity = watch("quantity");
-    const watchPaymentStatus = watch("paymentStatus");
-
      useEffect(() => {
         const fetchPatientDetails = async () => {
             if (watchPatientId) {
                 const patient = await getPatientById(watchPatientId);
                 setSelectedPatient(patient);
-                // Set dose and price based on patient's default or global settings
                 const defaultDose = patient?.defaultDose || '';
                 setValue("soldDose", defaultDose);
                 setValue("serviceModel", patient?.serviceModel || 'presencial');
@@ -173,12 +189,12 @@ export default function NewSalePage() {
 
     useEffect(() => {
         const price = watchPrice || 0;
-        const discount = watchDiscount || 0;
+        const discount = watchDiscountPerDose || 0;
         const pointsDiscount = (watchPointsUsed || 0) / 10;
         const quantity = watchQuantity || 1;
-        const total = (price * quantity) - discount - pointsDiscount;
+        const total = (price - discount) * quantity - pointsDiscount;
         setValue("total", total > 0 ? total : 0);
-    }, [watchPrice, watchDiscount, watchPointsUsed, watchQuantity, setValue]);
+    }, [watchPrice, watchDiscountPerDose, watchPointsUsed, watchQuantity, setValue]);
 
     async function onSubmit(data: SaleFormValues) {
         setIsSubmitting(true);
@@ -212,7 +228,7 @@ export default function NewSalePage() {
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <FormField control={form.control} name="patientId" render={({ field }) => (
+                                <FormField control={control} name="patientId" render={({ field }) => (
                                     <FormItem className="flex flex-col">
                                         <FormLabel>Paciente *</FormLabel>
                                         <Combobox 
@@ -225,7 +241,7 @@ export default function NewSalePage() {
                                         <FormMessage />
                                     </FormItem>
                                 )}/>
-                                 <FormField control={form.control} name="saleDate" render={({ field }) => (
+                                 <FormField control={control} name="saleDate" render={({ field }) => (
                                     <FormItem className="flex flex-col">
                                         <FormLabel>Data da Venda/Aplicação *</FormLabel>
                                         <Popover>
@@ -255,7 +271,7 @@ export default function NewSalePage() {
                                 )}/>
                             </div>
 
-                            <FormField control={form.control} name="serviceModel" render={({ field }) => (
+                            <FormField control={control} name="serviceModel" render={({ field }) => (
                                 <FormItem className="space-y-3">
                                     <FormLabel>Modelo de Atendimento da Venda</FormLabel>
                                     <FormControl>
@@ -292,7 +308,7 @@ export default function NewSalePage() {
                                             {bioimpedanceFields.map(field => (
                                                  <FormField 
                                                     key={field.key}
-                                                    control={form.control} 
+                                                    control={control} 
                                                     name={`bioimpedance.${field.key}`}
                                                     render={({ field: formField }) => (
                                                         <FormItem>
@@ -313,7 +329,7 @@ export default function NewSalePage() {
                                <h3 className="text-lg font-semibold">Detalhes do Produto</h3>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <FormField
-                                        control={form.control}
+                                        control={control}
                                         name="soldDose"
                                         render={({ field }) => (
                                             <FormItem>
@@ -336,7 +352,7 @@ export default function NewSalePage() {
                                             </FormItem>
                                         )}
                                     />
-                                    <FormField control={form.control} name="quantity" render={({ field }) => (
+                                    <FormField control={control} name="quantity" render={({ field }) => (
                                         <FormItem><FormLabel>Quantidade *</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                                     )}/>
                                 </div>
@@ -345,13 +361,13 @@ export default function NewSalePage() {
                             <div className="space-y-4 pt-4 border-t">
                                 <h3 className="text-lg font-semibold">Detalhes Financeiros</h3>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-                                     <FormField control={form.control} name="price" render={({ field }) => (
+                                     <FormField control={control} name="price" render={({ field }) => (
                                         <FormItem><FormLabel>Preço por Dose (R$) *</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
                                     )}/>
-                                     <FormField control={form.control} name="discount" render={({ field }) => (
-                                        <FormItem><FormLabel>Desconto (R$)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
+                                     <FormField control={control} name="discountPerDose" render={({ field }) => (
+                                        <FormItem><FormLabel>Desconto por Dose (R$)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
                                     )}/>
-                                     <FormField control={form.control} name="pointsUsed" render={({ field }) => (
+                                     <FormField control={control} name="pointsUsed" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Pontos Resgatados</FormLabel>
                                             <FormControl><Input type="number" {...field} /></FormControl>
@@ -360,7 +376,7 @@ export default function NewSalePage() {
                                             </FormDescription>
                                         </FormItem>
                                     )}/>
-                                     <FormField control={form.control} name="total" render={({ field }) => (
+                                     <FormField control={control} name="total" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Total a Pagar (R$)</FormLabel>
                                             <FormControl><Input type="number" step="0.01" {...field} readOnly className="bg-muted" /></FormControl>
@@ -368,7 +384,7 @@ export default function NewSalePage() {
                                     )}/>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="paymentStatus" render={({ field }) => (
+                                    <FormField control={control} name="paymentStatus" render={({ field }) => (
                                         <FormItem><FormLabel>Status Pagamento *</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger></FormControl>
@@ -381,7 +397,7 @@ export default function NewSalePage() {
                                     )}/>
                                      {watchPaymentStatus === 'pago' && (
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <FormField control={form.control} name="paymentDate" render={({ field }) => (
+                                            <FormField control={control} name="paymentDate" render={({ field }) => (
                                                 <FormItem className="flex flex-col"><FormLabel>Data do Pagamento</FormLabel>
                                                     <Popover>
                                                         <PopoverTrigger asChild>
@@ -408,34 +424,27 @@ export default function NewSalePage() {
                                                 <FormMessage />
                                                 </FormItem>
                                             )}/>
-                                             <FormField
-                                                control={form.control}
-                                                name="paymentMethod"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Forma de Pagamento</FormLabel>
-                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                            <FormControl>
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Selecione..." />
-                                                                </SelectTrigger>
-                                                            </FormControl>
-                                                            <SelectContent>
-                                                                <SelectItem value="pix">PIX</SelectItem>
-                                                                <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                                                                <SelectItem value="debito">Débito</SelectItem>
-                                                                <SelectItem value="credito">Crédito</SelectItem>
-                                                                <SelectItem value="payment_link">Link de Pagamento</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
+                                            <FormField control={control} name="paymentMethod" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Forma de Pagamento</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="pix">PIX</SelectItem>
+                                                            <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                                                            <SelectItem value="debito">Débito</SelectItem>
+                                                            <SelectItem value="credito">Crédito (1x)</SelectItem>
+                                                            <SelectItem value="credito_parcelado">Crédito Parcelado</SelectItem>
+                                                            <SelectItem value="payment_link">Link de Pagamento</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}/>
                                         </div>
                                      )}
                                      {watchPaymentStatus === 'pendente' && (
-                                        <FormField control={form.control} name="paymentDueDate" render={({ field }) => (
+                                        <FormField control={control} name="paymentDueDate" render={({ field }) => (
                                                 <FormItem className="flex flex-col"><FormLabel>Data Prevista de Pagamento</FormLabel>
                                                     <Popover>
                                                         <PopoverTrigger asChild>
@@ -464,57 +473,76 @@ export default function NewSalePage() {
                                             )}/>
                                      )}
                                 </div>
+                                {watchPaymentMethod === 'credito_parcelado' && (
+                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                                        <FormField control={control} name="installments" render={({ field }) => (
+                                            <FormItem><FormLabel>Nº de Parcelas</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        {Array.from({length: 11}, (_, i) => i + 2).map(n => <SelectItem key={n} value={String(n)}>{n}x</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                            <FormMessage /></FormItem>
+                                        )}/>
+                                        <FormField control={control} name="operatorFee" render={({ field }) => (
+                                            <FormItem><FormLabel>Taxa da Operadora (R$)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
+                                        )}/>
+                                     </div>
+                                )}
                             </div>
                            
                             <div className="space-y-4 pt-4 border-t">
                                 <h3 className="text-lg font-semibold">Detalhes da Entrega</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                     <FormField control={form.control} name="deliveryStatus" render={({ field }) => (
-                                        <FormItem><FormLabel>Status Entrega *</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="entregue">Entregue</SelectItem>
-                                                    <SelectItem value="em agendamento">Em Agendamento</SelectItem>
-                                                    <SelectItem value="em processamento">Em Processamento</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        <FormMessage /></FormItem>
-                                    )}/>
-                                    {form.watch('deliveryStatus') === 'entregue' && (
-                                        <FormField control={form.control} name="deliveryDate" render={({ field }) => (
+                                {fields.map((field, index) => (
+                                    <div key={field.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end p-4 border rounded-lg">
+                                        <p className="font-semibold text-sm md:col-span-3">Dose {index + 1}</p>
+                                         <FormField
+                                            control={control}
+                                            name={`deliveries.${index}.status`}
+                                            render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Status Entrega</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="entregue">Entregue</SelectItem>
+                                                        <SelectItem value="em agendamento">Em Agendamento</SelectItem>
+                                                        <SelectItem value="em processamento">Em Processamento</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={control}
+                                            name={`deliveries.${index}.deliveryDate`}
+                                            render={({ field }) => (
                                             <FormItem className="flex flex-col"><FormLabel>Data da Entrega</FormLabel>
                                                 <Popover>
                                                     <PopoverTrigger asChild>
                                                         <FormControl>
-                                                        <div className="relative">
-                                                            <Input
-                                                                placeholder="dd/MM/yyyy"
-                                                                value={field.value ? format(field.value, 'dd/MM/yyyy') : ''}
-                                                                onChange={(e) => {
-                                                                    const date = parse(e.target.value, 'dd/MM/yyyy', new Date());
-                                                                    if (!isNaN(date.getTime())) {
-                                                                        field.onChange(date);
-                                                                    }
-                                                                }}
-                                                            />
-                                                            <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50" />
-                                                        </div>
+                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                            {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
                                                         </FormControl>
                                                     </PopoverTrigger>
                                                     <PopoverContent className="w-auto p-0" align="start">
-                                                        <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus captionLayout="dropdown-buttons" fromYear={2020} toYear={new Date().getFullYear() + 5} />
+                                                        <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
                                                     </PopoverContent>
                                                 </Popover>
-                                            <FormMessage />
+                                                <FormMessage />
                                             </FormItem>
-                                        )}/>
-                                     )}
-                                </div>
+                                            )}
+                                        />
+                                    </div>
+                                ))}
                             </div>
                             
                             <div className="pt-4 border-t">
-                                <FormField control={form.control} name="observations" render={({ field }) => (
+                                <FormField control={control} name="observations" render={({ field }) => (
                                     <FormItem><FormLabel>Observações</FormLabel><FormControl><Textarea placeholder="Alguma observação sobre a venda ou entrega?" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                             </div>

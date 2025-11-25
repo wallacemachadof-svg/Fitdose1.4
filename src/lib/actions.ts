@@ -91,8 +91,12 @@ const readData = (): MockData => {
         sales.forEach((s: Sale) => {
             s.saleDate = new Date(s.saleDate);
             if (s.paymentDate) s.paymentDate = new Date(s.paymentDate);
-            if (s.deliveryDate) s.deliveryDate = new Date(s.deliveryDate);
             if (s.paymentDueDate) s.paymentDueDate = new Date(s.paymentDueDate);
+            if (s.deliveries) {
+                s.deliveries.forEach(d => {
+                    if (d.deliveryDate) d.deliveryDate = new Date(d.deliveryDate);
+                });
+            }
         });
         cashFlowEntries.forEach((c: CashFlowEntry) => {
             c.purchaseDate = new Date(c.purchaseDate);
@@ -209,7 +213,7 @@ const generateDoseSchedule = (startDate: Date, totalDoses = 12, startDoseNumber 
   const newDoses: Dose[] = [];
   
   const lastAdministeredDose = administeredDoses.length > 0 
-      ? administeredDoses.sort((a,b) => b.doseNumber - a.doseNumber)[0]
+      ? administeredDoses.sort((a,b) => b.doseNumber - b.doseNumber)[0]
       : null;
 
   let currentDate = lastAdministeredDose ? new Date(lastAdministeredDose.date) : new Date(startDate);
@@ -282,7 +286,7 @@ export type Patient = {
   defaultPrice?: number;
   defaultDose?: string;
   nutritionalAssessmentData?: NutritionalAssessmentData;
-  nutritionalAssessmentStatus?: 'pending' | 'completed';
+  nutritionalAssessmentStatus?: 'pending' | 'completed' | 'available';
   foodPlanStatus?: 'pending' | 'available' | 'sent';
 };
 
@@ -340,13 +344,20 @@ export type VialUsage = {
     mgUsed: number;
 };
 
+export type Delivery = {
+  doseNumber: number;
+  status: 'em agendamento' | 'entregue' | 'em processamento';
+  deliveryDate?: Date;
+}
+
 export type Sale = {
   id: string;
   saleDate: Date;
   soldDose: string;
   quantity: number;
   price: number;
-  discount?: number;
+  discountPerDose?: number;
+  discount?: number; // Legacy, can be removed after migration
   total: number;
   patientId: string;
   patientName: string;
@@ -354,17 +365,21 @@ export type Sale = {
   paymentDate?: Date;
   paymentDueDate?: Date;
   paymentStatus: 'pago' | 'pendente';
-  deliveryStatus: 'em agendamento' | 'entregue' | 'em processamento';
+  deliveries: Delivery[];
   observations?: string;
-  deliveryDate?: Date;
   pointsUsed?: number;
-  paymentMethod?: "dinheiro" | "pix" | "debito" | "credito" | "credito_parcelado" | "payment_link";
+  paymentMethod?: "dinheiro" | "pix" | "debito" | "credito" | 'credito_parcelado' | "payment_link";
+  installments?: number;
+  operatorFee?: number;
   bioimpedance?: Bioimpedance;
   vialUsage?: VialUsage[];
+  deliveryStatus?: 'em agendamento' | 'entregue' | 'em processamento'; // Legacy
+  deliveryDate?: Date; // Legacy
 };
 
-export type NewSaleData = Omit<Sale, 'id' | 'patientName'> & {
-    bioimpedance?: Bioimpedance;
+export type NewSaleData = Omit<Sale, 'id' | 'patientName' | 'deliveries' | 'discount'> & {
+  bioimpedance?: Bioimpedance;
+  deliveries: Delivery[];
 };
 
 
@@ -437,7 +452,7 @@ export type StockForecast = {
 // --- Data Access Functions ---
 
 export const getPatients = async (): Promise<Patient[]> => {
-    runMigration(); // Run migration check
+    // runMigration(); // Migration no longer needed for delivery status
     await new Promise(resolve => setTimeout(resolve, 100)); // simulate async
     const { patients } = readData();
     return [...patients].sort((a,b) => a.fullName.localeCompare(b.fullName));
@@ -807,45 +822,43 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     }
     
     // --- Handle Dose Administration based on Delivery Status ---
-    if (newSale.deliveryStatus === 'entregue') {
-        patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
-        
-        let dosesToAdminister = saleData.quantity;
-        let lastAdministeredDate = newSale.deliveryDate || newSale.saleDate;
+    const deliveredDoses = saleData.deliveries.filter(d => d.status === 'entregue' && d.deliveryDate);
+    if (deliveredDoses.length > 0) {
+        patient.doses.sort((a, b) => a.doseNumber - b.doseNumber);
 
-        for (let i = 0; i < patient.doses.length && dosesToAdminister > 0; i++) {
+        let administeredCount = 0;
+        for (let i = 0; i < patient.doses.length && administeredCount < deliveredDoses.length; i++) {
             if (patient.doses[i].status === 'pending') {
-                const administeredDose = patient.doses[i];
-                administeredDose.status = 'administered';
-                administeredDose.date = new Date(lastAdministeredDate);
-                administeredDose.administeredDose = parseFloat(saleData.soldDose) || undefined;
+                const deliveryInfo = deliveredDoses[administeredCount];
+                const doseToUpdate = patient.doses[i];
                 
-                if(hasBioimpedance && saleData.bioimpedance?.weight && dosesToAdminister === saleData.quantity) {
-                    administeredDose.weight = saleData.bioimpedance.weight;
-                    administeredDose.bmi = saleData.bioimpedance.bmi;
+                doseToUpdate.status = 'administered';
+                doseToUpdate.date = deliveryInfo.deliveryDate!;
+                doseToUpdate.administeredDose = parseFloat(saleData.soldDose) || undefined;
+                
+                if (hasBioimpedance && saleData.bioimpedance?.weight && administeredCount === 0) {
+                    doseToUpdate.weight = saleData.bioimpedance.weight;
+                    doseToUpdate.bmi = saleData.bioimpedance.bmi;
                 }
 
-                if (!administeredDose.payment) administeredDose.payment = { status: 'pendente' };
-                administeredDose.payment.status = newSale.paymentStatus;
-                administeredDose.payment.date = newSale.paymentDate || (newSale.paymentStatus === 'pago' ? newSale.saleDate : undefined);
-                administeredDose.payment.amount = newSale.total / saleData.quantity;
-                administeredDose.payment.method = newSale.paymentMethod;
-                administeredDose.payment.dueDate = newSale.paymentDueDate;
+                if (!doseToUpdate.payment) doseToUpdate.payment = { status: 'pendente' };
+                doseToUpdate.payment.status = newSale.paymentStatus;
+                doseToUpdate.payment.date = newSale.paymentDate || (newSale.paymentStatus === 'pago' ? newSale.saleDate : undefined);
+                doseToUpdate.payment.amount = newSale.total / saleData.quantity; // Simplified payment per dose
+                doseToUpdate.payment.method = newSale.paymentMethod;
+                doseToUpdate.payment.dueDate = newSale.paymentDueDate;
 
-                dosesToAdminister--;
-                lastAdministeredDate.setDate(lastAdministeredDate.getDate() + 7);
+                administeredCount++;
             }
         }
-        
-        // Reschedule subsequent pending doses
-        patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
+
+        patient.doses.sort((a, b) => a.doseNumber - b.doseNumber);
         for (let i = 1; i < patient.doses.length; i++) {
-            const prevDose = patient.doses[i-1];
-            const currentDose = patient.doses[i];
-            if (currentDose.status === 'pending') {
+            if (patient.doses[i].status === 'pending') {
+                const prevDose = patient.doses[i - 1];
                 const newDate = new Date(prevDose.date);
                 newDate.setDate(newDate.getDate() + 7);
-                currentDose.date = newDate;
+                patient.doses[i].date = newDate;
             }
         }
     }
@@ -885,28 +898,50 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     data.patients[patientIndex] = patient;
 
     // --- Create Cash Flow Entry ---
-    if (newSale.paymentStatus === 'pago') {
-        const newCashFlowEntry: CashFlowEntry = {
+    const cashFlowAmount = newSale.total - (newSale.operatorFee || 0);
+
+    if (newSale.paymentMethod === 'credito_parcelado' && newSale.installments && newSale.installments > 1 && newSale.paymentDueDate) {
+        const installmentAmount = cashFlowAmount / newSale.installments;
+        const firstDueDate = new Date(newSale.paymentDueDate);
+        
+        for (let i = 0; i < newSale.installments; i++) {
+            const newDueDate = new Date(firstDueDate);
+            newDueDate.setMonth(firstDueDate.getMonth() + i);
+            const cashFlowEntry: CashFlowEntry = {
+                id: `sale-${newSale.id}-${i}`,
+                type: 'entrada',
+                purchaseDate: newSale.saleDate,
+                description: `Venda p/ ${patient.fullName} (Parc. ${i + 1}/${newSale.installments})`,
+                amount: installmentAmount,
+                status: 'pendente',
+                dueDate: newDueDate,
+                paymentMethod: newSale.paymentMethod,
+                installments: `${i + 1}/${newSale.installments}`
+            };
+            data.cashFlowEntries.push(cashFlowEntry);
+        }
+    } else if (newSale.paymentStatus === 'pago') {
+        const cashFlowEntry: CashFlowEntry = {
             id: `sale-${newSale.id}`,
             type: 'entrada',
             purchaseDate: newSale.paymentDate || newSale.saleDate,
-            description: `Venda ${saleData.quantity}x ${saleData.soldDose}mg p/ ${patient.fullName}`,
-            amount: total,
+            description: `Venda p/ ${patient.fullName}`,
+            amount: cashFlowAmount,
             status: 'pago',
-            paymentMethod: saleData.paymentMethod,
+            paymentMethod: newSale.paymentMethod,
         };
-        data.cashFlowEntries.push(newCashFlowEntry);
+        data.cashFlowEntries.push(cashFlowEntry);
     } else if (newSale.paymentStatus === 'pendente' && newSale.paymentDueDate) {
-         const newCashFlowEntry: CashFlowEntry = {
+         const cashFlowEntry: CashFlowEntry = {
             id: `sale-${newSale.id}`,
             type: 'entrada',
             purchaseDate: newSale.saleDate,
-            description: `Venda ${saleData.quantity}x ${saleData.soldDose}mg p/ ${patient.fullName}`,
-            amount: total,
+            description: `Venda p/ ${patient.fullName}`,
+            amount: cashFlowAmount,
             status: 'pendente',
             dueDate: newSale.paymentDueDate,
         };
-        data.cashFlowEntries.push(newCashFlowEntry);
+        data.cashFlowEntries.push(cashFlowEntry);
     }
     
     writeData({ sales: data.sales, patients: data.patients, cashFlowEntries: data.cashFlowEntries, vials: data.vials });
@@ -1234,6 +1269,7 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
     return { ruptureDate: null, purchaseDeadline: null };
 }
+
 
 
 
