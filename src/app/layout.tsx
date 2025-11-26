@@ -7,7 +7,7 @@ import AppLayout from "./app-layout";
 const ptSans = PT_Sans({
   subsets: ["latin"],
   weight: ["400", "700"],
-  variable: '--font-pt-sans',
+  variable: '--font-body',
 });
 
 export const metadata: Metadata = {

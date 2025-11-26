@@ -163,7 +163,7 @@ export default function SalesControlPage() {
 
     const filteredSales = salesInSelectedPeriod.filter(sale => {
         if (paymentFilter !== 'all' && sale.paymentStatus !== paymentFilter) return false;
-        if (deliveryFilter !== 'all' && !sale.deliveries.some(d => d.status === deliveryFilter)) return false;
+        if (deliveryFilter !== 'all' && !(sale.deliveries || []).some(d => d.status === deliveryFilter)) return false;
         if (searchTerm && !sale.patientName.toLowerCase().includes(searchTerm.toLowerCase())) return false;
         return true;
     });
@@ -296,7 +296,7 @@ export default function SalesControlPage() {
                             {filteredSales.length > 0 ? (
                                 filteredSales.map((sale) => {
                                     const paymentStatus = getPaymentStatusVariant(sale.paymentStatus);
-                                    const firstDeliveryStatus = sale.deliveries?.[0]?.status || sale.deliveryStatus;
+                                    const firstDeliveryStatus = sale.deliveries?.[0]?.status || 'em agendamento';
                                     const deliveryStatus = getDeliveryStatusVariant(firstDeliveryStatus);
                                     
                                     return (
@@ -322,7 +322,7 @@ export default function SalesControlPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
-                                                        {sale.deliveries?.map((delivery) => (
+                                                        {(sale.deliveries || []).map((delivery) => (
                                                             <DropdownMenuSub key={delivery.doseNumber}>
                                                                 <DropdownMenuSubTrigger>
                                                                     Dose {delivery.doseNumber}: {getDeliveryStatusVariant(delivery.status).label}

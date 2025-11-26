@@ -131,7 +131,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     style={{ height: `${logoHeight}px` }}
                 />
               ) : (
-                <h1 className="text-2xl font-bold text-primary">FitDose</h1>
+                <h1 className="text-2xl font-bold text-primary">Controle de Doses</h1>
               )}
             </div>
           </SidebarHeader>
@@ -224,12 +224,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={isActive('/sales-control/new')}
-                  tooltip="Lançar Venda"
+                  isActive={isActive('/sales-control')}
+                  tooltip="Vendas"
                 >
-                  <Link href="/sales-control/new">
+                  <Link href="/sales-control">
                     <ShoppingCart />
-                    <span>Lançar Venda</span>
+                    <span>Vendas</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

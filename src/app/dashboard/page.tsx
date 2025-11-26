@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getPatients, getSales, type Patient, type Sale } from "@/lib/actions";
 import { formatCurrency } from "@/lib/utils";
-import { User, BarChart3, PieChart, DollarSign, Link as LinkIcon, Copy, ShoppingCart, PackageX, PackageCheck, AlertCircle, Clock, CalendarIcon, Building, Laptop, Handshake, UserX, Users } from "lucide-react";
+import { User, BarChart3, PieChart, DollarSign, Link as LinkIcon, Copy, ShoppingCart, PackageX, AlertCircle, Clock, UserX, Users, Building, Laptop, Handshake } from "lucide-react";
 import Link from 'next/link';
 import { subDays, format as formatDateFns, startOfToday, isWithinInterval, addDays } from "date-fns";
 import { ptBR } from 'date-fns/locale';
@@ -75,7 +75,6 @@ export default function DashboardPage() {
     dueTodayPatientsCount,
     abandonedPatientsCount,
     pendingPaymentsCount,
-    pendingDeliveriesCount,
     presencialCount,
     onlineCount,
     hibridoCount,
@@ -118,7 +117,7 @@ export default function DashboardPage() {
           .filter(d => d.status === 'pending')
           .map(d => ({ ...d, patientId: p.id, patientName: p.fullName, allDoses: p.doses }))
     );
-    const _overdueDoses = allPendingDoses.filter(d => getOverdueDays(d, d.allDoses) > 0);
+    const _overdueDoses = allPendingDoses.filter(d => getOverdueDays(d, d.allDoses) > 0 && getOverdueDays(d, d.allDoses) < 14);
     const _abandonedDoses = allPendingDoses.filter(d => getOverdueDays(d, d.allDoses) >= 14);
     const _dueToday = allPendingDoses.filter(d => getDaysUntilDose(d) === 0);
     const _overduePatientsCount = new Set(_overdueDoses.map(d => d.patientId)).size;
@@ -136,7 +135,6 @@ export default function DashboardPage() {
     const _salesChartData = Object.entries(salesByDay).map(([name, total]) => ({ name, total })).reverse();
     
     const _pendingPayments = filteredSalesByDate.filter(s => s.paymentStatus === 'pendente').length;
-    const _pendingDeliveries = filteredSalesByDate.filter(s => s.deliveryStatus !== 'entregue').length;
 
     const salesByDose = filteredSalesByDate.reduce((acc, sale) => {
         const dose = `${sale.soldDose} mg`;
@@ -154,7 +152,6 @@ export default function DashboardPage() {
         dueTodayPatientsCount: _dueTodayPatientsCount,
         abandonedPatientsCount: _abandonedPatientsCount,
         pendingPaymentsCount: _pendingPayments,
-        pendingDeliveriesCount: _pendingDeliveries,
         presencialCount: _presencialCount,
         onlineCount: _onlineCount,
         hibridoCount: _hibridoCount,
