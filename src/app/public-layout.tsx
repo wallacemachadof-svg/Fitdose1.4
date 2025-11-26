@@ -52,7 +52,7 @@ export default function PublicLayout({
                 style={{ height: `${logoHeight}px` }}
               />
             ) : (
-              <h1 className="text-3xl font-bold text-primary">FitDose</h1>
+              <h1 className="text-3xl font-bold text-primary">Controle de Doses</h1>
             )}
         </header>
         <main className="p-4 md:p-8 flex items-center justify-center">
@@ -61,5 +61,3 @@ export default function PublicLayout({
     </div>
   );
 }
-
-    
