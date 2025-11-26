@@ -30,7 +30,12 @@ export function FloatingBmiCalculator() {
   }, [weight, height]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLButtonElement) return;
+    // Prevent dragging when clicking on inputs or buttons
+    const target = e.target as HTMLElement;
+    if (target.closest('input') || target.closest('button')) {
+      return;
+    }
+    
     isDragging.current = true;
     dragStartPos.current = {
       x: e.clientX - position.x,
@@ -46,7 +51,7 @@ export function FloatingBmiCalculator() {
     const newX = e.clientX - dragStartPos.current.x;
     const newY = e.clientY - dragStartPos.current.y;
     
-    const maxX = window.innerWidth - (ref.current?.offsetWidth || 350);
+    const maxX = window.innerWidth - (ref.current?.offsetWidth || 320);
     const maxY = window.innerHeight - (ref.current?.offsetHeight || 100);
 
     setPosition({
@@ -93,7 +98,7 @@ export function FloatingBmiCalculator() {
       <Card className="w-80 shadow-2xl">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg">Calculadora de IMC</CardTitle>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsOpen(false)}>
+          <Button variant="ghost" size="icon" className="h-6 w-6 cursor-pointer z-10" onClick={() => setIsOpen(false)}>
             <X className="h-4 w-4" />
           </Button>
         </CardHeader>
@@ -107,6 +112,7 @@ export function FloatingBmiCalculator() {
                 placeholder="Ex: 70.5"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
+                className="cursor-text"
               />
             </div>
             <div className="space-y-2">
@@ -117,6 +123,7 @@ export function FloatingBmiCalculator() {
                 placeholder="Ex: 175"
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
+                className="cursor-text"
               />
             </div>
           </div>
