@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getPatients, getSales, type Patient, type Sale } from "@/lib/actions";
 import { formatCurrency } from "@/lib/utils";
-import { User, BarChart3, PieChart, DollarSign, Link as LinkIcon, Copy, ShoppingCart, PackageX, AlertCircle, Clock, UserX, Users, Building, Laptop, Handshake } from "lucide-react";
+import { User, BarChart3, PieChart, DollarSign, Link as LinkIcon, Copy, ShoppingCart, PackageX, AlertCircle, Clock, UserX, Users, Building, Laptop, Handshake, CalendarIcon } from "lucide-react";
 import Link from 'next/link';
 import { subDays, format as formatDateFns, startOfToday, isWithinInterval, addDays } from "date-fns";
 import { ptBR } from 'date-fns/locale';
