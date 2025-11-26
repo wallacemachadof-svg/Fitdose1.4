@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PlusCircle, MoreVertical, Edit, Trash2, Search, DollarSign, PackageX, ShoppingCart, Truck, Check } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +44,7 @@ export default function SalesControlPage() {
     const [saleToDelete, setSaleToDelete] = useState<Sale | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
+    const router = useRouter();
     const [paymentFilter, setPaymentFilter] = useState<'all' | 'pago' | 'pendente'>('all');
     const [deliveryFilter, setDeliveryFilter] = useState<'all' | 'entregue' | 'em agendamento' | 'em processamento'>('all');
     const [selectedMonth, setSelectedMonth] = useState<string>('current');
@@ -120,11 +122,8 @@ export default function SalesControlPage() {
         }
     };
     
-    const handleEditClick = () => {
-        toast({
-            title: "Função em desenvolvimento",
-            description: "A edição de vendas será implementada em breve.",
-        });
+    const handleEditClick = (sale: Sale) => {
+        router.push(`/sales-control/edit/${sale.id}`);
     }
     
     const today = new Date();
@@ -347,7 +346,7 @@ export default function SalesControlPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem onClick={handleEditClick}>
+                                                        <DropdownMenuItem onClick={() => handleEditClick(sale)}>
                                                             <Edit className="mr-2 h-4 w-4" />
                                                             Editar
                                                         </DropdownMenuItem>
@@ -392,4 +391,3 @@ export default function SalesControlPage() {
         </div>
     );
 }
-

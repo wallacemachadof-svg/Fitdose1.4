@@ -3,10 +3,11 @@
     "id": "manual-1",
     "type": "saida",
     "purchaseDate": "2025-11-18T05:05:13.554Z",
-    "description": "Compra 1x frasco 90mg",
-    "amount": 3150,
+    "description": "Compra 2x frasco 90mg",
+    "amount": 3300,
     "status": "pago",
-    "paymentMethod": "pix"
+    "paymentMethod": "pix",
+    "dueDate": "2025-11-25T03:00:00.000Z"
   },
   {
     "id": "sale-1",
@@ -322,17 +323,6 @@
     "paymentMethod": "pix"
   },
   {
-    "id": "sale-31-0",
-    "type": "entrada",
-    "purchaseDate": "2025-11-18T03:00:00.000Z",
-    "description": "Venda p/ CRISTIANO (Parc. 1/12)",
-    "amount": 175.20000000000002,
-    "status": "pendente",
-    "dueDate": "2025-11-18T03:00:00.000Z",
-    "paymentMethod": "credito_parcelado",
-    "installments": "1/12"
-  },
-  {
     "id": "sale-31-1",
     "type": "entrada",
     "purchaseDate": "2025-11-18T03:00:00.000Z",
@@ -454,17 +444,6 @@
     "installments": "12/12"
   },
   {
-    "id": "sale-32-0",
-    "type": "entrada",
-    "purchaseDate": "2025-11-18T03:00:00.000Z",
-    "description": "Venda p/ SAMARA (Parc. 1/12)",
-    "amount": 175.20000000000002,
-    "status": "pendente",
-    "dueDate": "2025-11-18T03:00:00.000Z",
-    "paymentMethod": "credito_parcelado",
-    "installments": "1/12"
-  },
-  {
     "id": "sale-32-1",
     "type": "entrada",
     "purchaseDate": "2025-11-18T03:00:00.000Z",
@@ -584,5 +563,23 @@
     "dueDate": "2026-10-18T03:00:00.000Z",
     "paymentMethod": "credito_parcelado",
     "installments": "12/12"
+  },
+  {
+    "id": "sale-33",
+    "type": "entrada",
+    "purchaseDate": "2025-11-19T03:00:00.000Z",
+    "description": "Venda p/ CRISTIANO",
+    "amount": 2102,
+    "status": "pago",
+    "paymentMethod": "credito_parcelado"
+  },
+  {
+    "id": "sale-34",
+    "type": "entrada",
+    "purchaseDate": "2025-11-19T03:00:00.000Z",
+    "description": "Venda p/ SAMARA CRISTINA",
+    "amount": 2102,
+    "status": "pago",
+    "paymentMethod": "credito_parcelado"
   }
 ]

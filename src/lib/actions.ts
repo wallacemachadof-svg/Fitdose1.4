@@ -808,6 +808,12 @@ export const getSales = async (): Promise<Sale[]> => {
   return [...sales].sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
 };
 
+export const getSaleById = async (id: string): Promise<Sale | null> => {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const { sales } = readData();
+    return sales.find(s => s.id === id) ?? null;
+}
+
 export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     const data = readData();
     const patientIndex = data.patients.findIndex(p => p.id === saleData.patientId);
@@ -817,7 +823,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     const patient = data.patients[patientIndex];
     
     // --- Create Sale ---
-    const newId = (data.sales.length > 0 ? Math.max(...data.sales.map(s => parseInt(s.id, 10))) : 0) + 1;
+    const newId = (data.sales.length > 0 ? Math.max(...data.sales.map(s => parseInt(s.id, 10)).filter(Number.isFinite)) : 0) + 1;
     const total = saleData.total;
     
     const newSale: Sale = {
@@ -825,7 +831,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         ...saleData,
         patientName: patient.fullName,
         total: total,
-        vialUsage: [], // Initially empty, populated on delivery
+        vialUsage: [],
     };
 
     // --- Handle Bioimpedance ---
@@ -847,12 +853,12 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     
     // --- Handle Dose Updates (Payment & Administration) ---
     patient.doses.sort((a, b) => a.doseNumber - b.doseNumber);
-    const pendingDoses = patient.doses.filter(d => d.status === 'pending');
     
     for (let i = 0; i < saleData.quantity; i++) {
-        if (i < pendingDoses.length) {
-            const doseToUpdate = pendingDoses[i];
-            const deliveryInfo = saleData.deliveries.find(d => d.doseNumber === doseToUpdate.doseNumber);
+        const doseToUpdateIndex = patient.doses.findIndex(d => d.status === 'pending');
+        if (doseToUpdateIndex !== -1) {
+            const doseToUpdate = patient.doses[doseToUpdateIndex];
+            const deliveryInfo = saleData.deliveries.find(d => d.doseNumber === (i + 1)); // Match by delivery sequence
 
             // Update payment status for all doses in the package
             if (!doseToUpdate.payment) doseToUpdate.payment = { status: 'pendente' };
@@ -960,6 +966,83 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     await new Promise(resolve => setTimeout(resolve, 100));
     return newSale;
 };
+
+export const updateSale = async (id: string, saleData: NewSaleData): Promise<Sale> => {
+    const data = readData();
+    const saleIndex = data.sales.findIndex(s => s.id === id);
+    if (saleIndex === -1) {
+        throw new Error("Venda não encontrada.");
+    }
+
+    // Remove old cash flow entries related to this sale
+    data.cashFlowEntries = data.cashFlowEntries.filter(cf => !cf.id.startsWith(`sale-${id}`));
+    
+    // Create new sale object
+    const updatedSale: Sale = {
+        ...data.sales[saleIndex],
+        ...saleData,
+    };
+    
+    // --- Re-create Cash Flow Entry based on new data ---
+    if (updatedSale.paymentStatus === 'pago') {
+        const netAmount = updatedSale.total - (updatedSale.operatorFee || 0);
+        
+        if (updatedSale.cashFlowMethod === 'installments' && updatedSale.installments && updatedSale.installments > 1 && updatedSale.paymentDate) {
+            const installmentAmount = netAmount / updatedSale.installments;
+            const firstDueDate = updatedSale.paymentDate;
+            for (let i = 0; i < updatedSale.installments; i++) {
+                const newDueDate = new Date(firstDueDate);
+                newDueDate.setMonth(firstDueDate.getMonth() + i);
+                data.cashFlowEntries.push({
+                    id: `sale-${updatedSale.id}-${i}`,
+                    type: 'entrada',
+                    purchaseDate: updatedSale.saleDate,
+                    description: `Venda p/ ${updatedSale.patientName} (Parc. ${i + 1}/${updatedSale.installments})`,
+                    amount: installmentAmount,
+                    status: 'pendente',
+                    dueDate: newDueDate,
+                    paymentMethod: updatedSale.paymentMethod,
+                    installments: `${i + 1}/${updatedSale.installments}`,
+                });
+            }
+        } else {
+             let entryDate = updatedSale.paymentDate || updatedSale.saleDate;
+             if (updatedSale.paymentMethod === 'credito_parcelado' || updatedSale.paymentMethod === 'credito') {
+                 let nextBusinessDay = addDays(updatedSale.saleDate, 1);
+                 while (isWeekend(nextBusinessDay)) {
+                     nextBusinessDay = addDays(nextBusinessDay, 1);
+                 }
+                 entryDate = nextBusinessDay;
+             }
+             data.cashFlowEntries.push({
+                id: `sale-${updatedSale.id}`,
+                type: 'entrada',
+                purchaseDate: entryDate,
+                description: `Venda p/ ${updatedSale.patientName}`,
+                amount: netAmount,
+                status: 'pago',
+                paymentMethod: updatedSale.paymentMethod,
+            });
+        }
+    } else if (updatedSale.paymentStatus === 'pendente') {
+         data.cashFlowEntries.push({
+            id: `sale-${updatedSale.id}`,
+            type: 'entrada',
+            purchaseDate: updatedSale.saleDate,
+            description: `Venda p/ ${updatedSale.patientName}`,
+            amount: updatedSale.total,
+            status: 'pendente',
+            paymentMethod: updatedSale.paymentMethod,
+            dueDate: updatedSale.paymentDueDate,
+        });
+    }
+
+    data.sales[saleIndex] = updatedSale;
+
+    writeData({ sales: data.sales, cashFlowEntries: data.cashFlowEntries });
+    return updatedSale;
+};
+
 
 export const deleteSale = async (id: string): Promise<void> => {
     const data = readData();
@@ -1364,3 +1447,4 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
     return { ruptureDate: null, purchaseDeadline: null, totalPendingMg };
 }
+
