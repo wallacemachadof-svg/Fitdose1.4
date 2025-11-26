@@ -15,6 +15,11 @@ export function FloatingBmiCalculator() {
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
   const [bmi, setBmi] = useState<number | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (weight && height) {
@@ -24,6 +29,10 @@ export function FloatingBmiCalculator() {
       setBmi(null);
     }
   }, [weight, height]);
+
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
