@@ -345,15 +345,15 @@ export default function PatientRegistrationForm() {
     };
 
 
-    const consentText = `Declaro, para todos os fins legais, que fui devidamente informado(a) e esclarecido(a) sobre o uso de Tirzepatida manipulada, prescrita de forma individualizada para fins terapêuticos relacionados ao tratamento de sobrepeso e obesidade, visando redução ponderal, melhora metabólica e otimização da saúde de acordo com minha avaliação clínica. Tenho ciência de que o produto utilizado é uma formulação magistral produzida por farmácia autorizada e regulada pelos órgãos de vigilância sanitária, não se caracterizando como Monjauro®, Mounjaro® ou qualquer medicamento industrializado de referência, genérico ou similar. Reconheço que formulações manipuladas podem apresentar diferenças inerentes ao processo produtivo e que a resposta clínica pode variar conforme condições individuais.
+    const consentText = `Declaro, para todos os fins legais, que fui devidamente informado(a) e esclarecido(a) sobre o uso de Tirzepatida manipulada, prescrita de forma individualizada para fins terapêuticos relacionados ao acompanhamento de sobrepeso e obesidade, visando redução ponderal, melhora metabólica e otimização da saúde de acordo com minha avaliação clínica. Tenho ciência de que o produto utilizado é uma formulação magistral produzida por farmácia autorizada e regulada pelos órgãos de vigilância sanitária, não se caracterizando como Monjauro®, Mounjaro® ou qualquer medicamento industrializado de referência, genérico ou similar. Reconheço que formulações manipuladas podem apresentar diferenças inerentes ao processo produtivo e que a resposta clínica pode variar conforme condições individuais.
 
-Fui esclarecido(a) quanto ao mecanismo de ação da Tirzepatida, agonista dos receptores GIP e GLP-1, responsável por atuar na modulação da regulação glicêmica, no aumento da saciedade, na redução da fome e na regulação metabólica, podendo promover redução de peso quando associada a orientação nutricional, mudanças de comportamento e acompanhamento clínico. Estou ciente de que a eficácia do tratamento depende do uso correto, de acompanhamento periódico e da adesão às recomendações profissionais, não havendo garantia absoluta de resultado, uma vez que a resposta pode variar de pessoa para pessoa.
+Fui esclarecido(a) quanto ao mecanismo de ação da Tirzepatida, agonista dos receptores GIP e GLP-1, responsável por atuar na modulação da regulação glicêmica, no aumento da saciedade, na redução da fome e na regulação metabólica, podendo promover redução de peso quando associada a orientação nutricional, mudanças de comportamento e acompanhamento clínico. Estou ciente de que a eficácia do protocolo depende do uso correto, de acompanhamento periódico e da adesão às recomendações profissionais, não havendo garantia absoluta de resultado, uma vez que a resposta pode variar de pessoa para pessoa.
 
 Tenho total ciência dos possíveis riscos, eventos adversos e efeitos colaterais que podem ocorrer durante o uso da Tirzepatida, incluindo, mas não se limitando a náuseas, constipação, refluxo, diarreia, dor abdominal, perda de apetite, cefaleia, hipoglicemia em pacientes diabéticos, alterações gastrointestinais mais intensas, colelitíase, alterações no funcionamento pancreático e, em situações raras, quadros de pancreatite. Fui orientado(a) sobre a necessidade de comunicar imediatamente qualquer sintoma inesperado ou reação adversa ao profissional responsável.
 
 Confirmo que forneci informações verdadeiras e completas sobre meu histórico de saúde, uso de medicamentos e condições pré-existentes. Entendo que a omissão de informações pode acarretar riscos à minha saúde e isento o profissional e a farmácia de manipulação de qualquer responsabilidade decorrente de informações omitidas ou falsas.
 
-Autorizo, por livre e espontânea vontade, a prescrição e o início do tratamento com Tirzepatida manipulada, estando ciente de todos os termos aqui apresentados e comprometendo-me a seguir rigorosamente todas as orientações.`;
+Autorizo, por livre e espontânea vontade, a prescrição e o início do protocolo com Tirzepatida manipulada, estando ciente de todos os termos aqui apresentados e comprometendo-me a seguir rigorosamente todas as orientações.`;
 
     if (!showForm) {
       return (
@@ -364,7 +364,7 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do tratame
                     <Image src={logoUrl} alt="Logo" width={400} height={80} className="object-contain max-h-full"/>
                 </div>
             )}
-            <CardTitle className="text-3xl font-bold mt-4">Bem-vindo(a) ao seu Tratamento!</CardTitle>
+            <CardTitle className="text-3xl font-bold mt-4">Bem-vindo(a) à sua Jornada!</CardTitle>
             <CardDescription>
               Vamos começar sua jornada de transformação. Preencha o formulário para que possamos personalizar seu acompanhamento.
             </CardDescription>
@@ -751,3 +751,5 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do tratame
         </Card>
     )
 }
+
+    

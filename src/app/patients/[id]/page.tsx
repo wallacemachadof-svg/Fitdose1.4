@@ -532,7 +532,7 @@ export default function PatientDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle>Agenda de Doses</CardTitle>
-          <CardDescription>Acompanhe o progresso do tratamento.</CardDescription>
+          <CardDescription>Acompanhe o cronograma de aplicações.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -755,3 +755,6 @@ const isSameDay = (date1: Date, date2: Date) =>
 
 
 
+
+
+    

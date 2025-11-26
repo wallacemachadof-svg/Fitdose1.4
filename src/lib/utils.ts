@@ -163,7 +163,7 @@ Olá! Verificamos em nosso sistema que a sua Dose (Nº ${dose.doseNumber}) agend
 
 Se você já fez a aplicação, desconsidere esta mensagem!
 
-Se ainda não fez: É fundamental seguir o cronograma para manter a eficácia total do seu tratamento de Emagrecimento & Estética.
+Se ainda não fez: É fundamental seguir o cronograma para manter a eficácia total do seu protocolo de emagrecimento.
 
 👉 AÇÃO IMEDIATA: Por favor, responda a esta mensagem ou ligue para [Seu Telefone/Contato] imediatamente se você tiver qualquer dificuldade ou se precisar de auxílio.
 
@@ -263,3 +263,5 @@ Qualquer dúvida, é só me chamar! Vamos com tudo! 💪`;
     if (!cleanPhoneNumber) return '';
     return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
 }
+
+    
