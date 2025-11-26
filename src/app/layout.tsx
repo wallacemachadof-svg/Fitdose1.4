@@ -23,7 +23,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={ptSans.className}>
-        <AppLayout>{children}</AppLayout>
+        {children}
         <Toaster />
       </body>
     </html>
