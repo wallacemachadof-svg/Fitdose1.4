@@ -12,10 +12,12 @@ import {
   deleteBioimpedanceEntry,
   getSettings,
   updateDosePayment,
+  endTreatment,
   type Patient,
   type Dose,
   type Evolution,
   type Bioimpedance,
+  type TreatmentStatus,
 } from '@/lib/actions';
 import {
   calculateBmi,
@@ -66,6 +68,7 @@ import {
     Network,
     AlertTriangle,
     Apple,
+    UserX,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -91,6 +94,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip as Recharts
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 function DosePaymentEditor({ dose, patientId, onUpdate }: { dose: Dose; patientId: string; onUpdate: (updatedPatient: Patient) => void; }) {
     const [status, setStatus] = useState(dose.payment.status);
@@ -233,6 +237,82 @@ const useSettings = () => {
     return { settings };
 }
 
+function EndTreatmentDialog({ patient, onTreatmentEnded }: { patient: Patient, onTreatmentEnded: () => void }) {
+    const [status, setStatus] = useState<TreatmentStatus>('completed');
+    const [reason, setReason] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [open, setOpen] = useState(false);
+    const { toast } = useToast();
+
+    const handleSubmit = async () => {
+        if (!reason) {
+            toast({ variant: 'destructive', title: 'Motivo obrigatório', description: 'Por favor, descreva o motivo da finalização.' });
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            await endTreatment(patient.id, status, reason);
+            toast({ title: 'Tratamento Finalizado!', description: `${patient.fullName} foi movido para a lista de tratamentos finalizados.` });
+            onTreatmentEnded();
+            setOpen(false);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível finalizar o tratamento.' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline">
+                    <UserX className="mr-2 h-4 w-4" />
+                    Finalizar Tratamento
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Finalizar tratamento de {patient.fullName}</DialogTitle>
+                    <DialogDescription>
+                        Selecione o motivo e adicione uma nota de evolução. O paciente será movido para a lista de "Tratamentos Finalizados".
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label>Motivo da Finalização</Label>
+                        <Select value={status} onValueChange={(v) => setStatus(v as TreatmentStatus)}>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="completed">Tratamento Concluído</SelectItem>
+                                <SelectItem value="abandoned">Abandono de Tratamento</SelectItem>
+                                <SelectItem value="non-payment">Inadimplência</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="termination-reason">Nota de Evolução / Detalhes</Label>
+                        <Textarea
+                            id="termination-reason"
+                            placeholder="Ex: Paciente atingiu a meta de peso e recebeu alta."
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleSubmit} disabled={isSubmitting || !reason}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Confirmar Finalização
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function PatientDetailPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [settings, setSettings] = useState<{ dailyLateFee?: number }>({});
@@ -247,21 +327,21 @@ export default function PatientDetailPage() {
   const params = useParams();
   const patientId = params.id as string;
 
+  const fetchPatientData = async () => {
+    const [fetchedPatient, fetchedSettings] = await Promise.all([
+      getPatientById(patientId),
+      getSettings()
+    ]);
+    if (!fetchedPatient) {
+      notFound();
+    }
+    setPatient(fetchedPatient);
+    setSettings(fetchedSettings);
+    setLoading(false);
+  };
+
   useEffect(() => {
     if (!patientId) return;
-    const fetchPatientData = async () => {
-      const [fetchedPatient, fetchedSettings] = await Promise.all([
-        getPatientById(patientId),
-        getSettings()
-      ]);
-      if (!fetchedPatient) {
-        notFound();
-      }
-      setPatient(fetchedPatient);
-      setSettings(fetchedSettings);
-      setLoading(false);
-    };
-
     fetchPatientData();
   }, [patientId]);
 
@@ -456,6 +536,7 @@ export default function PatientDetailPage() {
                 <Apple className="mr-2 h-4 w-4" />
                 Avaliação Nutricional
             </Button>
+            <EndTreatmentDialog patient={patient} onTreatmentEnded={() => router.push('/finished-treatments')} />
             <Button asChild>
                 <Link href={`/patients/${patientId}/edit`}>
                     <Pencil className="mr-2 h-4 w-4" />
@@ -880,5 +961,6 @@ const isSameDay = (date1: Date, date2: Date) =>
 
 
     
+
 
 
