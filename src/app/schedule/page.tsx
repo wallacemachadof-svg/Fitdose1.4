@@ -35,7 +35,8 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onRe
     const [open, setOpen] = useState(false);
     const [newDate, setNewDate] = useState('');
     const [newTime, setNewTime] = useState('');
-
+    
+    // Use an effect to safely set initial state on the client
     useEffect(() => {
         if (open) {
             setNewDate(formatDateFns(new Date(event.dose.date), 'yyyy-MM-dd'));
@@ -45,7 +46,7 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onRe
 
     const handleSave = () => {
         if (newDate && newTime) {
-            //Handles timezone offset when parsing date from input
+            // Handles timezone offset when parsing date from input
             const dateParts = newDate.split('-').map(Number);
             const parsedDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
 
@@ -149,7 +150,7 @@ export default function SchedulePage() {
     const dayEvents = events.filter(event => isSameDay(event.date, date));
     if (dayEvents.length > 0) {
       return (
-        <div className="relative">
+        <div className="relative h-full w-full flex items-center justify-center">
           {formatDateFns(date, 'd')}
           <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex space-x-1">
             {dayEvents.slice(0, 3).map(event => {
@@ -203,7 +204,7 @@ export default function SchedulePage() {
               className="w-full"
               locale={ptBR}
               components={{
-                Day: ({ date }) => <DayCell date={date} />,
+                Day: DayCell,
               }}
             />
           </CardContent>
