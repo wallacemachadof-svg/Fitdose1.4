@@ -90,6 +90,7 @@ import { ptBR } from 'date-fns/locale';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 function DosePaymentEditor({ dose, patientId, onUpdate }: { dose: Dose; patientId: string; onUpdate: (updatedPatient: Patient) => void; }) {
     const [status, setStatus] = useState(dose.payment.status);
@@ -876,3 +877,4 @@ const isSameDay = (date1: Date, date2: Date) =>
 
 
     
+
