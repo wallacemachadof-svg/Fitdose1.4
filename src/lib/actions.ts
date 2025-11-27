@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { calculateBmi } from "./utils";
@@ -633,6 +634,8 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     
     // Sort doses by number to ensure correct order
     patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
+    // Find the index again after sorting
+    doseIndex = patient.doses.findIndex(d => d.id === doseId);
 
     // Reschedule subsequent pending doses
     for (let i = doseIndex + 1; i < patient.doses.length; i++) {
@@ -663,38 +666,32 @@ export const updateDosePayment = async (patientId: string, doseId: number, payme
     if (doseIndex === -1) throw new Error("Dose não encontrada.");
 
     const originalStatus = patient.doses[doseIndex].payment.status;
+    const dose = patient.doses[doseIndex];
 
-    patient.doses[doseIndex].payment = {
-        ...patient.doses[doseIndex].payment,
+    dose.payment = {
+        ...dose.payment,
         ...paymentData,
     };
     
     // If payment status changed to 'pago', find the related cash flow entry and update it.
     if(originalStatus !== 'pago' && paymentData.status === 'pago') {
-        const dose = patient.doses[doseIndex];
-        const saleId = data.sales.find(s => s.patientId === patientId && s.saleDate.getTime() === dose.date.getTime())?.id;
-        
-        let cashFlowEntryId: string | undefined;
-        if (saleId) {
-            cashFlowEntryId = data.cashFlowEntries.find(cf => cf.id.startsWith(`sale-${saleId}`))?.id;
-        } else {
-            // Find manually created cash flow based on description and patient
-            cashFlowEntryId = data.cashFlowEntries.find(cf => 
-                cf.description.toLowerCase().includes(patient.fullName.toLowerCase()) && 
-                cf.amount === dose.payment.amount
-            )?.id;
-        }
+        const cashFlowEntryToUpdate = data.cashFlowEntries.find(cf => 
+            cf.id.startsWith(`sale-`) && // Make sure it's a sale entry
+            cf.description.includes(patient.fullName) && 
+            cf.amount.toFixed(2) === (dose.payment.amount || 0).toFixed(2) &&
+            cf.status === 'pendente'
+        );
 
-        if(cashFlowEntryId) {
-            const cashFlowIndex = data.cashFlowEntries.findIndex(cf => cf.id === cashFlowEntryId);
+        if(cashFlowEntryToUpdate) {
+            const cashFlowIndex = data.cashFlowEntries.findIndex(cf => cf.id === cashFlowEntryToUpdate.id);
             if(cashFlowIndex !== -1) {
                 data.cashFlowEntries[cashFlowIndex].status = 'pago';
-                data.cashFlowEntries[cashFlowIndex].purchaseDate = paymentData.date || new Date(); // Using payment date as purchase date for paid entries
+                data.cashFlowEntries[cashFlowIndex].purchaseDate = paymentData.date || new Date();
                 data.cashFlowEntries[cashFlowIndex].paymentMethod = paymentData.method;
+                data.cashFlowEntries[cashFlowIndex].dueDate = paymentData.date || new Date();
             }
         }
     }
-
 
     data.patients[patientIndex] = patient;
     writeData({ patients: data.patients, cashFlowEntries: data.cashFlowEntries });
@@ -853,12 +850,12 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
     
     // --- Handle Dose Updates (Payment & Administration) ---
     patient.doses.sort((a, b) => a.doseNumber - b.doseNumber);
+    let dosesUpdatedCount = 0;
     
-    for (let i = 0; i < saleData.quantity; i++) {
-        const doseToUpdateIndex = patient.doses.findIndex(d => d.status === 'pending');
-        if (doseToUpdateIndex !== -1) {
-            const doseToUpdate = patient.doses[doseToUpdateIndex];
-            const deliveryInfo = saleData.deliveries.find(d => d.doseNumber === (i + 1)); // Match by delivery sequence
+    for (let i = 0; i < patient.doses.length && dosesUpdatedCount < saleData.quantity; i++) {
+        const doseToUpdate = patient.doses[i];
+        if (doseToUpdate.status === 'pending') {
+            const deliveryInfo = saleData.deliveries.find(d => d.doseNumber === (dosesUpdatedCount + 1));
 
             // Update payment status for all doses in the package
             if (!doseToUpdate.payment) doseToUpdate.payment = { status: 'pendente' };
@@ -872,6 +869,7 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             if (deliveryInfo && deliveryInfo.status === 'entregue' && deliveryInfo.deliveryDate) {
                  updateSaleDelivery(newSale.id, doseToUpdate.doseNumber, 'entregue', deliveryInfo.deliveryDate);
             }
+            dosesUpdatedCount++;
         }
     }
 
@@ -1419,13 +1417,7 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
 
     const totalPendingMg = futureDoses.reduce((acc, dose) => acc + dose.mg, 0);
 
-    if (currentStockMg <= 0 && totalPendingMg > 0) {
-        const firstDemandDate = futureDoses[0].date;
-        const purchaseDeadline = new Date(firstDemandDate);
-        purchaseDeadline.setDate(purchaseDeadline.getDate() - deliveryLeadTimeDays);
-        return { ruptureDate: firstDemandDate, purchaseDeadline, totalPendingMg };
-    }
-     if (totalPendingMg === 0) {
+    if (futureDoses.length === 0) {
         return { ruptureDate: null, purchaseDeadline: null, totalPendingMg };
     }
     
