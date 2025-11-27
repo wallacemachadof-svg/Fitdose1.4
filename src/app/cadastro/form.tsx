@@ -484,8 +484,8 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do protoco
                                             <FormLabel className="font-normal flex items-center gap-1.5">
                                                 Presencial
                                                 <Tooltip>
-                                                    <TooltipTrigger><Info className="h-3 w-3 text-muted-foreground"/></TooltipTrigger>
-                                                    <TooltipContent><p>Dose e pesagem semanal em nosso espaço.</p></TooltipContent>
+                                                    <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground"/></TooltipTrigger>
+                                                    <TooltipContent><p>Nosso acompanhamento completo. Inclui a aplicação da dose e a pesagem<br/>semanal em nosso espaço para um cuidado próximo e personalizado.</p></TooltipContent>
                                                 </Tooltip>
                                             </FormLabel>
                                         </FormItem>
@@ -494,8 +494,8 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do protoco
                                             <FormLabel className="font-normal flex items-center gap-1.5">
                                                 Online
                                                 <Tooltip>
-                                                    <TooltipTrigger><Info className="h-3 w-3 text-muted-foreground"/></TooltipTrigger>
-                                                    <TooltipContent><p>Envio da dose para aplicação em casa.</p></TooltipContent>
+                                                    <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground"/></TooltipTrigger>
+                                                    <TooltipContent><p>Receba a dose em casa e faça a aplicação no seu tempo. Ideal para quem<br/>busca flexibilidade e já tem autonomia no processo.</p></TooltipContent>
                                                 </Tooltip>
                                             </FormLabel>
                                         </FormItem>
@@ -504,8 +504,8 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do protoco
                                             <FormLabel className="font-normal flex items-center gap-1.5">
                                                 Híbrido
                                                 <Tooltip>
-                                                    <TooltipTrigger><Info className="h-3 w-3 text-muted-foreground"/></TooltipTrigger>
-                                                    <TooltipContent><p>Dose semanal presencial, sem acompanhamento de peso.</p></TooltipContent>
+                                                    <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground"/></TooltipTrigger>
+                                                    <TooltipContent><p>Você vem até nós para a aplicação da dose semanal, mas faz o<br/>acompanhamento do peso por conta própria. Une a segurança da<br/>aplicação profissional com a sua flexibilidade.</p></TooltipContent>
                                                 </Tooltip>
                                             </FormLabel>
                                         </FormItem>
