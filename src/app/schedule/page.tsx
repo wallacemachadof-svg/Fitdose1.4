@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { getDoseStatus, generateGoogleCalendarLink, formatDate } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
-import { format as formatDateFns, parse } from 'date-fns';
+import { format as formatDateFns, parse, isSameDay } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { FaWhatsapp } from 'react-icons/fa';
 import { generateWhatsAppLink } from '@/lib/utils';
@@ -45,7 +45,10 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onRe
 
     const handleSave = () => {
         if (newDate && newTime) {
-            const parsedDate = parse(newDate, 'yyyy-MM-dd', new Date());
+            //Handles timezone offset when parsing date from input
+            const dateParts = newDate.split('-').map(Number);
+            const parsedDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+
             if (!isNaN(parsedDate.getTime())) {
                  onReschedule(event.patientId, event.dose.id, parsedDate, newTime);
                  setOpen(false);
@@ -134,7 +137,7 @@ export default function SchedulePage() {
   const selectedDayEvents = useMemo(() => {
     if (!date) return [];
     return events
-      .filter(event => formatDateFns(event.date, 'yyyy-MM-dd') === formatDateFns(date, 'yyyy-MM-dd'))
+      .filter(event => isSameDay(event.date, date))
       .sort((a, b) => {
         const timeA = a.dose.time || '00:00';
         const timeB = b.dose.time || '00:00';
@@ -143,7 +146,7 @@ export default function SchedulePage() {
   }, [date, events]);
 
   const DayCell = ({ date }: { date: Date }) => {
-    const dayEvents = events.filter(event => formatDateFns(event.date, 'yyyy-MM-dd') === formatDateFns(date, 'yyyy-MM-dd'));
+    const dayEvents = events.filter(event => isSameDay(event.date, date));
     if (dayEvents.length > 0) {
       return (
         <div className="relative">
