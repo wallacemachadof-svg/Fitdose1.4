@@ -1474,11 +1474,8 @@ export const endTreatment = async (patientId: string, status: TreatmentStatus, r
     };
 
     patient.evolutions.push(newEvolution);
-    patient.doses.forEach(dose => {
-        if(dose.status === 'pending') {
-            dose.status = 'administered'; // To avoid showing them in pending lists
-        }
-    })
+    // Remove pending doses instead of marking them as administered
+    patient.doses = patient.doses.filter(dose => dose.status !== 'pending');
 
 
     data.patients[patientIndex] = patient;
@@ -1498,15 +1495,16 @@ export const reactivateTreatment = async (patientId: string): Promise<Patient> =
     patient.terminationReason = undefined;
     patient.terminationDate = undefined;
 
-    const lastDose = patient.doses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-    const newStartDate = lastDose ? addDays(new Date(lastDose.date), 7) : new Date();
-
-    patient.doses = generateDoseSchedule(newStartDate, 12, lastDose ? lastDose.doseNumber + 1 : 1, []);
-
+    const administeredDoses = patient.doses.filter(d => d.status === 'administered');
+    const lastAdministeredDose = administeredDoses.length > 0 
+        ? [...administeredDoses].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+        : null;
+        
+    const newStartDate = lastAdministeredDose ? addDays(new Date(lastAdministeredDose.date), 7) : (patient.firstDoseDate || new Date());
+    
+    patient.doses = generateDoseSchedule(newStartDate, 12, 1, administeredDoses);
 
     data.patients[patientIndex] = patient;
     writeData({ patients: data.patients });
     return patient;
 }
-
-    
