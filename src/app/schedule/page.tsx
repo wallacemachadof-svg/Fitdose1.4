@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { getPatients, updateDose, type Patient, type Dose } from '@/lib/actions';
-import { Calendar, type DayProps } from '@/components/ui/calendar';
+import { Calendar as CalendarComponent, type DayProps } from '@/components/ui/calendar'; // Renamed to avoid conflict
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { getDoseStatus, generateGoogleCalendarLink, formatDate } from '@/lib/utils';
@@ -35,8 +35,7 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onRe
     const [open, setOpen] = useState(false);
     const [newDate, setNewDate] = useState('');
     const [newTime, setNewTime] = useState('');
-    
-    // Use an effect to safely set initial state on the client
+
     useEffect(() => {
         if (open) {
             setNewDate(formatDateFns(new Date(event.dose.date), 'yyyy-MM-dd'));
@@ -46,16 +45,15 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onRe
 
     const handleSave = () => {
         if (newDate && newTime) {
-            // Handles timezone offset when parsing date from input
             const dateParts = newDate.split('-').map(Number);
             const parsedDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
 
             if (!isNaN(parsedDate.getTime())) {
-                 onReschedule(event.patientId, event.dose.id, parsedDate, newTime);
-                 setOpen(false);
+                onReschedule(event.patientId, event.dose.id, parsedDate, newTime);
+                setOpen(false);
             }
         }
-    }
+    };
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -65,7 +63,7 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onRe
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-4 space-y-4">
-                 <div>
+                <div>
                     <h4 className="font-medium leading-none">Reagendar Dose</h4>
                     <p className="text-sm text-muted-foreground">Selecione a nova data e hora.</p>
                 </div>
@@ -82,7 +80,7 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onRe
                 <Button onClick={handleSave} className="w-full">Salvar</Button>
             </PopoverContent>
         </Popover>
-    )
+    );
 }
 
 export default function SchedulePage() {
@@ -146,38 +144,27 @@ export default function SchedulePage() {
       });
   }, [date, events]);
 
-  const DayCell = (dayProps: DayProps) => {
-    const { date } = dayProps;
+  const DayCell = ({ date, ...props }: DayProps) => {
     const dayEvents = events.filter(event => isSameDay(event.date, date));
-    
-    // Original Day component from react-day-picker
-    const Day = (
-      <div className="relative h-full w-full flex items-center justify-center">
-        {formatDateFns(date, 'd')}
-      </div>
-    );
-  
-    if (dayEvents.length > 0) {
-      return (
-        <div className="relative h-full w-full flex items-center justify-center">
-          {formatDateFns(date, 'd')}
-          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex space-x-1">
-            {dayEvents.slice(0, 3).map(event => {
-                const status = getDoseStatus(event.dose, event.allDoses);
-                let colorClass = 'bg-gray-400';
-                if (status.color.includes('red-900')) colorClass = 'bg-red-900';
-                else if (status.color.includes('red')) colorClass = 'bg-red-500';
-                else if (status.color.includes('orange')) colorClass = 'bg-orange-500';
-                else if (status.color.includes('yellow')) colorClass = 'bg-yellow-500';
-                else if (status.color.includes('green')) colorClass = 'bg-green-500';
+    return (
+        <div className="relative h-full w-full">
+            {dayEvents.length > 0 && (
+                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex space-x-1">
+                    {dayEvents.slice(0, 3).map(event => {
+                        const status = getDoseStatus(event.dose, event.allDoses);
+                        let colorClass = 'bg-gray-400';
+                        if (status.color.includes('red-900')) colorClass = 'bg-red-900';
+                        else if (status.color.includes('red')) colorClass = 'bg-red-500';
+                        else if (status.color.includes('orange')) colorClass = 'bg-orange-500';
+                        else if (status.color.includes('yellow')) colorClass = 'bg-yellow-500';
+                        else if (status.color.includes('green')) colorClass = 'bg-green-500';
 
-                return <div key={`${event.patientId}-${event.dose.id}`} className={`h-1.5 w-1.5 rounded-full ${colorClass}`} />;
-            })}
-          </div>
+                        return <div key={`${event.patientId}-${event.dose.id}`} className={`h-1.5 w-1.5 rounded-full ${colorClass}`} />;
+                    })}
+                </div>
+            )}
         </div>
-      );
-    }
-    return Day;
+    );
   };
   
   if (loading) {
@@ -206,7 +193,7 @@ export default function SchedulePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <Card className="lg:col-span-2">
           <CardContent className="p-2">
-            <Calendar
+            <CalendarComponent
               mode="single"
               selected={date}
               onSelect={setDate}
