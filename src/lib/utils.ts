@@ -62,7 +62,7 @@ export function getDoseStatus(dose: Dose, allDoses: Dose[] = []) {
       return { label: `Vencida há ${overdueDays}d`, color: "bg-red-500", textColor: "text-white" };
   }
   if (daysUntilDose === 0) {
-    return { label: "Vence Hoje", color: "bg-amber-500", textColor: "text-white" };
+    return { label: "Vence Hoje", color: "bg-orange-500", textColor: "text-white" };
   }
   if (daysUntilDose <= 3) {
     return { label: `Vence em ${daysUntilDose}d`, color: "bg-yellow-500", textColor: "text-white" };
@@ -186,7 +186,7 @@ Que tal retomarmos? Podemos agendar um horário flexível para você. Seus resul
 Nos dê um alô para conversarmos. ✨`;
 
     const encodedMessage = encodeURIComponent(message);
-    const cleanPhoneNumber = patient.phone?.replace(/\D/g, '') || '';
+    const cleanPhoneNumber = (patient.phone || '').replace(/\D/g, '');
     return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
 }
 

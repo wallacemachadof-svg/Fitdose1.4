@@ -48,6 +48,7 @@ export default function NewVialPage() {
         resolver: zodResolver(vialFormSchema),
         defaultValues: {
             quantity: 1,
+            purchaseDate: new Date(),
         },
     });
 

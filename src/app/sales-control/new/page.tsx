@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -103,7 +102,7 @@ function NewVialDialog({ onVialAdded }: { onVialAdded: () => void }) {
 
     const form = useForm<VialFormValues>({
         resolver: zodResolver(vialFormSchema),
-        defaultValues: { quantity: 1 },
+        defaultValues: { quantity: 1, purchaseDate: new Date() },
     });
 
     async function onSubmit(data: VialFormValues) {
@@ -116,7 +115,7 @@ function NewVialDialog({ onVialAdded }: { onVialAdded: () => void }) {
             });
             onVialAdded();
             setOpen(false);
-            form.reset();
+            form.reset({ quantity: 1, purchaseDate: new Date() });
         } catch (error) {
             toast({ variant: "destructive", title: "Erro ao adicionar frasco", description: error instanceof Error ? error.message : "Tente novamente." });
         } finally {
@@ -346,7 +345,7 @@ export default function NewSalePage() {
                 title: "Venda Registrada!",
                 description: `A venda para ${selectedPatient?.fullName} foi registrada com sucesso.`,
             });
-            router.push("/patients");
+            router.push(`/patients/${data.patientId}`);
         } catch (error) {
              const errorMessage = error instanceof Error ? error.message : "Não foi possível salvar a venda. Tente novamente.";
              toast({
@@ -638,22 +637,18 @@ export default function NewSalePage() {
                                 )}
                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                                      <FormField control={control} name="cashFlowMethod" render={({ field }) => (
-                                        <FormItem className="space-y-3">
-                                            <FormLabel>Como registrar no Caixa?</FormLabel>
-                                            <FormControl>
-                                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col space-y-1">
-                                                    <FormItem className="flex items-center space-x-3 space-y-0">
-                                                        <FormControl><RadioGroupItem value="unique" /></FormControl>
-                                                        <FormLabel className="font-normal">Lançamento Único (Valor Total Líquido)</FormLabel>
-                                                    </FormItem>
-                                                    <FormItem className="flex items-center space-x-3 space-y-0">
-                                                        <FormControl><RadioGroupItem value="installments" /></FormControl>
-                                                        <FormLabel className="font-normal">Lançamento Parcelado (Mês a Mês)</FormLabel>
-                                                    </FormItem>
-                                                </RadioGroup>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
+                                        <FormItem className="space-y-3"><FormLabel>Como registrar no Caixa?</FormLabel>
+                                            <FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col space-y-1">
+                                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                                    <FormControl><RadioGroupItem value="unique" /></FormControl>
+                                                    <FormLabel className="font-normal">Lançamento Único (Valor Total Líquido)</FormLabel>
+                                                </FormItem>
+                                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                                    <FormControl><RadioGroupItem value="installments" /></FormControl>
+                                                    <FormLabel className="font-normal">Lançamento Parcelado (Mês a Mês)</FormLabel>
+                                                </FormItem>
+                                            </RadioGroup></FormControl>
+                                        <FormMessage /></FormItem>
                                      )}/>
                                       <FormField control={control} name="operatorFee" render={({ field }) => (
                                             <FormItem>
