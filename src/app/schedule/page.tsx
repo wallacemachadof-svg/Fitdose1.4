@@ -83,8 +83,6 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent; onRe
     );
 }
 
-const { DayPickerDay } = DayPicker;
-
 const ScheduleContext = React.createContext<{ events: CalendarEvent[] }>({ events: [] });
 
 const DayCell = (dayProps: DayProps) => {
@@ -104,7 +102,7 @@ const DayCell = (dayProps: DayProps) => {
 
   return (
     <div className="relative">
-      <DayPickerDay {...dayProps} ref={buttonRef} />
+      <DayPicker.Day {...dayProps} ref={buttonRef} />
       {dayEvents.length > 0 && (
         <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex space-x-1">
            <div className={`h-1.5 w-1.5 rounded-full ${getUrgentStatusColor()}`} />
