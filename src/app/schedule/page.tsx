@@ -45,15 +45,20 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent; onRe
 
     const handleSave = () => {
         if (newDate && newTime) {
+            // By adding T00:00:00, we ensure the date isn't affected by timezone shifts when parsing.
             const dateWithTimezone = `${newDate}T00:00:00`;
             const parsedDate = parse(dateWithTimezone, "yyyy-MM-dd'T'HH:mm:ss", new Date());
 
             if (!isNaN(parsedDate.getTime())) {
                 onReschedule(event.patientId, event.dose.id, parsedDate, newTime);
                 setOpen(false);
+            } else {
+                 toast({ variant: 'destructive', title: 'Data Inválida', description: 'A data inserida não é válida.' });
             }
         }
     };
+    
+    const { toast } = useToast();
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -85,14 +90,9 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent; onRe
 
 const ScheduleContext = React.createContext<{ events: CalendarEvent[] }>({ events: [] });
 
-const DayCell = (dayProps: DayProps) => {
+const DayCell = (props: DayProps) => {
   const { events } = React.useContext(ScheduleContext);
-  const dayEvents = events.filter(event => isSameDay(event.date, dayProps.date));
-  const buttonRef = React.useRef<HTMLButtonElement>(null);
-
-  React.useImperativeHandle(dayProps.buttonRef, () => buttonRef.current!);
-
-  if(dayProps.date < new Date('2000-01-01')) return <></>;
+  const dayEvents = events.filter(event => isSameDay(event.date, props.date));
 
   const getUrgentStatusColor = () => {
       if (dayEvents.some(event => getDoseStatus(event.dose, event.allDoses).label.includes('Vencida'))) return 'bg-red-500';
@@ -102,7 +102,7 @@ const DayCell = (dayProps: DayProps) => {
 
   return (
     <div className="relative">
-      <DayPicker.Day {...dayProps} ref={buttonRef} />
+      <DayPicker.Day {...props} />
       {dayEvents.length > 0 && (
         <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex space-x-1">
            <div className={`h-1.5 w-1.5 rounded-full ${getUrgentStatusColor()}`} />
