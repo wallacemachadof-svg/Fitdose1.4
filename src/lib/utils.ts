@@ -1,4 +1,5 @@
 
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format, differenceInDays, parseISO, addDays, startOfToday } from "date-fns";
@@ -188,6 +189,34 @@ Nos dê um alô para conversarmos. ✨`;
     const encodedMessage = encodeURIComponent(message);
     const cleanPhoneNumber = (patient.phone || '').replace(/\D/g, '');
     return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
+}
+
+export function generateTreatmentCompletionWhatsAppLink(patient: Patient): string {
+  const patientFirstName = patient.fullName.split(' ')[0];
+  const message = `Parabéns, ${patientFirstName}! 🥳
+
+Você finalizou seu protocolo com sucesso! Estamos muito felizes com a sua conquista e dedicação. 
+
+Lembre-se de manter os hábitos saudáveis. Estaremos sempre aqui para o que precisar.
+
+Comemore muito! Você merece! 🎉`;
+  const encodedMessage = encodeURIComponent(message);
+  const cleanPhoneNumber = (patient.phone || "").replace(/\D/g, "");
+  return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
+}
+
+export function generateNonPaymentWhatsAppLink(patient: Patient): string {
+  const patientFirstName = patient.fullName.split(' ')[0];
+  const message = `Olá, ${patientFirstName}.
+
+Verificamos que há uma pendência financeira em seu cadastro, o que levou à suspensão temporária do seu tratamento.
+
+Para regularizar a situação e retomar seu protocolo, por favor, entre em contato conosco o mais breve possível.
+
+Estamos à disposição para ajudar.`;
+  const encodedMessage = encodeURIComponent(message);
+  const cleanPhoneNumber = (patient.phone || "").replace(/\D/g, "");
+  return `https://wa.me/55${cleanPhoneNumber}?text=${encodedMessage}`;
 }
 
 

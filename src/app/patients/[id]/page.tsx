@@ -26,7 +26,10 @@ import {
   generateWhatsAppLink,
   formatCurrency,
   getPaymentStatusVariant,
-  generateNutritionalAssessmentLink
+  generateNutritionalAssessmentLink,
+  generateTreatmentCompletionWhatsAppLink,
+  generateTreatmentAbandonmentWhatsAppLink,
+  generateNonPaymentWhatsAppLink,
 } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -253,6 +256,20 @@ function EndTreatmentDialog({ patient, onTreatmentEnded }: { patient: Patient, o
         try {
             await endTreatment(patient.id, status, reason);
             toast({ title: 'Tratamento Finalizado!', description: `${patient.fullName} foi movido para a lista de tratamentos finalizados.` });
+            
+            let whatsappUrl = '';
+            if (status === 'completed') {
+                whatsappUrl = generateTreatmentCompletionWhatsAppLink(patient);
+            } else if (status === 'abandoned') {
+                whatsappUrl = generateTreatmentAbandonmentWhatsAppLink(patient);
+            } else if (status === 'non-payment') {
+                whatsappUrl = generateNonPaymentWhatsAppLink(patient);
+            }
+            
+            if (whatsappUrl) {
+                window.open(whatsappUrl, '_blank');
+            }
+
             onTreatmentEnded();
             setOpen(false);
         } catch (error) {
@@ -961,6 +978,7 @@ const isSameDay = (date1: Date, date2: Date) =>
 
 
     
+
 
 
 
