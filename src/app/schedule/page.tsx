@@ -33,11 +33,18 @@ type CalendarEvent = {
 
 function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onReschedule: (patientId: string, doseId: number, newDate: Date, newTime: string) => void }) {
     const [open, setOpen] = useState(false);
-    const [newDate, setNewDate] = useState<Date | undefined>(new Date(event.dose.date));
-    const [newTime, setNewTime] = useState(event.dose.time || '10:00');
+    const [newDate, setNewDate] = useState<Date | undefined>();
+    const [newTime, setNewTime] = useState<string>('');
+
+    useEffect(() => {
+        if (open) {
+            setNewDate(new Date(event.dose.date));
+            setNewTime(event.dose.time || '10:00');
+        }
+    }, [open, event.dose.date, event.dose.time]);
 
     const handleSave = () => {
-        if (newDate) {
+        if (newDate && newTime) {
             onReschedule(event.patientId, event.dose.id, newDate, newTime);
             setOpen(false);
         }
