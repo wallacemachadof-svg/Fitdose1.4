@@ -45,13 +45,11 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onRe
 
     const handleSave = () => {
         if (newDate && newTime) {
-            const parsedDate = new Date(newDate);
-            // Adjust for timezone offset
-            const timezoneOffset = parsedDate.getTimezoneOffset() * 60000;
-            const adjustedDate = new Date(parsedDate.getTime() + timezoneOffset);
-
-            onReschedule(event.patientId, event.dose.id, adjustedDate, newTime);
-            setOpen(false);
+            const parsedDate = parse(newDate, 'yyyy-MM-dd', new Date());
+            if (!isNaN(parsedDate.getTime())) {
+                 onReschedule(event.patientId, event.dose.id, parsedDate, newTime);
+                 setOpen(false);
+            }
         }
     }
 
