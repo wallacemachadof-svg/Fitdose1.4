@@ -3,8 +3,9 @@
 
 import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
+import { DayPicker, type DayProps } from 'react-day-picker';
 import { getPatients, updateDose, type Patient, type Dose } from '@/lib/actions';
-import { Calendar as CalendarComponent, type DayProps } from '@/components/ui/calendar';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getDoseStatus, generateGoogleCalendarLink, formatDate, generateWhatsAppLink } from '@/lib/utils';
@@ -44,8 +45,8 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent; onRe
 
     const handleSave = () => {
         if (newDate && newTime) {
-            const dateParts = newDate.split('-').map(Number);
-            const parsedDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+            const dateWithTimezone = `${newDate}T00:00:00`;
+            const parsedDate = parse(dateWithTimezone, "yyyy-MM-dd'T'HH:mm:ss", new Date());
 
             if (!isNaN(parsedDate.getTime())) {
                 onReschedule(event.patientId, event.dose.id, parsedDate, newTime);
@@ -82,25 +83,37 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent; onRe
     );
 }
 
-const DayWithDot = (dayProps: DayProps) => {
-    const { events } = React.useContext(ScheduleContext);
-    const dayEvents = events.filter(event => isSameDay(event.date, dayProps.date));
-  
-    return (
-      <div className="relative">
-        <DayPickerDay {...dayProps} />
-        {dayEvents.length > 0 && (
-          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex space-x-1">
-             <div className={`h-1.5 w-1.5 rounded-full bg-primary`} />
-          </div>
-        )}
-      </div>
-    );
-  };
-  
 const { DayPickerDay } = DayPicker;
 
 const ScheduleContext = React.createContext<{ events: CalendarEvent[] }>({ events: [] });
+
+const DayCell = (dayProps: DayProps) => {
+  const { events } = React.useContext(ScheduleContext);
+  const dayEvents = events.filter(event => isSameDay(event.date, dayProps.date));
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+
+  React.useImperativeHandle(dayProps.buttonRef, () => buttonRef.current!);
+
+  if(dayProps.date < new Date('2000-01-01')) return <></>;
+
+  const getUrgentStatusColor = () => {
+      if (dayEvents.some(event => getDoseStatus(event.dose, event.allDoses).label.includes('Vencida'))) return 'bg-red-500';
+      if (dayEvents.some(event => getDoseStatus(event.dose, event.allDoses).label === 'Vence Hoje')) return 'bg-orange-500';
+      return 'bg-primary';
+  };
+
+  return (
+    <div className="relative">
+      <DayPickerDay {...dayProps} ref={buttonRef} />
+      {dayEvents.length > 0 && (
+        <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex space-x-1">
+           <div className={`h-1.5 w-1.5 rounded-full ${getUrgentStatusColor()}`} />
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 export default function SchedulePage() {
     const [date, setDate] = useState<Date | undefined>(new Date());
@@ -192,7 +205,7 @@ export default function SchedulePage() {
                                 captionLayout="dropdown-buttons"
                                 fromYear={2020}
                                 toYear={new Date().getFullYear() + 5}
-                                components={{ Day: DayWithDot }}
+                                components={{ Day: DayCell }}
                             />
                         </CardContent>
                     </Card>
