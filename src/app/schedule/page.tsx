@@ -13,13 +13,14 @@ import { Button } from '@/components/ui/button';
 import { FaWhatsapp } from 'react-icons/fa';
 import { generateWhatsAppLink } from '@/lib/utils';
 import Link from 'next/link';
-import { Calendar as CalendarIcon, User, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, User, Loader2, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 type CalendarEvent = {
   date: Date;
@@ -29,6 +30,47 @@ type CalendarEvent = {
   dose: Dose;
   allDoses: Dose[];
 };
+
+function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onReschedule: (patientId: string, doseId: number, newDate: Date, newTime: string) => void }) {
+    const [open, setOpen] = useState(false);
+    const [newDate, setNewDate] = useState<Date | undefined>(new Date(event.dose.date));
+    const [newTime, setNewTime] = useState(event.dose.time || '10:00');
+
+    const handleSave = () => {
+        if (newDate) {
+            onReschedule(event.patientId, event.dose.id, newDate, newTime);
+            setOpen(false);
+        }
+    }
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button variant="outline" size="sm">
+                    Reagendar
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-4 space-y-4">
+                 <div>
+                    <h4 className="font-medium leading-none">Reagendar Dose</h4>
+                    <p className="text-sm text-muted-foreground">Selecione a nova data e hora.</p>
+                </div>
+                <Calendar
+                    mode="single"
+                    selected={newDate}
+                    onSelect={setNewDate}
+                    initialFocus
+                    locale={ptBR}
+                />
+                <div className="space-y-2">
+                    <Label htmlFor="time">Novo Horário</Label>
+                    <Input id="time" type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
+                </div>
+                <Button onClick={handleSave} className="w-full">Salvar</Button>
+            </PopoverContent>
+        </Popover>
+    )
+}
 
 export default function SchedulePage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -47,9 +89,9 @@ export default function SchedulePage() {
     fetchPatients();
   }, []);
 
-  const handleRescheduleDose = async (patientId: string, doseId: number, newDate: Date) => {
+  const handleRescheduleDose = async (patientId: string, doseId: number, newDate: Date, newTime: string) => {
     try {
-      const updatedPatient = await updateDose(patientId, doseId, { date: newDate });
+      const updatedPatient = await updateDose(patientId, doseId, { date: newDate, time: newTime });
       if (updatedPatient) {
         setPatients(prevPatients => prevPatients.map(p => p.id === patientId ? updatedPatient : p));
         toast({
@@ -178,29 +220,20 @@ export default function SchedulePage() {
                           </div>
                         </CardHeader>
                         <CardContent className="p-4 space-y-3">
-                          <div className='flex items-center justify-between'>
-                             <Popover>
-                              <PopoverTrigger asChild>
-                                  <Button variant="ghost" className="p-0 h-auto font-semibold" disabled={event.dose.status === 'administered'}>
+                           <div className="flex items-center justify-between text-sm">
+                                <span className="flex items-center gap-2 font-semibold">
+                                    <Clock className="h-4 w-4 text-muted-foreground" />
                                     Horário: {event.dose.time || 'N/A'}
-                                  </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0">
-                                  <Calendar
-                                  mode="single"
-                                  selected={new Date(event.dose.date)}
-                                  onSelect={(newDate) => {
-                                      if (newDate) {
-                                      handleRescheduleDose(event.patientId, event.dose.id, newDate);
-                                      }
-                                  }}
-                                  initialFocus
-                                  locale={ptBR}
-                                  />
-                              </PopoverContent>
-                            </Popover>
-                            <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
-                          </div>
+                                </span>
+                                <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
+                           </div>
+                           <div className="flex items-center justify-between text-sm">
+                                <span className="flex items-center gap-2 font-semibold">
+                                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                                    Data: {formatDate(event.date)}
+                                </span>
+                               {event.dose.status === 'pending' && <ReschedulePopover event={event} onReschedule={handleRescheduleDose} />}
+                           </div>
                         </CardContent>
                         <CardFooter className="bg-muted/50 p-2 flex justify-end gap-1">
                             {patient && (
