@@ -73,6 +73,7 @@ const readData = (): MockData => {
             if (p.firstDoseDate) p.firstDoseDate = new Date(p.firstDoseDate);
             if (p.birthDate) p.birthDate = new Date(p.birthDate);
             if (p.consentDate) p.consentDate = new Date(p.consentDate);
+            if (p.terminationDate) p.terminationDate = new Date(p.terminationDate);
             p.doses.forEach(d => {
                 d.date = new Date(d.date);
                 if (d.payment?.date) d.payment.date = new Date(d.payment.date);
@@ -247,6 +248,15 @@ export type PointTransaction = {
     points: number;
 }
 
+export type TreatmentStatus = 'active' | 'completed' | 'abandoned' | 'non-payment';
+
+export type EndTreatmentAnamnesis = {
+    satisfaction: 'muito_satisfeito' | 'satisfeito' | 'neutro' | 'insatisfeito' | 'muito_insatisfeito';
+    mainReason: string;
+    wouldRecommend: 'yes' | 'no' | 'maybe';
+    feedback: string;
+}
+
 export type Patient = {
   id: string;
   fullName: string;
@@ -289,6 +299,10 @@ export type Patient = {
   nutritionalAssessmentData?: NutritionalAssessmentData;
   nutritionalAssessmentStatus?: 'pending' | 'completed' | 'available';
   foodPlanStatus?: 'pending' | 'available' | 'sent';
+  treatmentStatus?: TreatmentStatus;
+  terminationDate?: Date;
+  terminationReason?: string;
+  endTreatmentAnamnesis?: EndTreatmentAnamnesis;
 };
 
 export type NewPatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>> & {
@@ -508,6 +522,7 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         consentDate: patientData.consentGiven ? new Date() : undefined,
         nutritionalAssessmentStatus: 'pending',
         foodPlanStatus: 'pending',
+        treatmentStatus: 'active',
     };
 
     data.patients.push(newPatient);
@@ -1438,6 +1453,60 @@ export const getStockForecast = async (deliveryLeadTimeDays: number): Promise<St
     }
 
     return { ruptureDate: null, purchaseDeadline: null, totalPendingMg };
+}
+
+export const endTreatment = async (patientId: string, status: TreatmentStatus, reason: string): Promise<Patient> => {
+    const data = readData();
+    const patientIndex = data.patients.findIndex(p => p.id === patientId);
+    if (patientIndex === -1) {
+        throw new Error("Paciente não encontrado.");
+    }
+    const patient = data.patients[patientIndex];
+
+    patient.treatmentStatus = status;
+    patient.terminationReason = reason;
+    patient.terminationDate = new Date();
+
+    const newEvolution: Evolution = {
+        id: `evo-termination-${Date.now()}`,
+        date: new Date(),
+        notes: `Tratamento finalizado. Motivo: ${status}. Detalhes: ${reason}`,
+    };
+
+    patient.evolutions.push(newEvolution);
+    patient.doses.forEach(dose => {
+        if(dose.status === 'pending') {
+            dose.status = 'administered'; // To avoid showing them in pending lists
+        }
+    })
+
+
+    data.patients[patientIndex] = patient;
+    writeData({ patients: data.patients });
+    return patient;
+};
+
+export const reactivateTreatment = async (patientId: string): Promise<Patient> => {
+    const data = readData();
+    const patientIndex = data.patients.findIndex(p => p.id === patientId);
+    if (patientIndex === -1) {
+        throw new Error("Paciente não encontrado.");
+    }
+    const patient = data.patients[patientIndex];
+
+    patient.treatmentStatus = 'active';
+    patient.terminationReason = undefined;
+    patient.terminationDate = undefined;
+
+    const lastDose = patient.doses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+    const newStartDate = lastDose ? addDays(new Date(lastDose.date), 7) : new Date();
+
+    patient.doses = generateDoseSchedule(newStartDate, 12, lastDose ? lastDose.doseNumber + 1 : 1, []);
+
+
+    data.patients[patientIndex] = patient;
+    writeData({ patients: data.patients });
+    return patient;
 }
 
     

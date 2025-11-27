@@ -20,6 +20,7 @@ import {
   Cake,
   Apple,
   Palette,
+  UserX,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -218,6 +219,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <Link href="/marketing">
                     <Palette />
                     <span>Marketing</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+               <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/finished-treatments')}
+                  tooltip="Tratamentos Finalizados"
+                >
+                  <Link href="/finished-treatments">
+                    <UserX />
+                    <span>Tratamentos Finalizados</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
