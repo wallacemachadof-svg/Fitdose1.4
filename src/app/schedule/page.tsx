@@ -3,11 +3,11 @@
 
 import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
-import { DayPicker, type DayProps, Day } from 'react-day-picker';
+import { DayPicker, type DayProps } from 'react-day-picker';
 import { getPatients, updateDose, type Patient, type Dose } from '@/lib/actions';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { getDoseStatus, generateGoogleCalendarLink, formatDate, generateWhatsAppLink } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
 import { format as formatDateFns, isSameDay, parse } from 'date-fns';
@@ -88,7 +88,7 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent; onRe
 
 const ScheduleContext = React.createContext<{ events: CalendarEvent[] }>({ events: [] });
 
-const DayCell = (props: DayProps) => {
+const DayCell: React.FC<DayProps> = (props) => {
     const { events } = React.useContext(ScheduleContext);
     const dayEvents = events.filter(event => isSameDay(event.date, props.date));
   
@@ -100,7 +100,7 @@ const DayCell = (props: DayProps) => {
   
     return (
       <div className="relative">
-        <Day {...props} />
+        <DayPicker.Day {...props} />
         {dayEvents.length > 0 && (
           <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex space-x-1">
              <div className={`h-1.5 w-1.5 rounded-full ${getUrgentStatusColor()}`} />
