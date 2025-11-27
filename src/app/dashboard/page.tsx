@@ -167,7 +167,7 @@ export default function DashboardPage() {
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57'];
   
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-20">
        <Card>
         <CardHeader>
           <CardTitle>{filterTitle}</CardTitle>
