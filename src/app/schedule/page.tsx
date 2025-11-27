@@ -3,9 +3,9 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { getPatients, updateDose, type Patient, type Dose } from '@/lib/actions';
-import { Calendar as CalendarComponent, type DayProps } from '@/components/ui/calendar'; // Renamed to avoid conflict
+import { Calendar as CalendarComponent, type DayProps } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getDoseStatus, generateGoogleCalendarLink, formatDate } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
 import { format as formatDateFns, parse, isSameDay } from 'date-fns';
@@ -36,8 +36,9 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onRe
     const [newDate, setNewDate] = useState('');
     const [newTime, setNewTime] = useState('');
 
-    useEffect(() => {
+     useEffect(() => {
         if (open) {
+            // Format the date as 'yyyy-MM-dd' for the input type="date"
             setNewDate(formatDateFns(new Date(event.dose.date), 'yyyy-MM-dd'));
             setNewTime(event.dose.time || '10:00');
         }
@@ -45,6 +46,9 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onRe
 
     const handleSave = () => {
         if (newDate && newTime) {
+             // The input type="date" gives a string like "2023-11-28".
+             // new Date("2023-11-28") can result in the previous day depending on the timezone.
+             // Parsing it manually avoids this issue.
             const dateParts = newDate.split('-').map(Number);
             const parsedDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
 
@@ -144,26 +148,36 @@ export default function SchedulePage() {
       });
   }, [date, events]);
 
-  const DayCell = ({ date, ...props }: DayProps) => {
-    const dayEvents = events.filter(event => isSameDay(event.date, date));
-    return (
-        <div className="relative h-full w-full">
-            {dayEvents.length > 0 && (
-                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex space-x-1">
-                    {dayEvents.slice(0, 3).map(event => {
-                        const status = getDoseStatus(event.dose, event.allDoses);
-                        let colorClass = 'bg-gray-400';
-                        if (status.color.includes('red-900')) colorClass = 'bg-red-900';
-                        else if (status.color.includes('red')) colorClass = 'bg-red-500';
-                        else if (status.color.includes('orange')) colorClass = 'bg-orange-500';
-                        else if (status.color.includes('yellow')) colorClass = 'bg-yellow-500';
-                        else if (status.color.includes('green')) colorClass = 'bg-green-500';
+  const DayCell = (dayProps: DayProps) => {
+    const dayEvents = events.filter(event => isSameDay(event.date, dayProps.date));
+    const buttonRef = React.useRef<HTMLButtonElement>(null);
+  
+    React.useImperativeHandle(dayProps.buttonRef, () => buttonRef.current!);
 
-                        return <div key={`${event.patientId}-${event.dose.id}`} className={`h-1.5 w-1.5 rounded-full ${colorClass}`} />;
-                    })}
-                </div>
-            )}
-        </div>
+    return (
+      <div className="relative h-full w-full">
+        <button
+          {...dayProps.buttonProps}
+          ref={buttonRef}
+        >
+          {dayProps.formattedDate}
+        </button>
+        {dayEvents.length > 0 && (
+          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex space-x-1 pointer-events-none">
+            {dayEvents.slice(0, 3).map(event => {
+                const status = getDoseStatus(event.dose, event.allDoses);
+                let colorClass = 'bg-gray-400';
+                if (status.color.includes('red-900')) colorClass = 'bg-red-900';
+                else if (status.color.includes('red')) colorClass = 'bg-red-500';
+                else if (status.color.includes('orange')) colorClass = 'bg-orange-500';
+                else if (status.color.includes('yellow')) colorClass = 'bg-yellow-500';
+                else if (status.color.includes('green')) colorClass = 'bg-green-500';
+
+                return <div key={`${event.patientId}-${event.dose.id}`} className={`h-1.5 w-1.5 rounded-full ${colorClass}`} />;
+            })}
+          </div>
+        )}
+      </div>
     );
   };
   
@@ -241,7 +255,7 @@ export default function SchedulePage() {
                                 <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
                            </div>
                            <div className="flex items-center justify-between text-sm">
-                                <span className="flex items-center gap-2 font-semibold">
+                               <span className="flex items-center gap-2 font-semibold">
                                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                                     Data: {formatDate(event.date)}
                                 </span>
