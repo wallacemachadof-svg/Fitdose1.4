@@ -76,8 +76,6 @@ const readData = (): MockData => {
             if (p.terminationDate) p.terminationDate = new Date(p.terminationDate);
             p.doses.forEach(d => {
                 d.date = new Date(d.date);
-                if (d.payment?.date) d.payment.date = new Date(d.payment.date);
-                if (d.payment?.dueDate) d.payment.dueDate = new Date(d.payment.dueDate);
             });
             if (p.evolutions) {
               p.evolutions.forEach(e => e.date = new Date(e.date));
@@ -174,13 +172,6 @@ const runMigration = () => {
                         dose.weight = sale.bioimpedance.weight;
                         dose.bmi = sale.bioimpedance.bmi;
                     }
-                    
-                    if (!dose.payment) dose.payment = { status: 'pendente' };
-                    dose.payment.status = sale.paymentStatus;
-                    dose.payment.amount = sale.total / sale.quantity;
-                    dose.payment.date = sale.paymentDate || (sale.paymentStatus === 'pago' ? sale.saleDate : undefined);
-                    dose.payment.method = sale.paymentMethod;
-
                     dosesToUpdateForThisSale--;
                 }
             }
@@ -232,9 +223,7 @@ const generateDoseSchedule = (startDate: Date, totalDoses = 12, startDoseNumber 
       date: new Date(currentDate),
       status: 'pending',
       time: '10:00', // Default time
-      payment: {
-        status: 'pendente'
-      }
+      cost: 0,
     });
     currentDate.setDate(currentDate.getDate() + 7);
   }
@@ -291,6 +280,7 @@ export type Patient = {
     patientId?: string;
   };
   points: number;
+  creditBalance: number;
   pointHistory: PointTransaction[];
   consentGiven: boolean;
   consentDate?: Date;
@@ -305,12 +295,12 @@ export type Patient = {
   endTreatmentAnamnesis?: EndTreatmentAnamnesis;
 };
 
-export type NewPatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>> & {
+export type NewPatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate' | 'creditBalance'>> & {
     fullName: string;
     initialWeight: number;
     height: number;
 };
-export type UpdatePatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate'>>;
+export type UpdatePatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate' | 'creditBalance'>>;
 
 
 export type Dose = {
@@ -321,14 +311,7 @@ export type Dose = {
   weight?: number;
   bmi?: number;
   administeredDose?: number;
-  payment: {
-    status: 'pago' | 'pendente';
-    date?: Date;
-    dueDate?: Date;
-    method?: "dinheiro" | "pix" | "debito" | "credito" | "credito_parcelado" | "payment_link";
-    installments?: number;
-    amount?: number;
-  };
+  cost: number;
   status: 'administered' | 'pending';
 };
 
@@ -517,6 +500,7 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         monjauroTime: patientData.monjauroTime,
         indication: patientData.indication,
         points: 0,
+        creditBalance: 0,
         pointHistory: [],
         consentGiven: patientData.consentGiven || false,
         consentDate: patientData.consentGiven ? new Date() : undefined,
@@ -624,7 +608,7 @@ export const deletePatient = async (id: string): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 100));
 };
 
-export type DoseUpdateData = Partial<Omit<Dose, 'id' | 'doseNumber' | 'payment'>> & { payment?: Partial<Dose['payment']>};
+export type DoseUpdateData = Partial<Omit<Dose, 'id' | 'doseNumber'>>;
 
 export const updateDose = async (patientId: string, doseId: number, doseData: DoseUpdateData): Promise<Patient | null> => {
     const data = readData();
@@ -641,10 +625,6 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
         ...patient.doses[doseIndex],
         ...doseData,
         date: doseData.date ? new Date(doseData.date) : patient.doses[doseIndex].date,
-        payment: {
-            ...patient.doses[doseIndex].payment,
-            ...doseData.payment,
-        }
     };
     
     // Sort doses by number to ensure correct order
@@ -670,49 +650,6 @@ export const updateDose = async (patientId: string, doseId: number, doseData: Do
     await new Promise(resolve => setTimeout(resolve, 100));
     return patient;
 };
-
-export const updateDosePayment = async (patientId: string, doseId: number, paymentData: Partial<Dose['payment']>): Promise<Patient | null> => {
-    const data = readData();
-    const patientIndex = data.patients.findIndex(p => p.id === patientId);
-    if (patientIndex === -1) throw new Error("Paciente não encontrado.");
-
-    const patient = data.patients[patientIndex];
-    const doseIndex = patient.doses.findIndex(d => d.id === doseId);
-    if (doseIndex === -1) throw new Error("Dose não encontrada.");
-
-    const originalStatus = patient.doses[doseIndex].payment.status;
-    const dose = patient.doses[doseIndex];
-
-    dose.payment = {
-        ...dose.payment,
-        ...paymentData,
-    };
-    
-    // If payment status changed to 'pago', find the related cash flow entry and update it.
-    if(originalStatus !== 'pago' && paymentData.status === 'pago') {
-        const cashFlowEntryToUpdate = data.cashFlowEntries.find(cf => 
-            cf.id.startsWith(`sale-`) && // Make sure it's a sale entry
-            cf.description.includes(patient.fullName) && 
-            cf.amount.toFixed(2) === (dose.payment.amount || 0).toFixed(2) &&
-            cf.status === 'pendente'
-        );
-
-        if(cashFlowEntryToUpdate) {
-            const cashFlowIndex = data.cashFlowEntries.findIndex(cf => cf.id === cashFlowEntryToUpdate.id);
-            if(cashFlowIndex !== -1) {
-                data.cashFlowEntries[cashFlowIndex].status = 'pago';
-                data.cashFlowEntries[cashFlowIndex].purchaseDate = paymentData.date || new Date();
-                data.cashFlowEntries[cashFlowIndex].paymentMethod = paymentData.method;
-                data.cashFlowEntries[cashFlowIndex].dueDate = paymentData.date || new Date();
-            }
-        }
-    }
-
-    data.patients[patientIndex] = patient;
-    writeData({ patients: data.patients, cashFlowEntries: data.cashFlowEntries });
-    return patient;
-};
-
 
 export const addPatientEvolution = async (patientId: string, evolutionData: NewEvolutionData): Promise<Patient> => {
     const data = readData();
@@ -863,31 +800,6 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
         patient.evolutions.push(newEvolution);
     }
     
-    // --- Handle Dose Updates (Payment & Administration) ---
-    patient.doses.sort((a, b) => a.doseNumber - b.doseNumber);
-    let dosesUpdatedCount = 0;
-    
-    for (let i = 0; i < patient.doses.length && dosesUpdatedCount < saleData.quantity; i++) {
-        const doseToUpdate = patient.doses[i];
-        if (doseToUpdate.status === 'pending') {
-            const deliveryInfo = saleData.deliveries.find(d => d.doseNumber === (dosesUpdatedCount + 1));
-
-            // Update payment status for all doses in the package
-            if (!doseToUpdate.payment) doseToUpdate.payment = { status: 'pendente' };
-            doseToUpdate.payment.status = newSale.paymentStatus;
-            doseToUpdate.payment.date = newSale.paymentDate || (newSale.paymentStatus === 'pago' ? newSale.saleDate : undefined);
-            doseToUpdate.payment.amount = newSale.total / saleData.quantity;
-            doseToUpdate.payment.method = newSale.paymentMethod;
-            doseToUpdate.payment.dueDate = newSale.paymentDueDate;
-            doseToUpdate.payment.installments = newSale.installments;
-
-            if (deliveryInfo && deliveryInfo.status === 'entregue' && deliveryInfo.deliveryDate) {
-                 updateSaleDelivery(newSale.id, doseToUpdate.doseNumber, 'entregue', deliveryInfo.deliveryDate);
-            }
-            dosesUpdatedCount++;
-        }
-    }
-
     // --- Handle Points ---
     const settings = data.settings;
     const pointsConfig = settings.rewards?.pointsPerDose?.find(p => p.dose === saleData.soldDose);
@@ -916,6 +828,12 @@ export const addSale = async (saleData: NewSaleData): Promise<Sale> => {
             description: `Resgate de R$${brlValue.toFixed(2)}`,
             points: -saleData.pointsUsed,
         });
+    }
+
+    // --- ADD TO CREDIT BALANCE ---
+    if(newSale.paymentStatus === 'pago') {
+        if (!patient.creditBalance) patient.creditBalance = 0;
+        patient.creditBalance += newSale.total;
     }
     
     // --- Create Cash Flow Entry ---
@@ -1130,6 +1048,13 @@ export const updateSaleDelivery = async (saleId: string, doseNumber: number, new
         dose.status = 'administered';
         dose.date = delivery.deliveryDate!;
         dose.administeredDose = mgUsed;
+
+        // Deduct from credit balance
+        const dosePriceInfo = data.settings.dosePrices.find(dp => parseFloat(dp.dose) === mgUsed);
+        const doseCost = dosePriceInfo?.price || patient.defaultPrice || 0;
+        patient.creditBalance -= doseCost;
+        dose.cost = doseCost;
+
         
         // Reschedule subsequent doses
         patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
@@ -1524,3 +1449,4 @@ export const reactivateTreatment = async (patientId: string): Promise<Patient> =
     writeData({ patients: data.patients });
     return patient;
 }
+

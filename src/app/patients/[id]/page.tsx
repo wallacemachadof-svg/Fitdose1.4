@@ -11,7 +11,6 @@ import {
   updateDose,
   deleteBioimpedanceEntry,
   getSettings,
-  updateDosePayment,
   endTreatment,
   type Patient,
   type Dose,
@@ -73,6 +72,7 @@ import {
     Apple,
     UserX,
     History,
+    Wallet,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -99,147 +99,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-
-function DosePaymentEditor({ dose, patientId, onUpdate }: { dose: Dose; patientId: string; onUpdate: (updatedPatient: Patient) => void; }) {
-    const [status, setStatus] = useState(dose.payment.status);
-    const [date, setDate] = useState<Date | undefined>(dose.payment.date ? new Date(dose.payment.date) : (dose.payment.status === 'pago' ? new Date(dose.date) : undefined));
-    const [method, setMethod] = useState(dose.payment.method);
-    const [isSaving, setIsSaving] = useState(false);
-    const { toast } = useToast();
-
-    const handleSave = async () => {
-        setIsSaving(true);
-        try {
-            const updatedPatient = await updateDosePayment(patientId, dose.id, {
-                status,
-                date: status === 'pago' ? date : undefined,
-                method: status === 'pago' ? method : undefined,
-            });
-            if (updatedPatient) {
-                onUpdate(updatedPatient);
-                toast({ title: "Pagamento atualizado!" });
-            }
-        } catch (e) {
-            toast({ variant: 'destructive', title: 'Erro ao salvar pagamento' });
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    return (
-        <Popover>
-            <PopoverTrigger asChild>
-                 <Button variant="ghost" className="p-0 h-auto font-normal" disabled={isSaving}>
-                    <DosePaymentBadge dose={dose} />
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-                <div className="grid gap-4">
-                    <div className="space-y-2">
-                        <h4 className="font-medium leading-none">Editar Pagamento</h4>
-                        <p className="text-sm text-muted-foreground">
-                           Altere o status do pagamento para a Dose {dose.doseNumber}.
-                        </p>
-                    </div>
-                    <div className="grid gap-2">
-                        <div className="grid grid-cols-3 items-center gap-4">
-                            <Label htmlFor="status">Status</Label>
-                             <Select value={status} onValueChange={(v) => setStatus(v as 'pago' | 'pendente')}>
-                                <SelectTrigger className="col-span-2 h-8">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="pago">Pago</SelectItem>
-                                    <SelectItem value="pendente">Pendente</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        {status === 'pago' && (
-                             <>
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                <Label htmlFor="payment-date">Data</Label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" className="col-span-2 h-8 justify-start text-left font-normal">
-                                            {date ? formatDateFns(date, 'dd/MM/yy') : 'Selecione'}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                     <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={date} onSelect={setDate} initialFocus captionLayout="dropdown-buttons" fromYear={2020} toYear={new Date().getFullYear() + 5} /></PopoverContent>
-                                </Popover>
-                                </div>
-                                <div className="grid grid-cols-3 items-center gap-4">
-                                <Label htmlFor="payment-method">Forma</Label>
-                                <Select value={method} onValueChange={(v) => setMethod(v as any)}>
-                                    <SelectTrigger className="col-span-2 h-8"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="pix">PIX</SelectItem>
-                                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                                        <SelectItem value="debito">Débito</SelectItem>
-                                        <SelectItem value="credito">Crédito</SelectItem>
-                                        <SelectItem value="credito_parcelado">Créd. Parcelado</SelectItem>
-                                        <SelectItem value="payment_link">Link de Pagamento</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                </div>
-                            </>
-                        )}
-                        <Button onClick={handleSave} disabled={isSaving}>
-                            {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                            Salvar
-                        </Button>
-                    </div>
-                </div>
-            </PopoverContent>
-        </Popover>
-    );
-}
-
-const DosePaymentBadge = ({ dose }: { dose: Dose }) => {
-    const paymentStatusInfo = getPaymentStatusVariant(dose.payment?.status ?? 'pendente');
-    const { settings } = useSettings();
-    
-    const isOverdue = dose.payment.status === 'pendente' && dose.payment.dueDate && new Date(dose.payment.dueDate) < startOfToday();
-    const overdueDays = isOverdue ? differenceInDays(startOfToday(), new Date(dose.payment.dueDate!)) : 0;
-    const lateFee = isOverdue ? overdueDays * (settings.dailyLateFee || 0) : 0;
-    const totalAmountDue = (dose.payment.amount || 0) + lateFee;
-
-    if (isOverdue) {
-        return (
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger>
-                        <Badge variant="destructive" className="cursor-help">
-                            <AlertTriangle className="h-3 w-3 mr-1" /> Vencido
-                        </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <div className="p-1 text-sm space-y-1">
-                            <p><strong>Vencimento:</strong> {formatDate(dose.payment.dueDate)} ({overdueDays} dias de atraso)</p>
-                            <p><strong>Valor Original:</strong> {formatCurrency(dose.payment.amount || 0)}</p>
-                            <p><strong>Multa por Atraso:</strong> {formatCurrency(lateFee)}</p>
-                            <p className="font-bold"><strong>Total a Cobrar:</strong> {formatCurrency(totalAmountDue)}</p>
-                        </div>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-        )
-    }
-
-    return (
-        <Badge variant={'default'} className={`${paymentStatusInfo.color} ${paymentStatusInfo.textColor} border-none`}>
-            {paymentStatusInfo.label}
-        </Badge>
-    )
-}
-
-const useSettings = () => {
-    const [settings, setSettings] = useState<{ dailyLateFee?: number }>({});
-    useEffect(() => {
-        getSettings().then(setSettings);
-    }, []);
-    return { settings };
-}
 
 function EndTreatmentDialog({ patient, onTreatmentEnded }: { patient: Patient, onTreatmentEnded: () => void }) {
     const [status, setStatus] = useState<TreatmentStatus>('completed');
@@ -333,7 +192,7 @@ function EndTreatmentDialog({ patient, onTreatmentEnded }: { patient: Patient, o
 
 export default function PatientDetailPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
-  const [settings, setSettings] = useState<{ dailyLateFee?: number }>({});
+  const [settings, setSettings] = useState<{ dailyLateFee?: number; dosePrices?: { dose: string; price: number }[] }>({});
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -500,6 +359,23 @@ export default function PatientDetailPage() {
     return history.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [patient]);
 
+  const nextPendingDose = useMemo(() => {
+      if (!patient) return null;
+      return patient.doses.find(d => d.status === 'pending');
+  }, [patient]);
+
+  const nextDoseCost = useMemo(() => {
+      if (!nextPendingDose || !settings.dosePrices) return 0;
+      const doseMg = nextPendingDose.administeredDose || parseFloat(patient?.defaultDose || '0');
+      const priceInfo = settings.dosePrices.find(dp => parseFloat(dp.dose) === doseMg);
+      return priceInfo?.price || patient?.defaultPrice || 0;
+  }, [nextPendingDose, settings.dosePrices, patient]);
+  
+  const hasInsufficientBalance = useMemo(() => {
+      if (!patient || !nextPendingDose) return false;
+      return (patient.creditBalance || 0) < nextDoseCost;
+  }, [patient, nextPendingDose, nextDoseCost]);
+
 
   if (loading || !patient) {
     return <PatientDetailSkeleton />;
@@ -513,10 +389,6 @@ export default function PatientDetailPage() {
 
   const weightToLose = patient.desiredWeight ? currentWeight - patient.desiredWeight : 0;
   const patientNameInitial = patient.fullName.charAt(0).toUpperCase();
-
-  const totalPaid = patient.doses
-    .filter(d => d.payment?.status === 'pago' && d.payment?.amount)
-    .reduce((acc, d) => acc + (d.payment?.amount || 0), 0);
 
   const HealthInfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | null | undefined }) => {
     if (!value) return null;
@@ -567,6 +439,20 @@ export default function PatientDetailPage() {
         </div>
       </div>
 
+       {hasInsufficientBalance && (
+        <Card className="bg-destructive/10 border-destructive">
+          <CardHeader className="flex flex-row items-center gap-4">
+            <AlertTriangle className="h-8 w-8 text-destructive" />
+            <div>
+              <CardTitle className="text-destructive">Saldo Insuficiente</CardTitle>
+              <CardDescription className="text-destructive/80">
+                O saldo atual de {formatCurrency(patient.creditBalance || 0)} não cobre a próxima dose de {formatCurrency(nextDoseCost)}. É necessário realizar uma nova cobrança.
+              </CardDescription>
+            </div>
+          </CardHeader>
+        </Card>
+      )}
+
       <div className="flex flex-col md:flex-row items-start gap-6">
         <Card className="w-full md:w-1/3">
           <CardHeader className="items-center text-center">
@@ -602,7 +488,15 @@ export default function PatientDetailPage() {
             <InfoCard icon={Ruler} label="Altura" value={`${patient.height} cm`} />
             {patient.desiredWeight && <InfoCard icon={Target} label="Meta de Peso" value={`${patient.desiredWeight} kg`} /> }
             {patient.desiredWeight && <InfoCard icon={TrendingDown} label="Faltam Perder" value={`${weightToLose > 0 ? weightToLose.toFixed(1) : 0} kg`} /> }
-            <InfoCard icon={DollarSign} label="Total Pago" value={formatCurrency(totalPaid)} />
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Saldo de Crédito</CardTitle>
+                    <Wallet className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className={`text-2xl font-bold ${(patient.creditBalance || 0) < 0 ? 'text-destructive' : 'text-green-600'}`}>{formatCurrency(patient.creditBalance || 0)}</div>
+                </CardContent>
+            </Card>
         </div>
       </div>
       
@@ -786,13 +680,14 @@ export default function PatientDetailPage() {
                 <TableHead>Dose</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead>Status Aplicação</TableHead>
-                <TableHead>Pagamento</TableHead>
+                <TableHead>Custo</TableHead>
                 <TableHead className="text-right">Ação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {patient.doses.map((dose) => {
                 const status = getDoseStatus(dose, patient.doses);
+                const doseCost = settings.dosePrices?.find(dp => dp.dose == (dose.administeredDose || patient.defaultDose))?.price || patient.defaultPrice || 0;
                 
                 return (
                   <TableRow key={`${dose.id}-${dose.doseNumber}`}>
@@ -829,9 +724,7 @@ export default function PatientDetailPage() {
                     <TableCell>
                       <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
                     </TableCell>
-                    <TableCell>
-                      <DosePaymentEditor dose={dose} patientId={patient.id} onUpdate={setPatient} />
-                    </TableCell>
+                    <TableCell>{formatCurrency(doseCost)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         {dose.status === 'pending' && (
@@ -970,3 +863,4 @@ const isSameDay = (date1: Date, date2: Date) =>
   date1.getFullYear() === date2.getFullYear() &&
   date1.getMonth() === date2.getMonth() &&
   date1.getDate() === date2.getDate();
+
