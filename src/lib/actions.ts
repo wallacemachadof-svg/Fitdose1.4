@@ -5,7 +5,7 @@
 import { calculateBmi } from "./utils";
 import fs from 'fs';
 import path from 'path';
-import { addDays, isWeekend } from 'date-fns';
+import { addDays, isWeekend, differenceInDays } from 'date-fns';
 
 // --- Data Persistence Setup ---
 const dataDir = path.join(process.cwd(), 'db');
@@ -1474,7 +1474,6 @@ export const endTreatment = async (patientId: string, status: TreatmentStatus, r
     };
 
     patient.evolutions.push(newEvolution);
-    // Remove pending doses instead of marking them as administered
     patient.doses = patient.doses.filter(dose => dose.status !== 'pending');
 
 
@@ -1491,19 +1490,36 @@ export const reactivateTreatment = async (patientId: string): Promise<Patient> =
     }
     const patient = data.patients[patientIndex];
 
+    const daysSinceTermination = patient.terminationDate ? differenceInDays(new Date(), new Date(patient.terminationDate)) : 0;
+    const moreThan90Days = daysSinceTermination > 90;
+
+    const newEvolution: Evolution = {
+        id: `evo-reactivation-${Date.now()}`,
+        date: new Date(),
+        notes: `Tratamento Reativado${moreThan90Days ? ' (após mais de 90 dias)' : ''}.`,
+    };
+    patient.evolutions.push(newEvolution);
+
     patient.treatmentStatus = 'active';
     patient.terminationReason = undefined;
     patient.terminationDate = undefined;
 
     const administeredDoses = patient.doses.filter(d => d.status === 'administered');
-    const lastAdministeredDose = administeredDoses.length > 0 
-        ? [...administeredDoses].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
-        : null;
-        
-    const newStartDate = lastAdministeredDose ? addDays(new Date(lastAdministeredDose.date), 7) : (patient.firstDoseDate || new Date());
     
-    patient.doses = generateDoseSchedule(newStartDate, 12, 1, administeredDoses);
-
+    if (moreThan90Days) {
+        // Reset schedule, keeping administered history
+        patient.doses = generateDoseSchedule(new Date(), 12, 1, []);
+    } else {
+        // Continue from where it left off
+        const lastAdministeredDose = administeredDoses.length > 0 
+            ? [...administeredDoses].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+            : null;
+        
+        const newStartDate = lastAdministeredDose ? addDays(new Date(lastAdministeredDose.date), 7) : (patient.firstDoseDate || new Date());
+        
+        patient.doses = generateDoseSchedule(newStartDate, 12, 1, administeredDoses);
+    }
+    
     data.patients[patientIndex] = patient;
     writeData({ patients: data.patients });
     return patient;

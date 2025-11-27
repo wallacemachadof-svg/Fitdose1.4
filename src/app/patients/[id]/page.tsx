@@ -72,6 +72,7 @@ import {
     AlertTriangle,
     Apple,
     UserX,
+    History,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -475,13 +476,14 @@ export default function PatientDetailPage() {
     const history = patient.evolutions.map(e => ({
       id: e.id,
       date: e.date,
+      notes: e.notes,
       ...e.bioimpedance,
-      isInitial: false
+      isInitial: false,
+      isEvolution: true,
     }));
 
     if (patient.initialWeight && patient.firstDoseDate) {
       const initialDate = new Date(patient.firstDoseDate);
-      // Add initial record only if there's no evolution on the same day
       if (!history.some(h => isSameDay(new Date(h.date), initialDate))) {
         history.push({
           id: 'initial-record',
@@ -489,6 +491,8 @@ export default function PatientDetailPage() {
           weight: patient.initialWeight,
           bmi: calculateBmi(patient.initialWeight, patient.height / 100),
           isInitial: true,
+          notes: 'Início do tratamento',
+          isEvolution: false,
         });
       }
     }
@@ -656,18 +660,17 @@ export default function PatientDetailPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><HeartPulse className="h-5 w-5"/>Histórico de Evolução</CardTitle>
-          <CardDescription>Todos os registros de bioimpedância do paciente.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><History className="h-5 w-5"/>Histórico do Tratamento</CardTitle>
+          <CardDescription>Todos os registros de evolução e status do paciente.</CardDescription>
         </CardHeader>
         <CardContent>
            <Table>
             <TableHeader>
                 <TableRow>
                     <TableHead>Data</TableHead>
+                    <TableHead>Descrição</TableHead>
                     <TableHead>Peso (kg)</TableHead>
                     <TableHead>IMC</TableHead>
-                    <TableHead>Gordura (%)</TableHead>
-                    <TableHead>Músculo (%)</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
             </TableHeader>
@@ -675,13 +678,12 @@ export default function PatientDetailPage() {
                 {evolutionHistoryData.length > 0 ? (
                     evolutionHistoryData.map((evo) => (
                         <TableRow key={evo.id} className={cn(evo.isInitial && "bg-muted/50")}>
-                            <TableCell>{formatDate(evo.date)} {evo.isInitial && <Badge variant="outline" className="ml-2">Inicial</Badge>}</TableCell>
+                            <TableCell>{formatDate(evo.date)}</TableCell>
+                            <TableCell className="text-muted-foreground text-sm">{evo.notes}</TableCell>
                             <TableCell>{evo.weight?.toFixed(2) ?? '-'}</TableCell>
                             <TableCell>{evo.bmi?.toFixed(2) ?? '-'}</TableCell>
-                            <TableCell>{(evo as any).fatPercentage?.toFixed(2) ?? '-'}</TableCell>
-                            <TableCell>{(evo as any).skeletalMusclePercentage?.toFixed(2) ?? '-'}</TableCell>
                             <TableCell className="text-right">
-                                {!evo.isInitial && (
+                                {evo.isEvolution && (
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteEvolutionClick(evo as Evolution)}>
                                         <Trash2 className="h-4 w-4" />
                                         <span className="sr-only">Excluir registro</span>
@@ -692,7 +694,7 @@ export default function PatientDetailPage() {
                     ))
                 ) : (
                     <TableRow>
-                        <TableCell colSpan={6} className="text-center h-24">Nenhum registro de bioimpedância encontrado.</TableCell>
+                        <TableCell colSpan={5} className="text-center h-24">Nenhum registro de evolução encontrado.</TableCell>
                     </TableRow>
                 )}
             </TableBody>
@@ -886,7 +888,7 @@ function InfoCard({ icon: Icon, label, value }: { icon: React.ElementType, label
 
 function EvolutionChartCard({ title, icon: Icon, data, change, unit='' }: { title: string, icon: React.ElementType, data: {date: string, value: number}[], change: number, unit?: string}) {
     const TrendIcon = change === 0 ? Minus : change > 0 ? ArrowUp : ArrowDown;
-    const trendColor = change === 0 ? "text-muted-foreground" : change > 0 ? "text-green-500" : "text-red-500";
+    const trendColor = change === 0 ? "text-muted-foreground" : change > 0 ? "text-red-500" : "text-green-500";
     
     return (
         <Card className="flex flex-col">
@@ -968,18 +970,3 @@ const isSameDay = (date1: Date, date2: Date) =>
   date1.getFullYear() === date2.getFullYear() &&
   date1.getMonth() === date2.getMonth() &&
   date1.getDate() === date2.getDate();
-
-    
-
-
-
-
-
-
-
-    
-
-
-
-
-

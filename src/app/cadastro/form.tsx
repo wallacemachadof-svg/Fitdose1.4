@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { User as UserIcon, Upload, Loader2, ArrowRight, CalendarIcon, Info } from "lucide-react";
+import { User as UserIcon, Upload, Loader2, ArrowRight, CalendarIcon, Info, AlertTriangle } from "lucide-react";
 import { cn, calculateBmi } from "@/lib/utils";
 import { useEffect, useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +35,8 @@ import { ptBR } from "date-fns/locale";
 import { Combobox } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Link from "next/link";
 
 
 const healthConditions = [
@@ -119,6 +122,7 @@ export default function PatientRegistrationForm({ patients }: { patients: Patien
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [similarPatient, setSimilarPatient] = useState<Patient | null>(null);
     
     const patientOptions: PatientOptions = useMemo(() => 
         patients.map(p => ({ value: p.id, label: p.fullName })), 
@@ -193,6 +197,17 @@ export default function PatientRegistrationForm({ patients }: { patients: Patien
     const watchIndicationSource = form.watch("indicationSource");
     const watchHealthConditions = form.watch("healthConditions");
     const watchBirthDate = form.watch("birthDate");
+    const watchFullName = form.watch("fullName");
+
+    useEffect(() => {
+        if (watchFullName && watchFullName.length > 3) {
+            const searchName = watchFullName.toLowerCase().trim();
+            const found = patients.find(p => p.fullName.toLowerCase().trim().includes(searchName));
+            setSimilarPatient(found || null);
+        } else {
+            setSimilarPatient(null);
+        }
+    }, [watchFullName, patients]);
 
     useEffect(() => {
         if (watchBirthDate) {
@@ -392,7 +407,21 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do protoco
                              <div className="md:col-span-2 space-y-8">
                                 <h3 className="text-lg font-semibold -mb-2">Informações Pessoais</h3>
                                 <FormField control={form.control} name="fullName" render={({ field }) => (
-                                    <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input placeholder="Seu nome completo" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem>
+                                        <FormLabel>Nome Completo</FormLabel>
+                                        <FormControl><Input placeholder="Seu nome completo" {...field} /></FormControl>
+                                        {similarPatient && (
+                                            <Alert variant="destructive" className="mt-2">
+                                                <AlertTriangle className="h-4 w-4" />
+                                                <AlertTitle>Paciente já cadastrado?</AlertTitle>
+                                                <AlertDescription>
+                                                    Encontramos um paciente com nome parecido: <Link href={`/patients/${similarPatient.id}`} className="font-bold underline hover:text-destructive/80">{similarPatient.fullName}</Link>.
+                                                    <br/>Verifique se este é o mesmo paciente antes de prosseguir com um novo cadastro.
+                                                </AlertDescription>
+                                            </Alert>
+                                        )}
+                                        <FormMessage />
+                                    </FormItem>
                                 )}/>
                                 <FormField control={form.control} name="phone" render={({ field }) => (
                                     <FormItem><FormLabel>Telefone (WhatsApp)</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>
@@ -771,5 +800,3 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do protoco
         </Card>
     )
 }
-
-    
