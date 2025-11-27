@@ -362,7 +362,7 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do protoco
                     <Image src={logoUrl} alt="Logo" width={400} height={80} className="object-contain max-h-full"/>
                 </div>
             )}
-            <CardTitle className="text-3xl font-bold mt-4">Bem-vindo(a) à sua Jornada!</CardTitle>
+            <CardTitle className="text-3xl font-bold mt-4">Bem-vindo(a) à sua virada de chave.</CardTitle>
             <CardDescription>
               Vamos começar sua jornada de transformação. Preencha o formulário para que possamos personalizar seu acompanhamento.
             </CardDescription>
