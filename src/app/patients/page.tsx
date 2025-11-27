@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams } from 'next/navigation';
 import { getPatients, deletePatient, type Patient, type Dose } from "@/lib/actions";
 import { formatCurrency, formatDate, getDoseStatus, getDaysUntilDose, getOverdueDays, generateOverdueWhatsAppLink, generateDueTodayWhatsAppLink, generateAbandonedTreatmentWhatsAppLink }from "@/lib/utils";
@@ -86,7 +86,7 @@ function PatientsPageContent() {
         return checker(nextPendingDose);
     }
     
-    const filteredPatients = patients.filter(patient => {
+    const filteredPatients = useMemo(() => patients.filter(patient => {
         const nameMatch = patient.fullName.toLowerCase().includes(searchTerm.toLowerCase());
         if (!nameMatch) return false;
 
@@ -102,40 +102,22 @@ function PatientsPageContent() {
             default:
                 return true;
         }
-    });
+    }), [patients, searchTerm, filter]);
 
-    const totalPatients = patients.length;
-    const weightLossPatients = patients.filter(p => {
+    const totalPatients = useMemo(() => patients.length, [patients]);
+    
+    const weightLossPatients = useMemo(() => patients.filter(p => {
         const lastWeight = p.evolutions[p.evolutions.length - 1]?.bioimpedance?.weight;
         return lastWeight && lastWeight < p.initialWeight;
-    }).length;
+    }).length, [patients]);
 
-    const weightGainPatients = patients.filter(p => {
+    const weightGainPatients = useMemo(() => patients.filter(p => {
         const lastWeight = p.evolutions[p.evolutions.length - 1]?.bioimpedance?.weight;
         return lastWeight && lastWeight > p.initialWeight;
-    }).length;
+    }).length, [patients]);
     
     if (loading) {
-        return (
-            <div className="space-y-6">
-                 <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold">Pacientes</h1>
-                        <p className="text-muted-foreground">Gerencie sua lista de pacientes.</p>
-                    </div>
-                     <div className="flex gap-2">
-                        <Skeleton className="h-10 w-40" />
-                        <Skeleton className="h-10 w-40" />
-                    </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-3">
-                    <Skeleton className="h-28" />
-                    <Skeleton className="h-28" />
-                    <Skeleton className="h-28" />
-                </div>
-                <Card><CardContent className="pt-6"><Skeleton className="h-64" /></CardContent></Card>
-            </div>
-        );
+        return <PatientsPageSkeleton />;
     }
 
 
@@ -328,11 +310,36 @@ function PatientsPageContent() {
     );
 }
 
+function PatientsPageSkeleton() {
+    return (
+        <div className="space-y-6">
+             <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold">Pacientes</h1>
+                    <p className="text-muted-foreground">Gerencie sua lista de pacientes.</p>
+                </div>
+                 <div className="flex gap-2">
+                    <Skeleton className="h-10 w-40" />
+                    <Skeleton className="h-10 w-40" />
+                </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+                <Skeleton className="h-28" />
+                <Skeleton className="h-28" />
+                <Skeleton className="h-28" />
+            </div>
+            <Card><CardContent className="pt-6"><Skeleton className="h-64" /></CardContent></Card>
+        </div>
+    );
+}
+
 
 export default function PatientsPage() {
     return (
-        <Suspense fallback={<p>Carregando...</p>}>
+        <Suspense fallback={<PatientsPageSkeleton />}>
             <PatientsPageContent />
         </Suspense>
     )
 }
+
+    

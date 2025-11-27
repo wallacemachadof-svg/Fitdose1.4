@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { User as UserIcon, Upload, Loader2, ArrowRight, CalendarIcon } from "lucide-react";
 import { cn, calculateBmi } from "@/lib/utils";
-import { useEffect, useState, Suspense, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { addPatient, getPatients, type Patient } from "@/lib/actions";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -108,7 +108,7 @@ type PatientFormValues = z.infer<typeof patientFormSchema>;
 type PatientOptions = { value: string, label: string }[];
 
 // This is the Client Component
-export default function PatientRegistrationForm() {
+export default function PatientRegistrationForm({ patients }: { patients: Patient[] }) {
     const router = useRouter();
     const { toast } = useToast();
     const searchParams = useSearchParams();
@@ -117,7 +117,11 @@ export default function PatientRegistrationForm() {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
-    const [patientOptions, setPatientOptions] = useState<PatientOptions>([]);
+    
+    const patientOptions: PatientOptions = useMemo(() => 
+        patients.map(p => ({ value: p.id, label: p.fullName })), 
+        [patients]
+    );
 
     const isInternalRegistration = useMemo(() => searchParams.get('source') === 'internal', [searchParams]);
 
@@ -159,12 +163,6 @@ export default function PatientRegistrationForm() {
     }, [isInternalRegistration, form]);
 
     useEffect(() => {
-        async function fetchPatientOptions() {
-            const patients = await getPatients();
-            setPatientOptions(patients.map(p => ({ value: p.id, label: p.fullName })));
-        }
-        fetchPatientOptions();
-        
         if (isInternalRegistration) {
             setShowForm(true);
         }
