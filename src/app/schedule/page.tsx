@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
-import { DayPicker, type DayProps } from 'react-day-picker';
+import { DayPicker, type DayProps, Day } from 'react-day-picker';
 import { getPatients, updateDose, type Patient, type Dose } from '@/lib/actions';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +35,7 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent; onRe
     const [open, setOpen] = useState(false);
     const [newDate, setNewDate] = useState('');
     const [newTime, setNewTime] = useState('');
+    const { toast } = useToast();
 
     useEffect(() => {
         if (open) {
@@ -45,7 +46,6 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent; onRe
 
     const handleSave = () => {
         if (newDate && newTime) {
-            // By adding T00:00:00, we ensure the date isn't affected by timezone shifts when parsing.
             const dateWithTimezone = `${newDate}T00:00:00`;
             const parsedDate = parse(dateWithTimezone, "yyyy-MM-dd'T'HH:mm:ss", new Date());
 
@@ -57,8 +57,6 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent; onRe
             }
         }
     };
-    
-    const { toast } = useToast();
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -91,25 +89,25 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent; onRe
 const ScheduleContext = React.createContext<{ events: CalendarEvent[] }>({ events: [] });
 
 const DayCell = (props: DayProps) => {
-  const { events } = React.useContext(ScheduleContext);
-  const dayEvents = events.filter(event => isSameDay(event.date, props.date));
-
-  const getUrgentStatusColor = () => {
-      if (dayEvents.some(event => getDoseStatus(event.dose, event.allDoses).label.includes('Vencida'))) return 'bg-red-500';
-      if (dayEvents.some(event => getDoseStatus(event.dose, event.allDoses).label === 'Vence Hoje')) return 'bg-orange-500';
-      return 'bg-primary';
-  };
-
-  return (
-    <div className="relative">
-      <DayPicker.Day {...props} />
-      {dayEvents.length > 0 && (
-        <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex space-x-1">
-           <div className={`h-1.5 w-1.5 rounded-full ${getUrgentStatusColor()}`} />
-        </div>
-      )}
-    </div>
-  );
+    const { events } = React.useContext(ScheduleContext);
+    const dayEvents = events.filter(event => isSameDay(event.date, props.date));
+  
+    const getUrgentStatusColor = () => {
+        if (dayEvents.some(event => getDoseStatus(event.dose, event.allDoses).label.includes('Vencida'))) return 'bg-red-500';
+        if (dayEvents.some(event => getDoseStatus(event.dose, event.allDoses).label === 'Vence Hoje')) return 'bg-orange-500';
+        return 'bg-primary';
+    };
+  
+    return (
+      <div className="relative">
+        <Day {...props} />
+        {dayEvents.length > 0 && (
+          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex space-x-1">
+             <div className={`h-1.5 w-1.5 rounded-full ${getUrgentStatusColor()}`} />
+          </div>
+        )}
+      </div>
+    );
 };
 
 
