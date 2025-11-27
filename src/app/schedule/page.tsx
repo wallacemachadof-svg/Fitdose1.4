@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { getDoseStatus, generateGoogleCalendarLink, formatDate } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
-import { format as formatDateFns } from 'date-fns';
+import { format as formatDateFns, parse } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { FaWhatsapp } from 'react-icons/fa';
 import { generateWhatsAppLink } from '@/lib/utils';
@@ -33,19 +33,24 @@ type CalendarEvent = {
 
 function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onReschedule: (patientId: string, doseId: number, newDate: Date, newTime: string) => void }) {
     const [open, setOpen] = useState(false);
-    const [newDate, setNewDate] = useState<Date | undefined>();
-    const [newTime, setNewTime] = useState<string>('');
+    const [newDate, setNewDate] = useState('');
+    const [newTime, setNewTime] = useState('');
 
     useEffect(() => {
         if (open) {
-            setNewDate(new Date(event.dose.date));
+            setNewDate(formatDateFns(new Date(event.dose.date), 'yyyy-MM-dd'));
             setNewTime(event.dose.time || '10:00');
         }
     }, [open, event.dose.date, event.dose.time]);
 
     const handleSave = () => {
         if (newDate && newTime) {
-            onReschedule(event.patientId, event.dose.id, newDate, newTime);
+            const parsedDate = new Date(newDate);
+            // Adjust for timezone offset
+            const timezoneOffset = parsedDate.getTimezoneOffset() * 60000;
+            const adjustedDate = new Date(parsedDate.getTime() + timezoneOffset);
+
+            onReschedule(event.patientId, event.dose.id, adjustedDate, newTime);
             setOpen(false);
         }
     }
@@ -62,16 +67,15 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onRe
                     <h4 className="font-medium leading-none">Reagendar Dose</h4>
                     <p className="text-sm text-muted-foreground">Selecione a nova data e hora.</p>
                 </div>
-                <Calendar
-                    mode="single"
-                    selected={newDate}
-                    onSelect={setNewDate}
-                    initialFocus
-                    locale={ptBR}
-                />
-                <div className="space-y-2">
-                    <Label htmlFor="time">Novo Horário</Label>
-                    <Input id="time" type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="date">Nova Data</Label>
+                        <Input id="date" type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="time">Novo Horário</Label>
+                        <Input id="time" type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
+                    </div>
                 </div>
                 <Button onClick={handleSave} className="w-full">Salvar</Button>
             </PopoverContent>
@@ -150,7 +154,8 @@ export default function SchedulePage() {
             {dayEvents.slice(0, 3).map(event => {
                 const status = getDoseStatus(event.dose, event.allDoses);
                 let colorClass = 'bg-gray-400';
-                if (status.color.includes('red')) colorClass = 'bg-red-500';
+                if (status.color.includes('red-900')) colorClass = 'bg-red-900';
+                else if (status.color.includes('red')) colorClass = 'bg-red-500';
                 else if (status.color.includes('orange')) colorClass = 'bg-orange-500';
                 else if (status.color.includes('yellow')) colorClass = 'bg-yellow-500';
                 else if (status.color.includes('green')) colorClass = 'bg-green-500';
