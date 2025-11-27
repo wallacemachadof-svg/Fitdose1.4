@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
-import { DayPicker, type DayProps } from 'react-day-picker';
+import { type DayProps } from 'react-day-picker';
 import { getPatients, updateDose, type Patient, type Dose } from '@/lib/actions';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
@@ -86,31 +86,6 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent; onRe
     );
 }
 
-const ScheduleContext = React.createContext<{ events: CalendarEvent[] }>({ events: [] });
-
-const DayCell: React.FC<DayProps> = (props) => {
-    const { events } = React.useContext(ScheduleContext);
-    const dayEvents = events.filter(event => isSameDay(event.date, props.date));
-  
-    const getUrgentStatusColor = () => {
-        if (dayEvents.some(event => getDoseStatus(event.dose, event.allDoses).label.includes('Vencida'))) return 'bg-red-500';
-        if (dayEvents.some(event => getDoseStatus(event.dose, event.allDoses).label === 'Vence Hoje')) return 'bg-orange-500';
-        return 'bg-primary';
-    };
-  
-    return (
-      <div className="relative">
-        <DayPicker.Day {...props} />
-        {dayEvents.length > 0 && (
-          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex space-x-1">
-             <div className={`h-1.5 w-1.5 rounded-full ${getUrgentStatusColor()}`} />
-          </div>
-        )}
-      </div>
-    );
-};
-
-
 export default function SchedulePage() {
     const [date, setDate] = useState<Date | undefined>(new Date());
     const [patients, setPatients] = useState<Patient[]>([]);
@@ -182,85 +157,102 @@ export default function SchedulePage() {
         )
     }
 
-    return (
-        <ScheduleContext.Provider value={{ events }}>
-            <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-bold">Agenda de Aplicações</h1>
-                    <p className="text-muted-foreground">Visualize e gerencie os agendamentos de doses dos seus pacientes.</p>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                    <Card className="lg:col-span-2">
-                        <CardContent className="p-2">
-                            <CalendarComponent
-                                mode="single"
-                                selected={date}
-                                onSelect={setDate}
-                                className="w-full"
-                                locale={ptBR}
-                                captionLayout="dropdown-buttons"
-                                fromYear={2020}
-                                toYear={new Date().getFullYear() + 5}
-                                components={{ Day: DayCell }}
-                            />
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Doses para {date ? formatDate(date) : '...'}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {selectedDayEvents.length > 0 ? (
-                                <ul className="space-y-4">
-                                    {selectedDayEvents.map(event => {
-                                        const status = getDoseStatus(event.dose, event.allDoses);
-                                        const patient = patients.find(p => p.id === event.patientId);
+    const DayFooter = ({ date }: { date: Date }) => {
+        const dayEvents = events.filter(event => isSameDay(event.date, date));
+        if (dayEvents.length === 0) return null;
 
-                                        return (
-                                            <li key={`${event.patientId}-${event.dose.id}`}>
-                                                <Card className="overflow-hidden">
-                                                    <CardHeader className="flex flex-row items-center gap-4 p-4 bg-muted/50">
-                                                        <Avatar>
-                                                            <AvatarImage src={event.patientAvatar} />
-                                                            <AvatarFallback>{event.patientName.charAt(0)}</AvatarFallback>
-                                                        </Avatar>
-                                                        <div>
-                                                            <Link href={`/patients/${event.patientId}`} className="font-semibold hover:underline">{event.patientName}</Link>
-                                                            <p className="text-sm text-muted-foreground">Dose {event.dose.doseNumber}</p>
-                                                        </div>
-                                                    </CardHeader>
-                                                    <CardContent className="p-4 space-y-3">
-                                                        <div className="flex items-center justify-between text-sm">
-                                                            <span className="flex items-center gap-2 font-semibold">
-                                                                <Clock className="h-4 w-4 text-muted-foreground" />
-                                                                Horário: {event.dose.time || 'N/A'}
-                                                            </span>
-                                                            <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
-                                                        </div>
-                                                    </CardContent>
-                                                    <CardFooter className="bg-muted/50 p-2 flex justify-end gap-1">
-                                                        {patient && (
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-600" onClick={() => window.open(generateWhatsAppLink(patient, event.dose), '_blank')}>
-                                                                <FaWhatsapp className="h-4 w-4" />
-                                                            </Button>
-                                                        )}
-                                                        <ReschedulePopover event={event} onReschedule={handleRescheduleDose} />
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(generateGoogleCalendarLink(event.patientName, event.dose), '_blank')}>
-                                                            <CalendarIcon className="h-4 w-4" />
-                                                        </Button>
-                                                    </CardFooter>
-                                                </Card>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            ) : (
-                                <p className="text-center text-muted-foreground py-16">Nenhuma dose agendada para este dia.</p>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
+        const getUrgentStatusColor = () => {
+            if (dayEvents.some(event => getDoseStatus(event.dose, event.allDoses).label.includes('Vencida'))) return 'bg-red-500';
+            if (dayEvents.some(event => getDoseStatus(event.dose, event.allDoses).label === 'Vence Hoje')) return 'bg-orange-500';
+            return 'bg-primary';
+        };
+
+        return (
+            <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex">
+                <div className={`h-1.5 w-1.5 rounded-full ${getUrgentStatusColor()}`} />
             </div>
-        </ScheduleContext.Provider>
+        );
+    };
+
+    return (
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-2xl font-bold">Agenda de Aplicações</h1>
+                <p className="text-muted-foreground">Visualize e gerencie os agendamentos de doses dos seus pacientes.</p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                <Card className="lg:col-span-2">
+                    <CardContent className="p-2">
+                        <CalendarComponent
+                            mode="single"
+                            selected={date}
+                            onSelect={setDate}
+                            className="w-full"
+                            locale={ptBR}
+                            captionLayout="dropdown-buttons"
+                            fromYear={2020}
+                            toYear={new Date().getFullYear() + 5}
+                            components={{
+                                Footer: DayFooter,
+                            }}
+                        />
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Doses para {date ? formatDate(date) : '...'}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {selectedDayEvents.length > 0 ? (
+                            <ul className="space-y-4">
+                                {selectedDayEvents.map(event => {
+                                    const status = getDoseStatus(event.dose, event.allDoses);
+                                    const patient = patients.find(p => p.id === event.patientId);
+
+                                    return (
+                                        <li key={`${event.patientId}-${event.dose.id}`}>
+                                            <Card className="overflow-hidden">
+                                                <CardHeader className="flex flex-row items-center gap-4 p-4 bg-muted/50">
+                                                    <Avatar>
+                                                        <AvatarImage src={event.patientAvatar} />
+                                                        <AvatarFallback>{event.patientName.charAt(0)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <Link href={`/patients/${event.patientId}`} className="font-semibold hover:underline">{event.patientName}</Link>
+                                                        <p className="text-sm text-muted-foreground">Dose {event.dose.doseNumber}</p>
+                                                    </div>
+                                                </CardHeader>
+                                                <CardContent className="p-4 space-y-3">
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="flex items-center gap-2 font-semibold">
+                                                            <Clock className="h-4 w-4 text-muted-foreground" />
+                                                            Horário: {event.dose.time || 'N/A'}
+                                                        </span>
+                                                        <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
+                                                    </div>
+                                                </CardContent>
+                                                <CardFooter className="bg-muted/50 p-2 flex justify-end gap-1">
+                                                    {patient && (
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-600" onClick={() => window.open(generateWhatsAppLink(patient, event.dose), '_blank')}>
+                                                            <FaWhatsapp className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                    <ReschedulePopover event={event} onReschedule={handleRescheduleDose} />
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(generateGoogleCalendarLink(event.patientName, event.dose), '_blank')}>
+                                                        <CalendarIcon className="h-4 w-4" />
+                                                    </Button>
+                                                </CardFooter>
+                                            </Card>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        ) : (
+                            <p className="text-center text-muted-foreground py-16">Nenhuma dose agendada para este dia.</p>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
     );
 }
