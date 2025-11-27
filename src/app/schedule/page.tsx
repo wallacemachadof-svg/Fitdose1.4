@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { getPatients, updateDose, type Patient, type Dose } from '@/lib/actions';
-import { Calendar } from '@/components/ui/calendar';
+import { Calendar, type DayProps } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { getDoseStatus, generateGoogleCalendarLink, formatDate } from '@/lib/utils';
@@ -146,8 +146,17 @@ export default function SchedulePage() {
       });
   }, [date, events]);
 
-  const DayCell = ({ date }: { date: Date }) => {
+  const DayCell = (dayProps: DayProps) => {
+    const { date } = dayProps;
     const dayEvents = events.filter(event => isSameDay(event.date, date));
+    
+    // Original Day component from react-day-picker
+    const Day = (
+      <div className="relative h-full w-full flex items-center justify-center">
+        {formatDateFns(date, 'd')}
+      </div>
+    );
+  
     if (dayEvents.length > 0) {
       return (
         <div className="relative h-full w-full flex items-center justify-center">
@@ -168,7 +177,7 @@ export default function SchedulePage() {
         </div>
       );
     }
-    return formatDateFns(date, 'd');
+    return Day;
   };
   
   if (loading) {
@@ -203,6 +212,9 @@ export default function SchedulePage() {
               onSelect={setDate}
               className="w-full"
               locale={ptBR}
+              captionLayout="dropdown-buttons"
+              fromYear={2020} 
+              toYear={new Date().getFullYear() + 5}
               components={{
                 Day: DayCell,
               }}
