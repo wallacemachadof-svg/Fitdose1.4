@@ -9,11 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getDoseStatus, generateGoogleCalendarLink, formatDate, generateWhatsAppLink } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
-import { format as formatDateFns, isSameDay } from 'date-fns';
+import { format as formatDateFns, isSameDay, parse } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { FaWhatsapp } from 'react-icons/fa';
 import Link from 'next/link';
-import { Calendar as CalendarIcon, User, Loader2, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -44,7 +44,6 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent; onRe
 
     const handleSave = () => {
         if (newDate && newTime) {
-            // Adjust for timezone issues when parsing date from input
             const dateParts = newDate.split('-').map(Number);
             const parsedDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
 
@@ -83,34 +82,23 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent; onRe
     );
 }
 
-const DayCell = ({ date, displayMonth }: DayProps) => {
+const DayWithDot = (dayProps: DayProps) => {
     const { events } = React.useContext(ScheduleContext);
-    const dayEvents = events.filter(event => isSameDay(event.date, date));
-    
-    if (displayMonth !== date.getMonth()) {
-        return <div className="h-9 w-9" />;
-    }
-
+    const dayEvents = events.filter(event => isSameDay(event.date, dayProps.date));
+  
     return (
-        <div className="relative h-9 w-9">
-            <p>{formatDateFns(date, 'd')}</p>
-            {dayEvents.length > 0 && (
-                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex space-x-1">
-                    {dayEvents.slice(0, 3).map(event => {
-                        const status = getDoseStatus(event.dose, event.allDoses);
-                        let colorClass = 'bg-gray-400';
-                        if (status.color.includes('red-900')) colorClass = 'bg-red-900';
-                        else if (status.color.includes('red')) colorClass = 'bg-red-500';
-                        else if (status.color.includes('orange')) colorClass = 'bg-orange-500';
-                        else if (status.color.includes('yellow')) colorClass = 'bg-yellow-500';
-                        else if (status.color.includes('green')) colorClass = 'bg-green-500';
-                        return <div key={`${event.patientId}-${event.dose.id}`} className={`h-1.5 w-1.5 rounded-full ${colorClass}`} />;
-                    })}
-                </div>
-            )}
-        </div>
+      <div className="relative">
+        <DayPickerDay {...dayProps} />
+        {dayEvents.length > 0 && (
+          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex space-x-1">
+             <div className={`h-1.5 w-1.5 rounded-full bg-primary`} />
+          </div>
+        )}
+      </div>
     );
-};
+  };
+  
+const { DayPickerDay } = DayPicker;
 
 const ScheduleContext = React.createContext<{ events: CalendarEvent[] }>({ events: [] });
 
@@ -204,7 +192,7 @@ export default function SchedulePage() {
                                 captionLayout="dropdown-buttons"
                                 fromYear={2020}
                                 toYear={new Date().getFullYear() + 5}
-                                components={{ Day: DayCell }}
+                                components={{ Day: DayWithDot }}
                             />
                         </CardContent>
                     </Card>
