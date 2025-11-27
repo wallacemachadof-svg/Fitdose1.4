@@ -157,7 +157,7 @@ function DosePaymentEditor({ dose, patientId, onUpdate }: { dose: Dose; patientI
                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
-                                     <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={date} onSelect={setDate} initialFocus /></PopoverContent>
+                                     <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={date} onSelect={setDate} initialFocus captionLayout="dropdown-buttons" fromYear={2020} toYear={new Date().getFullYear() + 5} /></PopoverContent>
                                 </Popover>
                                 </div>
                                 <div className="grid grid-cols-3 items-center gap-4">
@@ -716,6 +716,9 @@ export default function PatientDetailPage() {
                               }}
                               initialFocus
                               locale={ptBR}
+                              captionLayout="dropdown-buttons" 
+                              fromYear={2020} 
+                              toYear={new Date().getFullYear() + 5}
                             />
                           </PopoverContent>
                         </Popover>
@@ -877,4 +880,5 @@ const isSameDay = (date1: Date, date2: Date) =>
 
 
     
+
 

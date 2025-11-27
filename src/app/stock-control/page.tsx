@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -398,8 +399,7 @@ export default function StockControlPage() {
                                     <Button type="button" variant="outline">Cancelar</Button>
                                 </DialogClose>
                                 <Button type="submit" disabled={isAdjusting}>
-                                    {isAdjusting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Salvar Ajuste
+                                    {isAdjusting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : 'Salvar Ajuste'}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -429,7 +429,7 @@ export default function StockControlPage() {
                                             </FormControl>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                            <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus captionLayout="dropdown-buttons" fromYear={2020} toYear={new Date().getFullYear() + 5} />
                                         </PopoverContent>
                                     </Popover>
                                 <FormMessage />
@@ -469,4 +469,3 @@ export default function StockControlPage() {
         </div>
     );
 }
-

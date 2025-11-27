@@ -22,7 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, ArrowLeft } from "lucide-react";
+import { CalendarIcon, ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -105,7 +105,7 @@ export default function NewVialPage() {
                                                 </FormControl>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                <Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} initialFocus captionLayout="dropdown-buttons" fromYear={2020} toYear={new Date().getFullYear() + 5} />
                                             </PopoverContent>
                                         </Popover>
                                     <FormMessage />
@@ -138,7 +138,7 @@ export default function NewVialPage() {
                            <div className="flex justify-end gap-2 pt-4">
                                 <Button type="button" variant="outline" onClick={() => router.push('/stock-control')} disabled={isSubmitting}>Cancelar</Button>
                                 <Button type="submit" disabled={isSubmitting}>
-                                    {isSubmitting ? 'Salvando...' : 'Salvar no Estoque'}
+                                    {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Salvando...</> : 'Salvar no Estoque'}
                                 </Button>
                             </div>
                         </form>

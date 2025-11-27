@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -215,7 +216,7 @@ export default function EditSalePage() {
                                                     </Button>
                                                 </FormControl>
                                             </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start"><Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent>
+                                            <PopoverContent className="w-auto p-0" align="start"><Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={2020} toYear={new Date().getFullYear() + 5} /></PopoverContent>
                                         </Popover>
                                     <FormMessage />
                                     </FormItem>
@@ -267,7 +268,7 @@ export default function EditSalePage() {
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <FormField control={control} name="paymentDate" render={({ field }) => (
                                                 <FormItem className="flex flex-col"><FormLabel>Data Pagamento</FormLabel>
-                                                    <Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha a data</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent></Popover>
+                                                    <Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha a data</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={2020} toYear={new Date().getFullYear() + 5} /></PopoverContent></Popover>
                                                 <FormMessage /></FormItem>
                                             )}/>
                                             <FormField control={control} name="paymentMethod" render={({ field }) => (
@@ -283,7 +284,7 @@ export default function EditSalePage() {
                                      {watchPaymentStatus === 'pendente' && (
                                         <FormField control={control} name="paymentDueDate" render={({ field }) => (
                                                 <FormItem className="flex flex-col"><FormLabel>Data Vencimento</FormLabel>
-                                                    <Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha a data</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent></Popover>
+                                                    <Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha a data</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar locale={ptBR} mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={2020} toYear={new Date().getFullYear() + 5} /></PopoverContent></Popover>
                                                 <FormMessage /></FormItem>
                                             )}/>
                                      )}
