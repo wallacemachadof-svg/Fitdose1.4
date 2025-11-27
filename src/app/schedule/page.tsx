@@ -1,6 +1,7 @@
 
 'use client';
 
+import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { getPatients, updateDose, type Patient, type Dose } from '@/lib/actions';
 import { Calendar as CalendarComponent, type DayProps } from '@/components/ui/calendar';
@@ -38,7 +39,6 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onRe
 
      useEffect(() => {
         if (open) {
-            // Format the date as 'yyyy-MM-dd' for the input type="date"
             setNewDate(formatDateFns(new Date(event.dose.date), 'yyyy-MM-dd'));
             setNewTime(event.dose.time || '10:00');
         }
@@ -46,9 +46,6 @@ function ReschedulePopover({ event, onReschedule }: { event: CalendarEvent, onRe
 
     const handleSave = () => {
         if (newDate && newTime) {
-             // The input type="date" gives a string like "2023-11-28".
-             // new Date("2023-11-28") can result in the previous day depending on the timezone.
-             // Parsing it manually avoids this issue.
             const dateParts = newDate.split('-').map(Number);
             const parsedDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
 
