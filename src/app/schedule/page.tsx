@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getPatients, type Patient, type Dose } from '@/lib/actions';
+import { getPatients, updateDose, type Patient, type Dose } from '@/lib/actions';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -13,10 +13,13 @@ import { Button } from '@/components/ui/button';
 import { FaWhatsapp } from 'react-icons/fa';
 import { generateWhatsAppLink } from '@/lib/utils';
 import Link from 'next/link';
-import { Calendar as CalendarIcon, User } from 'lucide-react';
+import { Calendar as CalendarIcon, User, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+
 
 type CalendarEvent = {
   date: Date;
@@ -24,24 +27,47 @@ type CalendarEvent = {
   patientId: string;
   patientAvatar?: string;
   dose: Dose;
+  allDoses: Dose[];
 };
 
 export default function SchedulePage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchPatients = async () => {
+  const fetchPatients = async () => {
       setLoading(true);
       const data = await getPatients();
       setPatients(data);
       setLoading(false);
-    };
+  };
+
+  useEffect(() => {
     fetchPatients();
   }, []);
 
-  const events = useMemo(() => {
+  const handleRescheduleDose = async (patientId: string, doseId: number, newDate: Date) => {
+    try {
+      const updatedPatient = await updateDose(patientId, doseId, { date: newDate });
+      if (updatedPatient) {
+        setPatients(prevPatients => prevPatients.map(p => p.id === patientId ? updatedPatient : p));
+        toast({
+          title: "Dose Reagendada!",
+          description: `A dose e as subsequentes foram reagendadas.`,
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao reagendar",
+        description: error instanceof Error ? error.message : "Não foi possível reagendar a dose.",
+      });
+    }
+  };
+
+
+  const events = useMemo((): CalendarEvent[] => {
     return patients.flatMap(p =>
       p.doses.map(d => ({
         date: new Date(d.date),
@@ -153,7 +179,26 @@ export default function SchedulePage() {
                         </CardHeader>
                         <CardContent className="p-4 space-y-3">
                           <div className='flex items-center justify-between'>
-                            <span className="text-sm font-semibold">Horário: {event.dose.time || 'N/A'}</span>
+                             <Popover>
+                              <PopoverTrigger asChild>
+                                  <Button variant="ghost" className="p-0 h-auto font-semibold" disabled={event.dose.status === 'administered'}>
+                                    Horário: {event.dose.time || 'N/A'}
+                                  </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                  <Calendar
+                                  mode="single"
+                                  selected={new Date(event.dose.date)}
+                                  onSelect={(newDate) => {
+                                      if (newDate) {
+                                      handleRescheduleDose(event.patientId, event.dose.id, newDate);
+                                      }
+                                  }}
+                                  initialFocus
+                                  locale={ptBR}
+                                  />
+                              </PopoverContent>
+                            </Popover>
                             <Badge variant={status.color.startsWith('bg-') ? 'default' : 'outline'} className={`${status.color} ${status.textColor} border-none`}>{status.label}</Badge>
                           </div>
                         </CardContent>
