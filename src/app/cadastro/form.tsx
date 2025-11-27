@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { User as UserIcon, Upload, Loader2, ArrowRight, CalendarIcon } from "lucide-react";
+import { User as UserIcon, Upload, Loader2, ArrowRight, CalendarIcon, Info } from "lucide-react";
 import { cn, calculateBmi } from "@/lib/utils";
 import { useEffect, useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -33,6 +33,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Combobox } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 const healthConditions = [
     { id: "hypertension", label: "Hipertensão" },
@@ -383,6 +385,7 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do protoco
                 <CardDescription>Preencha os dados abaixo com atenção. Eles são essenciais para o seu acompanhamento.</CardDescription>
             </CardHeader>
             <CardContent>
+                <TooltipProvider>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
@@ -478,15 +481,33 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do protoco
                                     <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex items-center gap-6">
                                         <FormItem className="flex items-center space-x-3 space-y-0">
                                             <FormControl><RadioGroupItem value="presencial" /></FormControl>
-                                            <FormLabel className="font-normal">Presencial</FormLabel>
+                                            <FormLabel className="font-normal flex items-center gap-1.5">
+                                                Presencial
+                                                <Tooltip>
+                                                    <TooltipTrigger><Info className="h-3 w-3 text-muted-foreground"/></TooltipTrigger>
+                                                    <TooltipContent><p>Dose e pesagem semanal em nosso espaço.</p></TooltipContent>
+                                                </Tooltip>
+                                            </FormLabel>
                                         </FormItem>
                                         <FormItem className="flex items-center space-x-3 space-y-0">
                                             <FormControl><RadioGroupItem value="online" /></FormControl>
-                                            <FormLabel className="font-normal">Online</FormLabel>
+                                            <FormLabel className="font-normal flex items-center gap-1.5">
+                                                Online
+                                                <Tooltip>
+                                                    <TooltipTrigger><Info className="h-3 w-3 text-muted-foreground"/></TooltipTrigger>
+                                                    <TooltipContent><p>Envio da dose para aplicação em casa.</p></TooltipContent>
+                                                </Tooltip>
+                                            </FormLabel>
                                         </FormItem>
                                         <FormItem className="flex items-center space-x-3 space-y-0">
                                             <FormControl><RadioGroupItem value="hibrido" /></FormControl>
-                                            <FormLabel className="font-normal">Híbrido</FormLabel>
+                                            <FormLabel className="font-normal flex items-center gap-1.5">
+                                                Híbrido
+                                                <Tooltip>
+                                                    <TooltipTrigger><Info className="h-3 w-3 text-muted-foreground"/></TooltipTrigger>
+                                                    <TooltipContent><p>Dose semanal presencial, sem acompanhamento de peso.</p></TooltipContent>
+                                                </Tooltip>
+                                            </FormLabel>
                                         </FormItem>
                                     </RadioGroup>
                                 </FormControl>
@@ -745,6 +766,7 @@ Autorizo, por livre e espontânea vontade, a prescrição e o início do protoco
                         </div>
                     </form>
                 </Form>
+                </TooltipProvider>
             </CardContent>
         </Card>
     )
