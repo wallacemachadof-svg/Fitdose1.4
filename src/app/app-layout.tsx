@@ -21,6 +21,10 @@ import {
   Apple,
   Palette,
   UserX,
+  Sparkles,
+  ClipboardList,
+  Box,
+  AreaChart,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -34,6 +38,8 @@ import {
   SidebarInset,
   SidebarTrigger,
   SidebarSeparator,
+  SidebarGroup,
+  SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import React, { useState, useEffect } from 'react';
 import {
@@ -90,9 +96,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 
 
-  const isActive = (path: string) => {
-    // Exact match for dashboard, prefix match for others
-    if (path === '/dashboard') {
+  const isActive = (path: string, exact = false) => {
+    if (exact) {
         return pathname === path;
     }
     return pathname.startsWith(path);
@@ -125,7 +130,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {logoUrl ? (
                 <Image 
                     src={logoUrl} 
-                    alt="FitDose Logo" 
+                    alt="Logo" 
                     width={200}
                     height={logoHeight}
                     className="object-contain"
@@ -138,162 +143,63 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/dashboard')}
-                  tooltip="Dashboard"
-                >
-                  <Link href="/dashboard">
-                    <LayoutDashboard />
-                    <span>Dashboard</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-                <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/schedule')}
-                  tooltip="Agenda"
-                >
-                  <Link href="/schedule">
-                    <CalendarDays />
-                    <span>Agenda</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/patients')}
-                  tooltip="Pacientes"
-                >
-                  <Link href="/patients">
-                    <HeartPulse />
-                    <span>Pacientes</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/birthdays')}
-                  tooltip="Aniversariantes"
-                >
-                  <Link href="/birthdays">
-                    <Cake />
-                    <span>Aniversariantes</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/nutrition')}
-                  tooltip="Nutrição"
-                >
-                  <Link href="/nutrition">
-                    <Apple />
-                    <span>Nutrição</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/rewards')}
-                  tooltip="Recompensas"
-                >
-                  <Link href="/rewards">
-                    <Award />
-                    <span>Recompensas</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/marketing')}
-                  tooltip="Marketing"
-                >
-                  <Link href="/marketing">
-                    <Palette />
-                    <span>Marketing</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/finished-treatments')}
-                  tooltip="Tratamentos Finalizados"
-                >
-                  <Link href="/finished-treatments">
-                    <UserX />
-                    <span>Tratamentos Finalizados</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/sales-control')}
-                  tooltip="Vendas"
-                >
-                  <Link href="/sales-control">
-                    <ShoppingCart />
-                    <span>Vendas</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/cash-flow')}
-                  tooltip="Fluxo de Caixa"
-                >
-                  <Link href="/cash-flow">
-                    <DollarSign />
-                    <span>Fluxo de Caixa</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/stock-control')}
-                  tooltip="Controle de Estoque"
-                >
-                  <Link href="/stock-control">
-                    <Warehouse />
-                    <span>Controle de Estoque</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/ai-personalization')}
-                  tooltip="Personalização AI"
-                >
-                  <Link href="/ai-personalization">
-                    <FlaskConical />
-                    <span>Personalização AI</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/admin')}
-                  tooltip="Administrador"
-                >
-                  <Link href="/admin">
-                    <Settings />
-                    <span>Administrador</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                <SidebarGroup>
+                    <SidebarGroupLabel>Emagrecimento</SidebarGroupLabel>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/dashboard', true)} tooltip="Dashboard"><Link href="/dashboard"><LayoutDashboard /><span>Dashboard</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/schedule')} tooltip="Agenda"><Link href="/schedule"><CalendarDays /><span>Agenda</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/patients')} tooltip="Pacientes"><Link href="/patients"><HeartPulse /><span>Pacientes</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/nutrition')} tooltip="Nutrição"><Link href="/nutrition"><Apple /><span>Nutrição</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarGroup>
+
+                <SidebarSeparator />
+
+                <SidebarGroup>
+                    <SidebarGroupLabel>Estética (HOF)</SidebarGroupLabel>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/hof')} tooltip="Início HOF"><Link href="/hof"><Sparkles /><span>Início HOF</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarGroup>
+
+                <SidebarSeparator />
+                
+                <SidebarGroup>
+                    <SidebarGroupLabel>Gestão</SidebarGroupLabel>
+                     <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/birthdays')} tooltip="Aniversariantes"><Link href="/birthdays"><Cake /><span>Aniversariantes</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/rewards')} tooltip="Recompensas"><Link href="/rewards"><Award /><span>Recompensas</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/marketing')} tooltip="Marketing"><Link href="/marketing"><Palette /><span>Marketing</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/finished-treatments')} tooltip="Tratamentos Finalizados"><Link href="/finished-treatments"><UserX /><span>Tratamentos Finalizados</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/sales-control')} tooltip="Vendas"><Link href="/sales-control"><ShoppingCart /><span>Vendas</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/cash-flow')} tooltip="Fluxo de Caixa"><Link href="/cash-flow"><DollarSign /><span>Fluxo de Caixa</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/stock-control')} tooltip="Controle de Estoque"><Link href="/stock-control"><Warehouse /><span>Controle de Estoque</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/ai-personalization')} tooltip="Personalização AI"><Link href="/ai-personalization"><FlaskConical /><span>Personalização AI</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/admin')} tooltip="Administrador"><Link href="/admin"><Settings /><span>Administrador</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarGroup>
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>
