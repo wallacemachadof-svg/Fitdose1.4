@@ -436,10 +436,23 @@ export type RewardsSettings = {
   pointsToBrl: number;
 };
 
+export type HofProcedure = {
+    name: string;
+    price: number;
+};
+
+export type HofProduct = {
+    name: string;
+    cost: number;
+    unit: string;
+};
+
 export type Settings = {
     dosePrices: DosePrice[];
     dailyLateFee?: number;
     rewards: RewardsSettings;
+    hofProcedures?: HofProcedure[];
+    hofProducts?: HofProduct[];
 };
 
 export type StockForecast = {
@@ -1449,4 +1462,5 @@ export const reactivateTreatment = async (patientId: string): Promise<Patient> =
     writeData({ patients: data.patients });
     return patient;
 }
+
 

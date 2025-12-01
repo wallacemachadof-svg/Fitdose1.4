@@ -18,7 +18,6 @@ import {
   HeartPulse,
   Settings,
   Cake,
-  Apple,
   Palette,
   UserX,
   Sparkles,
@@ -144,30 +143,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarContent>
             <SidebarMenu>
                 <SidebarGroup>
-                    <SidebarGroupLabel>Emagrecimento</SidebarGroupLabel>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={isActive('/dashboard', true)} tooltip="Dashboard"><Link href="/dashboard"><LayoutDashboard /><span>Dashboard</span></Link></SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={isActive('/schedule')} tooltip="Agenda"><Link href="/schedule"><CalendarDays /><span>Agenda</span></Link></SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive('/patients', true)} tooltip="Pacientes"><Link href="/patients"><HeartPulse /><span>Pacientes</span></Link></SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive('/nutrition')} tooltip="Nutrição"><Link href="/nutrition"><Apple /><span>Nutrição</span></Link></SidebarMenuButton>
-                    </SidebarMenuItem>
                 </SidebarGroup>
 
                 <SidebarSeparator />
 
                 <SidebarGroup>
+                    <SidebarGroupLabel>Emagrecimento</SidebarGroupLabel>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/nutrition')} tooltip="Nutrição"><Link href="/nutrition"><HeartPulse /><span>Nutrição</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarGroup>
+                
+                <SidebarGroup>
                     <SidebarGroupLabel>Estética (HOF)</SidebarGroupLabel>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={isActive('/hof', true)} tooltip="Início HOF"><Link href="/hof"><Sparkles /><span>Início HOF</span></Link></SidebarMenuButton>
-                    </SidebarMenuItem>
-                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive('/hof/patients')} tooltip="Pacientes HOF"><Link href="/hof/patients"><Users /><span>Pacientes HOF</span></Link></SidebarMenuButton>
                     </SidebarMenuItem>
                      <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={isActive('/hof/procedures')} tooltip="Procedimentos"><Link href="/hof/procedures"><ClipboardList /><span>Procedimentos</span></Link></SidebarMenuButton>
@@ -180,9 +176,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <SidebarSeparator />
                 
                 <SidebarGroup>
-                    <SidebarGroupLabel>Gestão</SidebarGroupLabel>
+                    <SidebarGroupLabel>Pacientes</SidebarGroupLabel>
                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/patients', true)} tooltip="Pacientes"><Link href="/patients"><Users /><span>Pacientes</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={isActive('/birthdays')} tooltip="Aniversariantes"><Link href="/birthdays"><Cake /><span>Aniversariantes</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/finished-treatments')} tooltip="Tratamentos Finalizados"><Link href="/finished-treatments"><UserX /><span>Finalizados</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarGroup>
+
+                <SidebarSeparator />
+
+                <SidebarGroup>
+                    <SidebarGroupLabel>Financeiro & MKT</SidebarGroupLabel>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/sales-control')} tooltip="Vendas"><Link href="/sales-control"><ShoppingCart /><span>Vendas</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/cash-flow')} tooltip="Fluxo de Caixa"><Link href="/cash-flow"><DollarSign /><span>Fluxo de Caixa</span></Link></SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={isActive('/rewards')} tooltip="Recompensas"><Link href="/rewards"><Award /><span>Recompensas</span></Link></SidebarMenuButton>
@@ -190,15 +204,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={isActive('/marketing')} tooltip="Marketing"><Link href="/marketing"><Palette /><span>Marketing</span></Link></SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive('/finished-treatments')} tooltip="Tratamentos Finalizados"><Link href="/finished-treatments"><UserX /><span>Finalizados</span></Link></SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive('/sales-control')} tooltip="Vendas"><Link href="/sales-control"><ShoppingCart /><span>Vendas</span></Link></SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive('/cash-flow')} tooltip="Fluxo de Caixa"><Link href="/cash-flow"><DollarSign /><span>Fluxo de Caixa</span></Link></SidebarMenuButton>
-                    </SidebarMenuItem>
+                </SidebarGroup>
+                
+                <SidebarSeparator />
+
+                <SidebarGroup>
+                    <SidebarGroupLabel>Configurações</SidebarGroupLabel>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={isActive('/stock-control')} tooltip="Controle de Estoque"><Link href="/stock-control"><Warehouse /><span>Estoque Mounjaro</span></Link></SidebarMenuButton>
                     </SidebarMenuItem>

@@ -82,10 +82,10 @@ export default function HofPatientsPage() {
                 <div>
                     <h1 className="text-2xl font-bold flex items-center gap-2">
                         <Users className="h-6 w-6 text-primary" />
-                        Pacientes
+                        Pacientes (HOF)
                     </h1>
                     <p className="text-muted-foreground">
-                        Gerencie sua lista de pacientes de emagrecimento e estética.
+                        Gerencie seus pacientes de estética. A lista é compartilhada com o módulo de emagrecimento.
                     </p>
                 </div>
                 <Button asChild>
