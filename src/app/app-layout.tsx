@@ -152,7 +152,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         <SidebarMenuButton asChild isActive={isActive('/schedule')} tooltip="Agenda"><Link href="/schedule"><CalendarDays /><span>Agenda</span></Link></SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive('/patients')} tooltip="Pacientes"><Link href="/patients"><HeartPulse /><span>Pacientes</span></Link></SidebarMenuButton>
+                        <SidebarMenuButton asChild isActive={isActive('/patients', true)} tooltip="Pacientes"><Link href="/patients"><HeartPulse /><span>Pacientes</span></Link></SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={isActive('/nutrition')} tooltip="Nutrição"><Link href="/nutrition"><Apple /><span>Nutrição</span></Link></SidebarMenuButton>
@@ -164,7 +164,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <SidebarGroup>
                     <SidebarGroupLabel>Estética (HOF)</SidebarGroupLabel>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive('/hof')} tooltip="Início HOF"><Link href="/hof"><Sparkles /><span>Início HOF</span></Link></SidebarMenuButton>
+                        <SidebarMenuButton asChild isActive={isActive('/hof', true)} tooltip="Início HOF"><Link href="/hof"><Sparkles /><span>Início HOF</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/hof/patients')} tooltip="Pacientes HOF"><Link href="/hof/patients"><Users /><span>Pacientes HOF</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/hof/procedures')} tooltip="Procedimentos"><Link href="/hof/procedures"><ClipboardList /><span>Procedimentos</span></Link></SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/hof/stock')} tooltip="Estoque HOF"><Link href="/hof/stock"><Box /><span>Estoque HOF</span></Link></SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarGroup>
 
@@ -182,7 +191,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         <SidebarMenuButton asChild isActive={isActive('/marketing')} tooltip="Marketing"><Link href="/marketing"><Palette /><span>Marketing</span></Link></SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive('/finished-treatments')} tooltip="Tratamentos Finalizados"><Link href="/finished-treatments"><UserX /><span>Tratamentos Finalizados</span></Link></SidebarMenuButton>
+                        <SidebarMenuButton asChild isActive={isActive('/finished-treatments')} tooltip="Tratamentos Finalizados"><Link href="/finished-treatments"><UserX /><span>Finalizados</span></Link></SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={isActive('/sales-control')} tooltip="Vendas"><Link href="/sales-control"><ShoppingCart /><span>Vendas</span></Link></SidebarMenuButton>
@@ -191,7 +200,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         <SidebarMenuButton asChild isActive={isActive('/cash-flow')} tooltip="Fluxo de Caixa"><Link href="/cash-flow"><DollarSign /><span>Fluxo de Caixa</span></Link></SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive('/stock-control')} tooltip="Controle de Estoque"><Link href="/stock-control"><Warehouse /><span>Controle de Estoque</span></Link></SidebarMenuButton>
+                        <SidebarMenuButton asChild isActive={isActive('/stock-control')} tooltip="Controle de Estoque"><Link href="/stock-control"><Warehouse /><span>Estoque Mounjaro</span></Link></SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={isActive('/ai-personalization')} tooltip="Personalização AI"><Link href="/ai-personalization"><FlaskConical /><span>Personalização AI</span></Link></SidebarMenuButton>
