@@ -25,5 +25,104 @@
       "price": 110
     }
   ],
-  "dailyLateFee": 1
+  "dailyLateFee": 1,
+  "hofProcedures": [
+    {
+      "name": "Toxina Botulínica - Terço Superior Completo",
+      "price": 0
+    },
+    {
+      "name": "Toxina Botulínica - Glabela (entre sobrancelhas)",
+      "price": 0
+    },
+    {
+      "name": "Toxina Botulínica - Testa",
+      "price": 0
+    },
+    {
+      "name": "Toxina Botulínica - Olhos (pés de galinha)",
+      "price": 0
+    },
+    {
+      "name": "Toxina Botulínica - Sorriso Gengival",
+      "price": 0
+    },
+    {
+      "name": "Toxina Botulínica - Bruxismo / Hipertrofia Masseter",
+      "price": 0
+    },
+    {
+      "name": "Toxina Botulínica - Contorno Mandibular (Nefertiti)",
+      "price": 0
+    },
+    {
+      "name": "Preenchimento Labial",
+      "price": 0
+    },
+    {
+      "name": "Preenchimento de Olheiras",
+      "price": 0
+    },
+    {
+      "name": "Preenchimento de Bigode Chinês (Sulco Nasogeniano)",
+      "price": 0
+    },
+    {
+      "name": "Preenchimento de Malar (Maçãs do Rosto)",
+      "price": 0
+    },
+    {
+      "name": "Preenchimento de Mandíbula",
+      "price": 0
+    },
+    {
+      "name": "Preenchimento de Mento (Queixo)",
+      "price": 0
+    },
+    {
+      "name": "Rinomodelação",
+      "price": 0
+    },
+    {
+      "name": "Bioestimulador de Colágeno - Sculptra (Face)",
+      "price": 0
+    },
+    {
+      "name": "Bioestimulador de Colágeno - Radiesse (Face)",
+      "price": 0
+    },
+    {
+      "name": "Bioestimulador de Colágeno - Corpo (Abdômen)",
+      "price": 0
+    },
+    {
+      "name": "Bioestimulador de Colágeno - Corpo (Glúteos)",
+      "price": 0
+    },
+    {
+      "name": "Fios de PDO - Fox Eyes",
+      "price": 0
+    },
+    {
+      "name": "Fios de PDO - Lifting Facial",
+      "price": 0
+    },
+    {
+      "name": "Fios de PDO - bioestímulo (lisos)",
+      "price": 0
+    },
+    {
+      "name": "Intradermoterapia - Lipo de Papada Enzimática",
+      "price": 0
+    },
+    {
+      "name": "Intradermoterapia - Gordura Localizada (Abdômen)",
+      "price": 0
+    },
+    {
+      "name": "Skinbooster (Hidratação Injetável)",
+      "price": 0
+    }
+  ],
+  "hofProducts": []
 }
