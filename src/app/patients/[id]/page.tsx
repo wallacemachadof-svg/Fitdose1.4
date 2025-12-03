@@ -73,6 +73,7 @@ import {
     UserX,
     History,
     Wallet,
+    Sparkles,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -499,6 +500,41 @@ export default function PatientDetailPage() {
             </Card>
         </div>
       </div>
+
+       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5" />Histórico de Procedimentos HOF</CardTitle>
+          <CardDescription>Visualize todos os procedimentos estéticos realizados.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            {patient.hofProcedures && patient.hofProcedures.length > 0 ? (
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Data</TableHead>
+                            <TableHead>Procedimento</TableHead>
+                            <TableHead>Áreas</TableHead>
+                            <TableHead className="text-right">Valor</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {patient.hofProcedures.map(proc => (
+                            <TableRow key={proc.id}>
+                                <TableCell>{formatDate(proc.date)}</TableCell>
+                                <TableCell className="font-medium">{proc.procedureName}</TableCell>
+                                <TableCell className="text-muted-foreground">{proc.areas}</TableCell>
+                                <TableCell className="text-right font-semibold">{formatCurrency(proc.price)}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            ) : (
+                 <p className="text-sm text-center text-muted-foreground py-8">
+                   Nenhum procedimento HOF registrado para este paciente. <Link href="/hof/procedures" className="text-primary hover:underline font-semibold">Adicionar agora</Link>.
+                </p>
+            )}
+        </CardContent>
+      </Card>
       
        <Card>
         <CardHeader>
@@ -863,4 +899,5 @@ const isSameDay = (date1: Date, date2: Date) =>
   date1.getFullYear() === date2.getFullYear() &&
   date1.getMonth() === date2.getMonth() &&
   date1.getDate() === date2.getDate();
+
 

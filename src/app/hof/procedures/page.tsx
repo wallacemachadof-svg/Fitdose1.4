@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -24,8 +24,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { useToast } from "@/hooks/use-toast";
 import { getPatients, getSettings, addHofProcedure, type Patient, type HofProcedure, type HofProduct } from "@/lib/actions";
-import { Loader2, PlusCircle, Trash2, CalendarIcon, Upload, Camera, ClipboardList } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Loader2, PlusCircle, Trash2, CalendarIcon, Upload, Camera, ClipboardList, DollarSign } from "lucide-react";
+import { cn, formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Image from "next/image";
@@ -78,6 +78,8 @@ export default function HofProceduresPage() {
   });
 
   const watchProcedureName = form.watch("procedureName");
+  const watchProductsUsed = form.watch("productsUsed");
+  const watchPrice = form.watch("price");
 
   useEffect(() => {
     async function fetchInitialData() {
@@ -139,22 +141,17 @@ export default function HofProceduresPage() {
     }
   }
 
-  const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value, name } = e.target;
-    let numericValue = value.replace(/\D/g, '');
-    if (numericValue === '') {
-        form.setValue(name as keyof HofProcedureFormValues, 0);
-        return;
-    }
-    const formattedValue = (parseInt(numericValue, 10) / 100);
-    form.setValue(name as keyof HofProcedureFormValues, formattedValue);
-  };
-  
-  const formatCurrencyForDisplay = (value: number | undefined) => {
-      if (value === undefined || isNaN(value)) return '';
-      return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  };
+  const totalProductCost = useMemo(() => {
+    return watchProductsUsed.reduce((total, currentProduct) => {
+        const productInfo = products.find(p => p.name === currentProduct.productName);
+        if (productInfo) {
+            return total + (productInfo.cost * currentProduct.quantityUsed);
+        }
+        return total;
+    }, 0);
+  }, [watchProductsUsed, products]);
 
+  const grossProfit = watchPrice - totalProductCost;
 
   return (
     <div className="space-y-6">
@@ -186,25 +183,9 @@ export default function HofProceduresPage() {
           <Card>
             <CardHeader><CardTitle>Detalhes do Procedimento</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField control={form.control} name="procedureName" render={({ field }) => (
+               <FormField control={form.control} name="procedureName" render={({ field }) => (
                   <FormItem><FormLabel>Procedimento Realizado *</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl><SelectContent>{procedures.map(p => <SelectItem key={p.name} value={p.name}>{p.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                 )}/>
-                <FormField control={form.control} name="price" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Valor Cobrado (R$) *</FormLabel>
-                        <FormControl>
-                            <Input
-                                placeholder="R$ 0,00"
-                                {...field}
-                                onChange={handleCurrencyChange}
-                                value={formatCurrencyForDisplay(field.value)}
-                            />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-              </div>
               <FormField control={form.control} name="areas" render={({ field }) => (
                 <FormItem><FormLabel>Áreas de Aplicação *</FormLabel><FormControl><Textarea placeholder="Ex: Glabela, terço superior da testa, orbicular dos olhos (pés de galinha)" {...field} /></FormControl><FormMessage /></FormItem>
               )}/>
@@ -214,22 +195,58 @@ export default function HofProceduresPage() {
           <Card>
             <CardHeader><CardTitle>Produtos Utilizados</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              {fields.map((field, index) => (
-                <div key={field.id} className="flex items-end gap-4 p-4 border rounded-lg">
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name={`productsUsed.${index}.productName`} render={({ field }) => (
-                      <FormItem><FormLabel>Produto</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl><SelectContent>{products.map(p => <SelectItem key={p.name} value={p.name}>{p.name} ({p.unit})</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                    )}/>
-                     <FormField control={form.control} name={`productsUsed.${index}.quantityUsed`} render={({ field }) => (
-                      <FormItem><FormLabel>Quantidade Utilizada</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 50" {...field} /></FormControl><FormMessage /></FormItem>
-                    )}/>
+              {fields.map((field, index) => {
+                const selectedProduct = products.find(p => p.name === watchProductsUsed[index]?.productName);
+                const itemCost = selectedProduct ? selectedProduct.cost * (watchProductsUsed[index]?.quantityUsed || 0) : 0;
+                
+                return (
+                  <div key={field.id} className="flex items-end gap-4 p-4 border rounded-lg bg-muted/30">
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                      <FormField control={form.control} name={`productsUsed.${index}.productName`} render={({ field }) => (
+                        <FormItem className="md:col-span-2"><FormLabel>Produto</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl><SelectContent>{products.map(p => <SelectItem key={p.name} value={p.name}>{p.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                      )}/>
+                       <FormField control={form.control} name={`productsUsed.${index}.quantityUsed`} render={({ field }) => (
+                        <FormItem><FormLabel>Qtd. Usada ({selectedProduct?.unit || 'unid.'})</FormLabel><FormControl><Input type="number" step="0.1" placeholder="Ex: 50" {...field} /></FormControl><FormMessage /></FormItem>
+                      )}/>
+                       <FormItem>
+                          <FormLabel>Custo do Item</FormLabel>
+                          <div className="flex items-center h-10 rounded-md border border-input bg-background px-3 py-2 text-sm font-semibold">
+                            {formatCurrency(itemCost)}
+                          </div>
+                      </FormItem>
+                    </div>
+                    <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
-                  <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
-                </div>
-              ))}
+                );
+              })}
               <Button type="button" variant="outline" size="sm" onClick={() => append({ productName: "", quantityUsed: 1 })}><PlusCircle className="h-4 w-4 mr-2"/>Adicionar Produto</Button>
             </CardContent>
           </Card>
+
+           <Card>
+                <CardHeader><CardTitle>Resumo Financeiro</CardTitle></CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <FormField control={form.control} name="price" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Valor Cobrado (R$) *</FormLabel>
+                            <FormControl><Input type="number" step="0.01" placeholder="R$ 0,00" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
+                     <div className="space-y-2">
+                        <Label>Custo Total dos Produtos</Label>
+                        <div className="flex items-center h-10 rounded-md border border-input bg-muted px-3 py-2 text-sm">
+                            {formatCurrency(totalProductCost)}
+                        </div>
+                    </div>
+                     <div className="space-y-2">
+                        <Label>Lucro Bruto (Valor - Custo)</Label>
+                        <div className={`flex items-center h-10 rounded-md border border-input px-3 py-2 text-sm font-bold ${grossProfit < 0 ? 'bg-destructive/10 text-destructive' : 'bg-green-100/60 text-green-700'}`}>
+                            {formatCurrency(grossProfit)}
+                        </div>
+                    </div>
+                </CardContent>
+           </Card>
           
            <Card>
             <CardHeader><CardTitle>Registro Fotográfico</CardTitle><CardDescription>Adicione as fotos de antes e depois.</CardDescription></CardHeader>
