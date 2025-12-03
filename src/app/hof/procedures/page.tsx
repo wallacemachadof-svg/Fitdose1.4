@@ -44,8 +44,8 @@ const hofProcedureFormSchema = z.object({
   areas: z.string().min(3, "Descreva as áreas de aplicação."),
   productsUsed: z.array(productUsedSchema).min(1, "Adicione pelo menos um produto."),
   photos: z.object({
-    before: z.string().optional(),
-    after: z.string().optional(),
+    before: z.array(z.string()).optional(),
+    after: z.array(z.string()).optional(),
   }).optional(),
   notes: z.string().optional(),
   followUpDate: z.date().optional(),
@@ -61,14 +61,15 @@ export default function HofProceduresPage() {
   const [procedures, setProcedures] = useState<HofProcedure[]>([]);
   const [products, setProducts] = useState<HofProduct[]>([]);
   
-  const [beforeImagePreview, setBeforeImagePreview] = useState<string | null>(null);
-  const [afterImagePreview, setAfterImagePreview] = useState<string | null>(null);
+  const [beforeImagePreviews, setBeforeImagePreviews] = useState<string[]>([]);
+  const [afterImagePreviews, setAfterImagePreviews] = useState<string[]>([]);
 
   const form = useForm<HofProcedureFormValues>({
     resolver: zodResolver(hofProcedureFormSchema),
     defaultValues: {
       date: new Date(),
       productsUsed: [],
+      photos: { before: [], after: [] }
     },
   });
 
@@ -107,22 +108,46 @@ export default function HofProceduresPage() {
   }, [watchProcedureName, procedures, form, replace]);
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'before' | 'after') => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string;
-        if (type === 'before') {
-          setBeforeImagePreview(dataUrl);
-          form.setValue("photos.before", dataUrl);
-        } else {
-          setAfterImagePreview(dataUrl);
-          form.setValue("photos.after", dataUrl);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+      const files = Array.from(e.target.files || []);
+      const currentPreviews = type === 'before' ? beforeImagePreviews : afterImagePreviews;
+      
+      if (currentPreviews.length + files.length > 10) {
+          toast({ variant: 'destructive', title: 'Limite de fotos excedido', description: 'Você pode enviar no máximo 10 fotos por categoria.' });
+          return;
+      }
+      
+      files.forEach(file => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+              const dataUrl = reader.result as string;
+              if (type === 'before') {
+                  setBeforeImagePreviews(prev => [...prev, dataUrl]);
+                  const currentPhotos = form.getValues('photos.before') || [];
+                  form.setValue('photos.before', [...currentPhotos, dataUrl]);
+              } else {
+                  setAfterImagePreviews(prev => [...prev, dataUrl]);
+                  const currentPhotos = form.getValues('photos.after') || [];
+                  form.setValue('photos.after', [...currentPhotos, dataUrl]);
+              }
+          };
+          reader.readAsDataURL(file);
+      });
   };
+
+  const removeImage = (index: number, type: 'before' | 'after') => {
+      if (type === 'before') {
+          const newPreviews = [...beforeImagePreviews];
+          newPreviews.splice(index, 1);
+          setBeforeImagePreviews(newPreviews);
+          form.setValue('photos.before', newPreviews);
+      } else {
+          const newPreviews = [...afterImagePreviews];
+          newPreviews.splice(index, 1);
+          setAfterImagePreviews(newPreviews);
+          form.setValue('photos.after', newPreviews);
+      }
+  }
+
 
   async function onSubmit(data: HofProcedureFormValues) {
     setIsSubmitting(true);
@@ -249,7 +274,7 @@ export default function HofProceduresPage() {
                                       placeholder="0,00"
                                       value={field.value ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(field.value) : ''}
                                       onChange={(e) => {
-                                        const value = e.target.value.replace(/\D/g, '');
+                                        const value = e.target.value.replace(/\\D/g, '');
                                         field.onChange(Number(value) / 100);
                                       }}
                                     />
@@ -271,23 +296,45 @@ export default function HofProceduresPage() {
            </Card>
           
            <Card>
-            <CardHeader><CardTitle>Registro Fotográfico</CardTitle><CardDescription>Adicione as fotos de antes e depois.</CardDescription></CardHeader>
+            <CardHeader><CardTitle>Registro Fotográfico</CardTitle><CardDescription>Adicione as fotos de antes e depois (até 10 por categoria).</CardDescription></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                    <Label>Foto "Antes"</Label>
-                     <div className="w-full aspect-square flex items-center justify-center rounded-md border-2 border-dashed bg-muted/50 p-2 relative">
-                        {beforeImagePreview ? <Image src={beforeImagePreview} alt="Preview" layout="fill" className="object-contain rounded-md" /> : <Camera className="h-16 w-16 text-muted-foreground" />}
+                <div className="space-y-4">
+                    <Label htmlFor="before-upload-input">Fotos "Antes"</Label>
+                     <div className="w-full min-h-[100px] flex items-center justify-center rounded-md border-2 border-dashed bg-muted/50 p-4">
+                        {beforeImagePreviews.length > 0 ? (
+                           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                {beforeImagePreviews.map((src, index) => (
+                                    <div key={index} className="relative aspect-square">
+                                        <Image src={src} alt={`Preview Antes ${index + 1}`} layout="fill" className="object-cover rounded-md" />
+                                        <Button type="button" size="icon" variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index, 'before')}>
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                ))}
+                           </div>
+                        ) : ( <div className="text-center text-muted-foreground"><Camera className="h-10 w-10 mx-auto mb-2" /><p className="text-sm">Nenhuma foto</p></div> )}
                     </div>
-                    <Button asChild variant="outline" className="w-full" type="button"><label htmlFor="before-upload" className="cursor-pointer"><Upload className="mr-2 h-4 w-4" />Enviar Foto "Antes"</label></Button>
-                    <Input id="before-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, 'before')} />
+                    <Button asChild variant="outline" className="w-full" type="button"><label htmlFor="before-upload-input" className="cursor-pointer"><Upload className="mr-2 h-4 w-4" />Enviar Fotos "Antes"</label></Button>
+                    <Input id="before-upload-input" type="file" className="hidden" accept="image/*" multiple onChange={(e) => handleImageChange(e, 'before')} />
                 </div>
-                 <div className="space-y-2">
-                    <Label>Foto "Depois"</Label>
-                     <div className="w-full aspect-square flex items-center justify-center rounded-md border-2 border-dashed bg-muted/50 p-2 relative">
-                        {afterImagePreview ? <Image src={afterImagePreview} alt="Preview" layout="fill" className="object-contain rounded-md" /> : <Camera className="h-16 w-16 text-muted-foreground" />}
+                 <div className="space-y-4">
+                    <Label htmlFor="after-upload-input">Fotos "Depois"</Label>
+                     <div className="w-full min-h-[100px] flex items-center justify-center rounded-md border-2 border-dashed bg-muted/50 p-4">
+                        {afterImagePreviews.length > 0 ? (
+                           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                {afterImagePreviews.map((src, index) => (
+                                    <div key={index} className="relative aspect-square">
+                                        <Image src={src} alt={`Preview Depois ${index + 1}`} layout="fill" className="object-cover rounded-md" />
+                                        <Button type="button" size="icon" variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index, 'after')}>
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                ))}
+                           </div>
+                        ) : ( <div className="text-center text-muted-foreground"><Camera className="h-10 w-10 mx-auto mb-2" /><p className="text-sm">Nenhuma foto</p></div> )}
                     </div>
-                    <Button asChild variant="outline" className="w-full" type="button"><label htmlFor="after-upload" className="cursor-pointer"><Upload className="mr-2 h-4 w-4" />Enviar Foto "Depois"</label></Button>
-                    <Input id="after-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, 'after')} />
+                    <Button asChild variant="outline" className="w-full" type="button"><label htmlFor="after-upload-input" className="cursor-pointer"><Upload className="mr-2 h-4 w-4" />Enviar Fotos "Depois"</label></Button>
+                    <Input id="after-upload-input" type="file" className="hidden" accept="image/*" multiple onChange={(e) => handleImageChange(e, 'after')} />
                 </div>
             </CardContent>
           </Card>

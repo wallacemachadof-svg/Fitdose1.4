@@ -266,8 +266,8 @@ export type HofProcedureRecord = {
     areas: string;
     productsUsed: ProductUsed[];
     photos?: {
-        before?: string;
-        after?: string;
+        before?: string[];
+        after?: string[];
     };
     notes?: string;
     followUpDate?: Date;
