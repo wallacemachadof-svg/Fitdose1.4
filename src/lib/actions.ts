@@ -87,6 +87,14 @@ const readData = (): MockData => {
             } else {
                 p.pointHistory = [];
             }
+            if (p.hofProcedures) {
+                p.hofProcedures.forEach(hp => {
+                    hp.date = new Date(hp.date);
+                    if (hp.followUpDate) hp.followUpDate = new Date(hp.followUpDate);
+                });
+            } else {
+                p.hofProcedures = [];
+            }
         });
         sales.forEach((s: Sale) => {
             s.saleDate = new Date(s.saleDate);
@@ -246,6 +254,28 @@ export type EndTreatmentAnamnesis = {
     feedback: string;
 }
 
+export type ProductUsed = {
+    productName: string;
+    quantityUsed: number;
+};
+
+export type HofProcedureRecord = {
+    id: string;
+    date: Date;
+    procedureName: string;
+    price: number;
+    areas: string;
+    productsUsed: ProductUsed[];
+    photos?: {
+        before?: string;
+        after?: string;
+    };
+    notes?: string;
+    followUpDate?: Date;
+};
+
+export type NewHofProcedureData = Omit<HofProcedureRecord, 'id'>;
+
 export type Patient = {
   id: string;
   fullName: string;
@@ -293,14 +323,15 @@ export type Patient = {
   terminationDate?: Date;
   terminationReason?: string;
   endTreatmentAnamnesis?: EndTreatmentAnamnesis;
+  hofProcedures?: HofProcedureRecord[];
 };
 
-export type NewPatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate' | 'creditBalance'>> & {
+export type NewPatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate' | 'creditBalance' | 'hofProcedures'>> & {
     fullName: string;
     initialWeight: number;
     height: number;
 };
-export type UpdatePatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate' | 'creditBalance'>>;
+export type UpdatePatientData = Partial<Omit<Patient, 'id' | 'doses' | 'evolutions' | 'points' | 'pointHistory' | 'consentDate' | 'creditBalance' | 'hofProcedures'>>;
 
 
 export type Dose = {
@@ -520,6 +551,7 @@ export const addPatient = async (patientData: NewPatientData): Promise<Patient> 
         nutritionalAssessmentStatus: 'pending',
         foodPlanStatus: 'pending',
         treatmentStatus: 'active',
+        hofProcedures: [],
     };
 
     data.patients.push(newPatient);
@@ -1463,4 +1495,28 @@ export const reactivateTreatment = async (patientId: string): Promise<Patient> =
     return patient;
 }
 
+export const addHofProcedure = async (patientId: string, procedureData: NewHofProcedureData): Promise<Patient> => {
+    const data = readData();
+    const patientIndex = data.patients.findIndex(p => p.id === patientId);
 
+    if (patientIndex === -1) {
+        throw new Error("Paciente não encontrado.");
+    }
+
+    const patient = data.patients[patientIndex];
+
+    const newProcedure: HofProcedureRecord = {
+        id: `hof-${Date.now()}`,
+        ...procedureData
+    };
+
+    if (!patient.hofProcedures) {
+        patient.hofProcedures = [];
+    }
+    patient.hofProcedures.push(newProcedure);
+
+    data.patients[patientIndex] = patient;
+    writeData({ patients: data.patients });
+    
+    return patient;
+};
