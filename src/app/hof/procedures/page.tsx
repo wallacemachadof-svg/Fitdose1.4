@@ -135,6 +135,19 @@ export default function HofProceduresPage() {
     }
   }
 
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>, field: any) => {
+    let value = e.target.value;
+    value = value.replace(/\D/g, '');
+    value = (parseInt(value, 10) / 100).toFixed(2);
+    field.onChange(parseFloat(value));
+  };
+  
+  const formatCurrency = (value: number | undefined) => {
+      if (value === undefined || isNaN(value)) return '';
+      return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+
   return (
     <div className="space-y-6">
        <div>
@@ -170,7 +183,18 @@ export default function HofProceduresPage() {
                   <FormItem><FormLabel>Procedimento Realizado *</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl><SelectContent>{procedures.map(p => <SelectItem key={p.name} value={p.name}>{p.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="price" render={({ field }) => (
-                  <FormItem><FormLabel>Valor Cobrado (R$) *</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ex: 800.00" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem>
+                        <FormLabel>Valor Cobrado (R$) *</FormLabel>
+                        <FormControl>
+                            <Input
+                                placeholder="800,00"
+                                {...field}
+                                onChange={handleCurrencyChange}
+                                value={formatCurrency(field.value)}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
                 )}/>
               </div>
               <FormField control={form.control} name="areas" render={({ field }) => (
