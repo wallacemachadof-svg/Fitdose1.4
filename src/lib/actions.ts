@@ -18,6 +18,7 @@ const salesFilePath = path.join(dataDir, 'sales.json');
 const cashFlowFilePath = path.join(dataDir, 'cashflow.json');
 const vialsFilePath = path.join(dataDir, 'vials.json');
 const settingsFilePath = path.join(dataDir, 'settings.json');
+const hofStockFilePath = path.join(dataDir, 'hof_stock.json'); // New file for HOF stock
 const migrationFilePath = path.join(dataDir, '.migration-check');
 
 // --- Type Definitions ---
@@ -56,6 +57,7 @@ type MockData = {
     cashFlowEntries: CashFlowEntry[];
     vials: Vial[];
     settings: Settings;
+    hofStock: HofStockEntry[];
 };
 
 const readData = (): MockData => {
@@ -65,6 +67,7 @@ const readData = (): MockData => {
         const cashFlowEntries = fs.existsSync(cashFlowFilePath) ? JSON.parse(fs.readFileSync(cashFlowFilePath, 'utf-8')) : [];
         const vials = fs.existsSync(vialsFilePath) ? JSON.parse(fs.readFileSync(vialsFilePath, 'utf-8')) : [];
         const settings = fs.existsSync(settingsFilePath) ? JSON.parse(fs.readFileSync(settingsFilePath, 'utf-8')) : { dosePrices: [], dailyLateFee: 0, rewards: { pointsPerDose: [], pointsToBrl: 10 } };
+        const hofStock = fs.existsSync(hofStockFilePath) ? JSON.parse(fs.readFileSync(hofStockFilePath, 'utf-8')) : [];
 
         
         // Dates are stored as strings in JSON, so we need to convert them back to Date objects
@@ -112,8 +115,11 @@ const readData = (): MockData => {
         vials.forEach((v: Vial) => {
             v.purchaseDate = new Date(v.purchaseDate);
         });
+        hofStock.forEach((hs: HofStockEntry) => {
+            hs.purchaseDate = new Date(hs.purchaseDate);
+        });
 
-        return { patients, sales, cashFlowEntries, vials, settings };
+        return { patients, sales, cashFlowEntries, vials, settings, hofStock };
     } catch (error) {
         // If files don't exist, return empty arrays
         return { patients: [], sales: [], cashFlowEntries: [], vials: [], settings: { dosePrices: [
@@ -122,7 +128,7 @@ const readData = (): MockData => {
             { dose: "5.0", price: 430 },
             { dose: "6.25", price: 540 },
             { dose: "7.05", price: 620 }
-        ], dailyLateFee: 0, rewards: { pointsPerDose: [], pointsToBrl: 10 } } };
+        ], dailyLateFee: 0, rewards: { pointsPerDose: [], pointsToBrl: 10 } }, hofStock: [] };
     }
 };
 
@@ -135,77 +141,8 @@ const writeData = (data: Partial<MockData>) => {
     if (data.cashFlowEntries) fs.writeFileSync(cashFlowFilePath, JSON.stringify(newData.cashFlowEntries, null, 2));
     if (data.vials) fs.writeFileSync(vialsFilePath, JSON.stringify(newData.vials, null, 2));
     if (data.settings) fs.writeFileSync(settingsFilePath, JSON.stringify(newData.settings, null, 2));
+    if (data.hofStock) fs.writeFileSync(hofStockFilePath, JSON.stringify(newData.hofStock, null, 2));
 };
-
-const runMigration = () => {
-    if (fs.existsSync(migrationFilePath)) {
-        return; // Migration already ran
-    }
-    console.log("Running one-time data migration...");
-
-    const allData = readData();
-    const { patients, sales } = allData;
-    let hasChanges = false;
-
-    patients.forEach(patient => {
-        const patientSales = sales
-            .filter(s => s.patientId === patient.id && s.deliveryStatus === 'entregue')
-            .sort((a, b) => new Date(a.saleDate).getTime() - new Date(b.saleDate).getTime());
-
-        if (patientSales.length === 0) return;
-
-        hasChanges = true;
-
-        // Reset all doses to pending before reprocessing sales
-        patient.doses.forEach(dose => {
-            dose.status = 'pending';
-        });
-        const initialSchedule = generateDoseSchedule(patient.firstDoseDate || new Date());
-        patient.doses = initialSchedule;
-        
-
-        let dosesAdministeredCount = 0;
-
-        patientSales.forEach(sale => {
-            let dosesToUpdateForThisSale = sale.quantity;
-            
-            for(let i = 0; i < patient.doses.length && dosesToUpdateForThisSale > 0; i++) {
-                if (patient.doses[i].status === 'pending') {
-                    const dose = patient.doses[i];
-                    dose.status = 'administered';
-                    dose.date = sale.deliveryDate || sale.saleDate;
-                    
-                    if (sale.bioimpedance?.weight) {
-                        dose.weight = sale.bioimpedance.weight;
-                        dose.bmi = sale.bioimpedance.bmi;
-                    }
-                    dosesToUpdateForThisSale--;
-                }
-            }
-        });
-
-        // Final rescheduling pass
-        patient.doses.sort((a,b) => a.doseNumber - b.doseNumber);
-        for(let i = 1; i < patient.doses.length; i++) {
-            if(patient.doses[i].status === 'pending') {
-                const prevDoseDate = patient.doses[i-1].date;
-                const newDate = new Date(prevDoseDate);
-                newDate.setDate(newDate.getDate() + 7);
-                patient.doses[i].date = newDate;
-            }
-        }
-    });
-
-    if (hasChanges) {
-        writeData({ patients });
-        console.log("Data migration completed successfully.");
-    } else {
-        console.log("No data migration needed.");
-    }
-    
-    fs.writeFileSync(migrationFilePath, 'completed');
-}
-
 
 // --- Type Definitions ---
 
@@ -401,8 +338,6 @@ export type Sale = {
   operatorFee?: number;
   bioimpedance?: Bioimpedance;
   vialUsage?: VialUsage[];
-  deliveryStatus?: 'em agendamento' | 'entregue' | 'em processamento'; // Legacy
-  deliveryDate?: Date; // Legacy
 };
 
 export type NewSaleData = Omit<Sale, 'id' | 'patientName' | 'deliveries'> & {
@@ -479,6 +414,7 @@ export type HofProduct = {
     name: string;
     cost: number;
     unit: string;
+    stock?: number;
 };
 
 export type Settings = {
@@ -489,6 +425,16 @@ export type Settings = {
     hofProducts?: HofProduct[];
 };
 
+export type HofStockEntry = {
+    id: string;
+    productName: string;
+    quantity: number;
+    purchaseDate: Date;
+    cost: number;
+};
+
+export type NewHofStockData = Omit<HofStockEntry, 'id'>;
+
 export type StockForecast = {
   ruptureDate: Date | null;
   purchaseDeadline: Date | null;
@@ -498,7 +444,6 @@ export type StockForecast = {
 // --- Data Access Functions ---
 
 export const getPatients = async (): Promise<Patient[]> => {
-    // runMigration(); // Migration no longer needed for delivery status
     await new Promise(resolve => setTimeout(resolve, 100)); // simulate async
     const { patients } = readData();
     return [...patients].sort((a,b) => a.fullName.localeCompare(b.fullName));
@@ -1377,7 +1322,8 @@ export const resetAllData = async (): Promise<void> => {
                 pointsPerDose: [],
                 pointsToBrl: 10,
             }
-        }
+        },
+        hofStock: [],
     };
     writeData(emptyData);
     if (fs.existsSync(migrationFilePath)) {
@@ -1522,4 +1468,34 @@ export const addHofProcedure = async (patientId: string, procedureData: NewHofPr
     writeData({ patients: data.patients });
     
     return patient;
+};
+
+export const getHofStock = async (): Promise<HofStockEntry[]> => {
+    const { hofStock } = readData();
+    return [...hofStock].sort((a,b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime());
+};
+
+export const addHofStock = async (stockData: NewHofStockData): Promise<HofStockEntry> => {
+    const data = readData();
+    const newId = `hof-stock-${Date.now()}`;
+    const newStockEntry: HofStockEntry = {
+        id: newId,
+        ...stockData,
+    };
+    data.hofStock.push(newStockEntry);
+
+    // Create cash flow entry for the purchase
+    const cashFlowEntry: CashFlowEntry = {
+        id: `hof-purchase-${newId}`,
+        type: 'saida',
+        purchaseDate: newStockEntry.purchaseDate,
+        description: `Compra HOF: ${newStockEntry.quantity}x ${newStockEntry.productName}`,
+        amount: newStockEntry.cost,
+        status: 'pago',
+        paymentMethod: 'pix', // Assuming default, can be enhanced later
+    };
+    data.cashFlowEntries.push(cashFlowEntry);
+
+    writeData({ hofStock: data.hofStock, cashFlowEntries: data.cashFlowEntries });
+    return newStockEntry;
 };
