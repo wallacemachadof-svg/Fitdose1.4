@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { calculateBmi } from "./utils";
@@ -470,6 +469,10 @@ export type RewardsSettings = {
 export type HofProcedure = {
     name: string;
     price: number;
+    defaultProducts?: {
+        productName: string;
+        quantityUsed: number;
+    }[];
 };
 
 export type HofProduct = {
@@ -646,10 +649,10 @@ export const deletePatient = async (id: string): Promise<void> => {
     const index = data.patients.findIndex(p => p.id === id);
     if (index !== -1) {
         data.patients.splice(index, 1);
-        writeData({ patients: data.patients });
     } else {
         throw new Error("Patient not found");
     }
+    writeData({ patients: data.patients });
     await new Promise(resolve => setTimeout(resolve, 100));
 };
 

@@ -1,3 +1,4 @@
+
 {
   "dosePrices": [
     {
@@ -29,100 +30,103 @@
   "hofProcedures": [
     {
       "name": "Toxina Botulínica - Terço Superior Completo",
-      "price": 0
-    },
-    {
-      "name": "Toxina Botulínica - Glabela (entre sobrancelhas)",
-      "price": 0
-    },
-    {
-      "name": "Toxina Botulínica - Testa",
-      "price": 0
-    },
-    {
-      "name": "Toxina Botulínica - Olhos (pés de galinha)",
-      "price": 0
-    },
-    {
-      "name": "Toxina Botulínica - Sorriso Gengival",
-      "price": 0
-    },
-    {
-      "name": "Toxina Botulínica - Bruxismo / Hipertrofia Masseter",
-      "price": 0
-    },
-    {
-      "name": "Toxina Botulínica - Contorno Mandibular (Nefertiti)",
-      "price": 0
+      "price": 0,
+      "defaultProducts": [
+        {
+          "productName": "Toxina Botulínica (Dysport 500U)",
+          "quantityUsed": 50
+        },
+        {
+          "productName": "Anestésico Tópico",
+          "quantityUsed": 1
+        }
+      ]
     },
     {
       "name": "Preenchimento Labial",
-      "price": 0
-    },
-    {
-      "name": "Preenchimento de Olheiras",
-      "price": 0
-    },
-    {
-      "name": "Preenchimento de Bigode Chinês (Sulco Nasogeniano)",
-      "price": 0
-    },
-    {
-      "name": "Preenchimento de Malar (Maçãs do Rosto)",
-      "price": 0
-    },
-    {
-      "name": "Preenchimento de Mandíbula",
-      "price": 0
-    },
-    {
-      "name": "Preenchimento de Mento (Queixo)",
-      "price": 0
-    },
-    {
-      "name": "Rinomodelação",
-      "price": 0
+      "price": 0,
+      "defaultProducts": [
+        {
+          "productName": "Ácido Hialurônico (Restylane 1ml)",
+          "quantityUsed": 1
+        },
+        {
+          "productName": "Anestésico Lidocaína",
+          "quantityUsed": 1
+        }
+      ]
     },
     {
       "name": "Bioestimulador de Colágeno - Sculptra (Face)",
-      "price": 0
+      "price": 0,
+      "defaultProducts": [
+        {
+          "productName": "Sculptra (1 frasco)",
+          "quantityUsed": 1
+        }
+      ]
     },
     {
-      "name": "Bioestimulador de Colágeno - Radiesse (Face)",
-      "price": 0
-    },
-    {
-      "name": "Bioestimulador de Colágeno - Corpo (Abdômen)",
-      "price": 0
-    },
-    {
-      "name": "Bioestimulador de Colágeno - Corpo (Glúteos)",
-      "price": 0
-    },
-    {
-      "name": "Fios de PDO - Fox Eyes",
-      "price": 0
-    },
-    {
-      "name": "Fios de PDO - Lifting Facial",
-      "price": 0
-    },
-    {
-      "name": "Fios de PDO - bioestímulo (lisos)",
-      "price": 0
-    },
-    {
-      "name": "Intradermoterapia - Lipo de Papada Enzimática",
-      "price": 0
-    },
-    {
-      "name": "Intradermoterapia - Gordura Localizada (Abdômen)",
-      "price": 0
-    },
-    {
-      "name": "Skinbooster (Hidratação Injetável)",
-      "price": 0
+      "name": "Rinomodelação",
+      "price": 0,
+      "defaultProducts": [
+        {
+          "productName": "Ácido Hialurônico (Rennova Lift 1ml)",
+          "quantityUsed": 1
+        }
+      ]
     }
   ],
-  "hofProducts": []
+  "hofProducts": [
+    {
+      "name": "Toxina Botulínica (Dysport 500U)",
+      "cost": 650,
+      "unit": "frasco"
+    },
+    {
+      "name": "Toxina Botulínica (Botox 100U)",
+      "cost": 580,
+      "unit": "frasco"
+    },
+    {
+      "name": "Ácido Hialurônico (Restylane 1ml)",
+      "cost": 450,
+      "unit": "seringa"
+    },
+    {
+      "name": "Ácido Hialurônico (Rennova Lift 1ml)",
+      "cost": 380,
+      "unit": "seringa"
+    },
+    {
+      "name": "Sculptra (1 frasco)",
+      "cost": 1200,
+      "unit": "frasco"
+    },
+    {
+      "name": "Radiesse (1.5ml)",
+      "cost": 950,
+      "unit": "seringa"
+    },
+    {
+      "name": "Anestésico Tópico",
+      "cost": 50,
+      "unit": "tubo"
+    },
+    {
+      "name": "Anestésico Lidocaína",
+      "cost": 30,
+      "unit": "ampola"
+    },
+    {
+      "name": "Microcânula 22G",
+      "cost": 25,
+      "unit": "unidade"
+    },
+    {
+      "name": "Fios de PDO (Liso - 10 un)",
+      "cost": 150,
+      "unit": "pacote"
+    }
+  ]
 }

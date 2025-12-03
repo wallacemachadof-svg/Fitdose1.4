@@ -2,7 +2,7 @@
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -68,11 +68,11 @@ export default function HofProceduresPage() {
     resolver: zodResolver(hofProcedureFormSchema),
     defaultValues: {
       date: new Date(),
-      productsUsed: [{ productName: "", quantityUsed: 1 }],
+      productsUsed: [],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: "productsUsed",
   });
@@ -96,8 +96,13 @@ export default function HofProceduresPage() {
     const procedure = procedures.find(p => p.name === watchProcedureName);
     if (procedure) {
       form.setValue("price", procedure.price);
+      if (procedure.defaultProducts && procedure.defaultProducts.length > 0) {
+        replace(procedure.defaultProducts);
+      } else {
+        replace([]); // Clear products if the new procedure has no defaults
+      }
     }
-  }, [watchProcedureName, procedures, form]);
+  }, [watchProcedureName, procedures, form, replace]);
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'before' | 'after') => {
     const file = e.target.files?.[0];
@@ -117,7 +122,6 @@ export default function HofProceduresPage() {
     }
   };
 
-
   async function onSubmit(data: HofProcedureFormValues) {
     setIsSubmitting(true);
     try {
@@ -135,16 +139,20 @@ export default function HofProceduresPage() {
     }
   }
 
-  const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>, field: any) => {
-    let value = e.target.value;
-    value = value.replace(/\D/g, '');
-    value = (parseInt(value, 10) / 100).toFixed(2);
-    field.onChange(parseFloat(value));
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value, name } = e.target;
+    let numericValue = value.replace(/\D/g, '');
+    if (numericValue === '') {
+        form.setValue(name as keyof HofProcedureFormValues, 0);
+        return;
+    }
+    const formattedValue = (parseInt(numericValue, 10) / 100);
+    form.setValue(name as keyof HofProcedureFormValues, formattedValue);
   };
   
-  const formatCurrency = (value: number | undefined) => {
+  const formatCurrencyForDisplay = (value: number | undefined) => {
       if (value === undefined || isNaN(value)) return '';
-      return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
 
@@ -187,10 +195,10 @@ export default function HofProceduresPage() {
                         <FormLabel>Valor Cobrado (R$) *</FormLabel>
                         <FormControl>
                             <Input
-                                placeholder="800,00"
+                                placeholder="R$ 0,00"
                                 {...field}
                                 onChange={handleCurrencyChange}
-                                value={formatCurrency(field.value)}
+                                value={formatCurrencyForDisplay(field.value)}
                             />
                         </FormControl>
                         <FormMessage />
