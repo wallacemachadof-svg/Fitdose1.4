@@ -24,7 +24,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { useToast } from "@/hooks/use-toast";
 import { getPatients, getSettings, addHofProcedure, type Patient, type HofProcedure, type HofProduct } from "@/lib/actions";
-import { Loader2, PlusCircle, Trash2, CalendarIcon, Upload, Camera, ClipboardList, DollarSign } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, CalendarIcon, Upload, Camera, ClipboardList, DollarSign, Wand2 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -152,6 +152,7 @@ export default function HofProceduresPage() {
   }, [watchProductsUsed, products]);
 
   const grossProfit = watchPrice - totalProductCost;
+  const suggestedPrice = totalProductCost * 2;
 
   return (
     <div className="space-y-6">
@@ -225,20 +226,41 @@ export default function HofProceduresPage() {
 
            <Card>
                 <CardHeader><CardTitle>Resumo Financeiro</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <FormField control={form.control} name="price" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Valor Cobrado (R$) *</FormLabel>
-                            <FormControl><Input type="number" step="0.01" placeholder="R$ 0,00" {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}/>
-                     <div className="space-y-2">
+                <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                    <div className="space-y-2">
                         <Label>Custo Total dos Produtos</Label>
                         <div className="flex items-center h-10 rounded-md border border-input bg-muted px-3 py-2 text-sm">
                             {formatCurrency(totalProductCost)}
                         </div>
                     </div>
+                     <div className="space-y-2">
+                        <Label>Preço Sugerido (100% Margem)</Label>
+                        <div className="flex items-center h-10 rounded-md border-dashed border-primary bg-primary/10 px-3 py-2 text-sm font-bold text-primary">
+                            {formatCurrency(suggestedPrice)}
+                        </div>
+                    </div>
+                    <FormField control={form.control} name="price" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Valor Cobrado (R$)</FormLabel>
+                            <div className="flex items-center gap-2">
+                                <FormControl>
+                                    <Input 
+                                      type="text"
+                                      placeholder="0,00"
+                                      value={field.value ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(field.value) : ''}
+                                      onChange={(e) => {
+                                        const value = e.target.value.replace(/\D/g, '');
+                                        field.onChange(Number(value) / 100);
+                                      }}
+                                    />
+                                </FormControl>
+                                <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => form.setValue('price', suggestedPrice)}>
+                                    <Wand2 />
+                                </Button>
+                            </div>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
                      <div className="space-y-2">
                         <Label>Lucro Bruto (Valor - Custo)</Label>
                         <div className={`flex items-center h-10 rounded-md border border-input px-3 py-2 text-sm font-bold ${grossProfit < 0 ? 'bg-destructive/10 text-destructive' : 'bg-green-100/60 text-green-700'}`}>
