@@ -413,8 +413,8 @@ export type HofProcedure = {
 export type HofProduct = {
     name: string;
     cost: number;
+    sellingPrice?: number;
     unit: string;
-    stock?: number;
 };
 
 export type Settings = {

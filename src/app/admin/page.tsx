@@ -41,8 +41,10 @@ const hofProcedureSchema = z.object({
 const hofProductSchema = z.object({
     name: z.string().min(1, "O nome do produto é obrigatório."),
     cost: z.coerce.number().min(0, "O custo deve ser um valor positivo."),
+    sellingPrice: z.coerce.number().min(0).optional(),
     unit: z.string().min(1, "A unidade é obrigatória (ex: frasco, seringa)."),
 });
+
 
 const settingsFormSchema = z.object({
   dosePrices: z.array(dosePriceSchema),
@@ -307,19 +309,28 @@ export default function AdminPage() {
                            <div className="pt-4">
                                 <h3 className="text-md font-semibold">Produtos de HOF</h3>
                                 <Table>
-                                    <TableHeader><TableRow><TableHead>Nome do Produto</TableHead><TableHead>Custo (R$)</TableHead><TableHead>Unidade</TableHead><TableHead className="text-right">Ação</TableHead></TableRow></TableHeader>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Nome do Produto</TableHead>
+                                            <TableHead>Custo de Compra</TableHead>
+                                            <TableHead>Preço de Venda</TableHead>
+                                            <TableHead>Unidade</TableHead>
+                                            <TableHead className="text-right">Ação</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
                                     <TableBody>
                                         {productFields.map((field, index) => (
                                             <TableRow key={field.id}>
                                                 <TableCell><FormField control={form.control} name={`hofProducts.${index}.name`} render={({ field }) => (<FormItem><FormControl><Input placeholder="Ex: Toxina Dysport" {...field} /></FormControl><FormMessage /></FormItem>)} /></TableCell>
                                                 <TableCell><FormField control={form.control} name={`hofProducts.${index}.cost`} render={({ field }) => (<FormItem><FormControl><Input type="number" step="0.01" placeholder="Ex: 600.00" {...field} /></FormControl><FormMessage /></FormItem>)} /></TableCell>
+                                                <TableCell><FormField control={form.control} name={`hofProducts.${index}.sellingPrice`} render={({ field }) => (<FormItem><FormControl><Input type="number" step="0.01" placeholder="Ex: 1200.00" {...field} /></FormControl><FormMessage /></FormItem>)} /></TableCell>
                                                 <TableCell><FormField control={form.control} name={`hofProducts.${index}.unit`} render={({ field }) => (<FormItem><FormControl><Input placeholder="frasco" {...field} /></FormControl><FormMessage /></FormItem>)} /></TableCell>
                                                 <TableCell className="text-right"><Button type="button" variant="ghost" size="icon" onClick={() => removeProduct(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
-                                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => appendProduct({ name: "", cost: 0, unit: "frasco" })}><PlusCircle className="h-4 w-4 mr-2" />Adicionar Produto</Button>
+                                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => appendProduct({ name: "", cost: 0, sellingPrice: 0, unit: "frasco" })}><PlusCircle className="h-4 w-4 mr-2" />Adicionar Produto</Button>
                            </div>
                         </CardContent>
                     </Card>

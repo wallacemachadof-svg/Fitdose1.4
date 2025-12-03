@@ -177,7 +177,7 @@ export default function HofStockPage() {
                     <TableRow>
                         <TableHead>Produto</TableHead>
                         <TableHead>Estoque Atual</TableHead>
-                        <TableHead>Custo Unitário</TableHead>
+                        <TableHead>Custo de Compra (Padrão)</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                 </TableHeader>
