@@ -24,7 +24,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { useToast } from "@/hooks/use-toast";
 import { getPatients, getSettings, addHofProcedure, type Patient, type HofProcedure, type HofProduct } from "@/lib/actions";
-import { Loader2, PlusCircle, Trash2, CalendarIcon, Upload, Camera } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, CalendarIcon, Upload, Camera, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
