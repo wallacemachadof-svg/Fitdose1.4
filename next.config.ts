@@ -42,7 +42,11 @@ const nextConfig: NextConfig = {
     allowedDevOrigins: [
       '*.cluster-hkcruqmgzbd2aqcdnktmz6k7ba.cloudworkstations.dev',
     ],
-  }
+  },
+  // Ensure the server starts on the correct port in production environments
+  devServer: {
+    port: parseInt(process.env.PORT || "3000"),
+  },
 };
 
 export default nextConfig;
