@@ -1,8 +1,8 @@
 
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Suspense, useEffect } from 'react';
+import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import FoodPlanDisplay from './food-plan';
 
@@ -17,8 +17,13 @@ function ClientLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
 }
 
+type PageProps = {
+    params: {
+        patientId: string;
+    };
+};
 
-export default function FoodPlanPage({ params }: { params: { patientId: string } }) {
+export default function FoodPlanPage({ params }: PageProps) {
     return (
        <ClientLayout>
             <Suspense fallback={<Card className="w-full max-w-4xl h-96 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></Card>}>
